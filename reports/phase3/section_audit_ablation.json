@@ -1,0 +1,195 @@
+{
+  "method": "13 filings re-parsed with scripts/reparse_corpus.py under each subset of three candidate parser changes, then scored with scripts/audit_sections.py. 'none' is the committed parser. The changes were NOT kept (D3-00).",
+  "filings": [
+    "AAPL_2024",
+    "AMZN_2024",
+    "BAC_2024",
+    "BLK_2025",
+    "GOOGL_2024",
+    "GS_2024",
+    "IVZ_2024",
+    "JPM_2024",
+    "MSFT_2025",
+    "NFLX_2024",
+    "STT_2024",
+    "TROW_2024",
+    "WFC_2024"
+  ],
+  "changes": {
+    "A": "extend _ITEM_RECOVERY_PATTERNS to the other audited item headings",
+    "B": "anchor the Item-N patterns at line start (optional 'Part N' prefix)",
+    "C": "cap the TOC skip zone at 250 absolute lines (was 15% of lines)"
+  },
+  "text_path_sections": [
+    "item_1_business",
+    "item_1a_risk_factors",
+    "item_1c_cyber",
+    "item_3_legal",
+    "fs_income_stmt"
+  ],
+  "variants": {
+    "none": {
+      "changes_enabled": [],
+      "per_verdict": {
+        "ok": 80,
+        "missing": 41,
+        "empty": 0,
+        "too_small": 7,
+        "too_large": 15
+      },
+      "text_path_ok": {
+        "item_1_business": 11,
+        "item_1a_risk_factors": 7,
+        "item_1c_cyber": 6,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 35
+    },
+    "A": {
+      "changes_enabled": [
+        "A"
+      ],
+      "per_verdict": {
+        "ok": 81,
+        "missing": 37,
+        "empty": 0,
+        "too_small": 10,
+        "too_large": 15
+      },
+      "text_path_ok": {
+        "item_1_business": 11,
+        "item_1a_risk_factors": 6,
+        "item_1c_cyber": 8,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 36
+    },
+    "B": {
+      "changes_enabled": [
+        "B"
+      ],
+      "per_verdict": {
+        "ok": 79,
+        "missing": 40,
+        "empty": 0,
+        "too_small": 8,
+        "too_large": 16
+      },
+      "text_path_ok": {
+        "item_1_business": 10,
+        "item_1a_risk_factors": 7,
+        "item_1c_cyber": 6,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 34
+    },
+    "C": {
+      "changes_enabled": [
+        "C"
+      ],
+      "per_verdict": {
+        "ok": 80,
+        "missing": 41,
+        "empty": 0,
+        "too_small": 8,
+        "too_large": 14
+      },
+      "text_path_ok": {
+        "item_1_business": 13,
+        "item_1a_risk_factors": 7,
+        "item_1c_cyber": 5,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 36
+    },
+    "AB": {
+      "changes_enabled": [
+        "A",
+        "B"
+      ],
+      "per_verdict": {
+        "ok": 80,
+        "missing": 36,
+        "empty": 0,
+        "too_small": 11,
+        "too_large": 16
+      },
+      "text_path_ok": {
+        "item_1_business": 10,
+        "item_1a_risk_factors": 6,
+        "item_1c_cyber": 8,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 35
+    },
+    "AC": {
+      "changes_enabled": [
+        "A",
+        "C"
+      ],
+      "per_verdict": {
+        "ok": 81,
+        "missing": 37,
+        "empty": 0,
+        "too_small": 11,
+        "too_large": 14
+      },
+      "text_path_ok": {
+        "item_1_business": 13,
+        "item_1a_risk_factors": 6,
+        "item_1c_cyber": 7,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 37
+    },
+    "BC": {
+      "changes_enabled": [
+        "B",
+        "C"
+      ],
+      "per_verdict": {
+        "ok": 79,
+        "missing": 39,
+        "empty": 0,
+        "too_small": 9,
+        "too_large": 16
+      },
+      "text_path_ok": {
+        "item_1_business": 12,
+        "item_1a_risk_factors": 7,
+        "item_1c_cyber": 5,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 35
+    },
+    "ABC": {
+      "changes_enabled": [
+        "A",
+        "B",
+        "C"
+      ],
+      "per_verdict": {
+        "ok": 80,
+        "missing": 35,
+        "empty": 0,
+        "too_small": 12,
+        "too_large": 16
+      },
+      "text_path_ok": {
+        "item_1_business": 12,
+        "item_1a_risk_factors": 6,
+        "item_1c_cyber": 7,
+        "item_3_legal": 1,
+        "fs_income_stmt": 10
+      },
+      "text_path_ok_total": 36
+    }
+  }
+}

@@ -17,6 +17,7 @@ from llm.errors import (
     LLMAuthError,
     LLMBadOutput,
     LLMBudgetExceeded,
+    LLMEmptyOutput,
     LLMRateLimited,
     LLMUnavailable,
 )
@@ -181,13 +182,48 @@ def test_server_error_retries_then_gives_up(providers_file, tmp_path, monkeypatc
     assert len(session.requests) == 6
 
 
-def test_empty_content_is_bad_output(providers_file, tmp_path):
-    """Reasoning models can spend max_tokens on reasoning and return nothing."""
-    empty = _Resp(200, {"choices": [{"message": {"content": "", "reasoning": "..."}}],
-                        "usage": {}})
-    c, _ = _client(providers_file, tmp_path, [empty, empty])
-    with pytest.raises(LLMBadOutput):
+def _empty_resp():
+    return _Resp(200, {
+        "choices": [{"message": {"content": "", "reasoning": "long thoughts"},
+                     "finish_reason": "length"}],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 200},
+    })
+
+
+def test_empty_content_is_empty_output(providers_file, tmp_path):
+    """Reasoning models can spend max_tokens on reasoning and return nothing.
+
+    P1-00 measured this on v1's classifier: with max_tokens=200, gpt-oss-20b
+    returned 0 characters of content for 3 of 4 questions.
+    """
+    c, _ = _client(providers_file, tmp_path, [_empty_resp(), _empty_resp()])
+    with pytest.raises(LLMEmptyOutput):
         c.complete(role="generator", messages=[{"role": "user", "content": "q"}])
+
+
+def test_empty_output_fails_over_to_the_next_entry(providers_file, tmp_path):
+    """An empty reply is a model-capability problem, so try the next model.
+
+    A repair retry cannot help - the model would reason just as long again -
+    but the next entry may not be a reasoning model.
+    """
+    c, session = _client(providers_file, tmp_path, [_empty_resp(), _ok("from beta")])
+    out = c.complete(role="generator", messages=[{"role": "user", "content": "q"}])
+    assert out.content == "from beta"
+    assert out.provider == "beta"
+    assert len(session.requests) == 2
+
+
+def test_empty_output_is_a_bad_output_subclass():
+    """So callers that only know about LLMBadOutput still behave sanely."""
+    assert issubclass(LLMEmptyOutput, LLMBadOutput)
+
+
+def test_empty_output_message_names_the_finish_reason(providers_file, tmp_path):
+    c, _ = _client(providers_file, tmp_path, [_empty_resp(), _empty_resp()])
+    with pytest.raises(LLMEmptyOutput) as exc:
+        c.complete(role="generator", messages=[{"role": "user", "content": "q"}])
+    assert "length" in str(exc.value)
 
 
 def test_reasoning_field_is_never_returned_as_the_answer(providers_file, tmp_path):

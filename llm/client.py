@@ -49,6 +49,7 @@ from llm.errors import (
     LLMAuthError,
     LLMBadOutput,
     LLMBudgetExceeded,
+    LLMEmptyOutput,
     LLMRateLimited,
     LLMUnavailable,
 )
@@ -258,6 +259,7 @@ class LLMClient:
         messages = [dict(m) for m in messages]
         last_rate_limit: Optional[LLMRateLimited] = None
         last_unavailable: Optional[LLMUnavailable] = None
+        last_empty: Optional[LLMEmptyOutput] = None
         auth_errors: List[LLMAuthError] = []
 
         for entry in candidates:
@@ -301,6 +303,14 @@ class LLMClient:
                 logger.warning(f"llm: rate limited on {entry.key}: {exc}")
                 last_rate_limit = exc
                 continue
+            except LLMEmptyOutput as exc:
+                # No answer text at all. A repair retry would not help (the
+                # model would reason just as long again), but the next entry
+                # may not be a reasoning model, so fail over. Measured in
+                # P1-00; see LLMEmptyOutput's docstring.
+                logger.warning(f"llm: empty output from {entry.key}: {exc}")
+                last_empty = exc
+                continue
             except LLMUnavailable as exc:
                 logger.warning(f"llm: unavailable {entry.key}: {exc}")
                 last_unavailable = exc
@@ -321,6 +331,8 @@ class LLMClient:
             raise auth_errors[0]
         if last_unavailable is not None:
             raise last_unavailable
+        if last_empty is not None:
+            raise last_empty
         raise LLMUnavailable(f"All candidates failed for role '{role}'")
 
     def _call_entry(
@@ -539,9 +551,11 @@ def _parse_success(resp: requests.Response, entry: Entry) -> Tuple[str, Dict[str
     # answer text is returned; the reasoning is never parsed as the answer.
     content = (message.get("content") or "").strip()
     if not content:
-        raise LLMBadOutput(
-            "message.content was empty (max_tokens may have been consumed by "
-            "reasoning tokens)",
+        finish = (data.get("choices") or [{}])[0].get("finish_reason")
+        raise LLMEmptyOutput(
+            f"message.content was empty (finish_reason={finish!r}); on a "
+            f"reasoning model max_tokens was likely consumed by the chain of "
+            f"thought before any answer was emitted",
             raw=json.dumps(data)[:400], provider=entry.provider, model=entry.model,
         )
     usage = data.get("usage") or {}

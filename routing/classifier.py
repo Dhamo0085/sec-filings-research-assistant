@@ -108,11 +108,21 @@ VALID_QUERY_TYPES = {"single_doc", "multi_doc", "temporal", "out_of_scope"}
 # (spec section 9 rule 6).
 PROMPT_VERSION = "classifier-v1"
 
-# Reasoning models (Groq's gpt-oss family) spend completion tokens on the
-# chain of thought before emitting the answer, so v1's max_tokens=200 can be
-# consumed entirely by reasoning and return empty content. P1-00 measured 124
-# and 158 completion tokens for the two gpt-oss models on this prompt.
-_ROUTER_MAX_TOKENS = 700
+# Reasoning models (Groq's gpt-oss family) bill their chain of thought against
+# max_tokens and emit it before the answer, so a budget that is merely generous
+# can still be consumed entirely by reasoning, returning empty content with
+# finish_reason="length".
+#
+# MEASURED in P1-00 against v1's unmodified classifier on gpt-oss-20b:
+#   max_tokens=200 (v1's value) -> 3 of 4 questions returned 0 chars of
+#     content, which v1's `except Exception` rendered as
+#     "Which company are you asking about?" (4 of 9 baseline questions failed
+#     this way);
+#   max_tokens=700 -> 3 of 4 fixed, but "What are Apple's reportable
+#     segments?" still consumed all 700 on reasoning.
+# Hence 1600, plus llm/client.py failing over to a non-reasoning model on
+# LLMEmptyOutput: a budget alone cannot bound an unbounded chain of thought.
+_ROUTER_MAX_TOKENS = 1600
 
 def _system_prompt() -> str:
     """Build the classifier prompt, naming the fiscal years actually indexed."""

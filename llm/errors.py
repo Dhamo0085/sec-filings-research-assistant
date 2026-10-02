@@ -61,6 +61,27 @@ class LLMBadOutput(LLMError):
         super().__init__(message, provider=provider, model=model)
 
 
+class LLMEmptyOutput(LLMBadOutput):
+    """The model returned no answer text.
+
+    Distinguished from a malformed reply because the cause and the remedy
+    differ. Reasoning models (Groq's gpt-oss family) emit their chain of
+    thought before the answer and bill it against max_tokens, so a budget that
+    is merely generous can still be consumed entirely by reasoning, leaving
+    message.content empty with finish_reason="length".
+
+    P1-00 measured this on v1's unmodified classifier: with max_tokens=200,
+    three of four questions returned 0 characters of content, which v1's
+    `except Exception` turned into "Which company are you asking about?".
+    Raising the budget to 700 fixed two of them and "What are Apple's
+    reportable segments?" still overflowed.
+
+    A repair retry cannot help -- the model would reason just as long again --
+    so this is a reason to FAIL OVER to the next entry, which may not be a
+    reasoning model. A malformed-but-present reply still gets the repair retry.
+    """
+
+
 class LLMBudgetExceeded(LLMRateLimited):
     """Our own configured budget stopped the call before the provider did.
 

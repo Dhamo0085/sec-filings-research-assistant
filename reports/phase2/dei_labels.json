@@ -1,0 +1,2061 @@
+{
+  "checked_at_utc": "2026-10-02T15:51:17.901681+00:00",
+  "filings_per_ticker": 5,
+  "offline": true,
+  "dry_run": false,
+  "catalog_written": true,
+  "counts": {
+    "match": 65
+  },
+  "mismatches": [],
+  "multi_document_filings": [
+    {
+      "ticker": "AAPL",
+      "accession": "0000320193-22-000108",
+      "documents": [
+        "aapl-20220924.htm",
+        "a10-kexhibit21109242022.htm",
+        "a10-kexhibit23109242022.htm",
+        "a10-kexhibit31109242022.htm",
+        "a10-kexhibit31209242022.htm",
+        "a10-kexhibit32109242022.htm",
+        "a10-kexhibit4109242022.htm"
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "accession": "0000320193-21-000105",
+      "documents": [
+        "aapl-20210925.htm",
+        "a10-kexhibit2119252021.htm",
+        "a10-kexhibit2319252021.htm",
+        "a10-kexhibit3119252021.htm",
+        "a10-kexhibit3129252021.htm",
+        "a10-kexhibit3219252021.htm",
+        "a10-kexhibit419252021.htm"
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "accession": "0001018724-23-000004",
+      "documents": [
+        "amzn-20221231.htm",
+        "amzn-20221231xex211.htm",
+        "amzn-20221231xex231.htm",
+        "amzn-20221231xex311.htm",
+        "amzn-20221231xex312.htm",
+        "amzn-20221231xex321.htm",
+        "amzn-20221231xex322.htm"
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "accession": "0001018724-22-000005",
+      "documents": [
+        "amzn-20211231.htm",
+        "amzn-20211231xex107.htm",
+        "amzn-20211231xex108.htm",
+        "amzn-20211231xex211.htm",
+        "amzn-20211231xex231.htm",
+        "amzn-20211231xex311.htm",
+        "amzn-20211231xex312.htm",
+        "amzn-20211231xex321.htm"
+      ]
+    },
+    {
+      "ticker": "BAC",
+      "accession": "0000070858-23-000092",
+      "documents": [
+        "bac-20221231.htm",
+        "bac-1231202210xkex1062.htm",
+        "bac-1231202210xkex21.htm",
+        "bac-1231202210xkex22.htm",
+        "bac-1231202210xkex23.htm",
+        "bac-1231202210xkex24.htm",
+        "bac-1231202210xkex311.htm",
+        "bac-1231202210xkex312.htm"
+      ]
+    },
+    {
+      "ticker": "BAC",
+      "accession": "0000070858-22-000062",
+      "documents": [
+        "bac-20211231.htm",
+        "bac-1231202110xkex1032.htm",
+        "bac-1231202110xkex1033.htm",
+        "bac-1231202110xkex1034.htm",
+        "bac-1231202110xkex1035.htm",
+        "bac-1231202110xkex21.htm",
+        "bac-1231202110xkex23.htm",
+        "bac-1231202110xkex24.htm"
+      ]
+    },
+    {
+      "ticker": "BLK",
+      "accession": "0000950170-23-004343",
+      "documents": [
+        "blk-20221231.htm",
+        "blk-ex21_1.htm",
+        "blk-ex23_1.htm",
+        "blk-ex31_1.htm",
+        "blk-ex31_2.htm",
+        "blk-ex32_1.htm"
+      ]
+    },
+    {
+      "ticker": "BLK",
+      "accession": "0001564590-22-007117",
+      "documents": [
+        "blk-10k_20211231.htm",
+        "blk-ex211_11.htm",
+        "blk-ex231_10.htm",
+        "blk-ex311_8.htm",
+        "blk-ex312_7.htm",
+        "blk-ex321_6.htm",
+        "blk-ex412_9.htm"
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "accession": "0001652044-23-000016",
+      "documents": [
+        "goog-20221231.htm",
+        "googexhibit10083q42022.htm",
+        "googexhibit1009q42022.htm",
+        "googexhibit2101q42022.htm",
+        "googexhibit2301q42022.htm",
+        "googexhibit3101q42022.htm",
+        "googexhibit3102q42022.htm",
+        "googexhibit3201q42022.htm"
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "accession": "0001652044-22-000019",
+      "documents": [
+        "goog-20211231.htm",
+        "googexhibit10072q42021.htm",
+        "googexhibit1008q42021.htm",
+        "googexhibit2101q42021.htm",
+        "googexhibit2301q42021.htm",
+        "googexhibit3101q42021.htm",
+        "googexhibit3102q42021.htm",
+        "googexhibit3201q42021.htm"
+      ]
+    },
+    {
+      "ticker": "GS",
+      "accession": "0000886982-23-000003",
+      "documents": [
+        "gs-20221231.htm",
+        "a1037_formxofxnon-employee.htm",
+        "a1038_formofone-timeslashy.htm",
+        "a1039_formxofxyear-endxrsu.htm",
+        "a1040_formxofxyear-endxrsu.htm",
+        "a1041_formxofxyear-endxrsu.htm",
+        "a1042_formxofxyear-endxsho.htm",
+        "a1046_formxofxfixedxallowa.htm"
+      ]
+    },
+    {
+      "ticker": "GS",
+      "accession": "0001193125-22-052682",
+      "documents": [
+        "d192225d10k.htm",
+        "d192225dex1020.htm",
+        "d192225dex1039.htm",
+        "d192225dex1040.htm",
+        "d192225dex1041.htm",
+        "d192225dex1042.htm",
+        "d192225dex1043.htm",
+        "d192225dex1044.htm"
+      ]
+    },
+    {
+      "ticker": "IVZ",
+      "accession": "0000914208-23-000297",
+      "documents": [
+        "ivz-20221231.htm",
+        "ex210subsidiarylisting2022.htm",
+        "ex231pwcconsentq42022.htm",
+        "ex31110k2022.htm",
+        "ex31210k2022.htm",
+        "ex32110k2022.htm",
+        "ex32210k2022.htm"
+      ]
+    },
+    {
+      "ticker": "IVZ",
+      "accession": "0000914208-22-000319",
+      "documents": [
+        "ivz-20211231.htm",
+        "ex210subsidiarylisting2021.htm",
+        "ex231pwcconsentq42021.htm",
+        "ex31110k2021.htm",
+        "ex31210k2021.htm",
+        "ex32110k2021.htm",
+        "ex32210k2021.htm"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "accession": "0000019617-23-000231",
+      "documents": [
+        "jpm-20221231.htm",
+        "corp10k2022exhibit1018.htm",
+        "corp10k2022exhibit21.htm",
+        "corp10k2022exhibit222.htm",
+        "corp10k2022exhibit23.htm",
+        "corp10k2022exhibit311.htm",
+        "corp10k2022exhibit312.htm",
+        "corp10k2022exhibit32.htm"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "accession": "0000019617-22-000272",
+      "documents": [
+        "jpm-20211231.htm",
+        "corp10k2021exhibit1020.htm",
+        "corp10k2021exhibit1023.htm",
+        "corp10k2021exhibit21.htm",
+        "corp10k2021exhibit222.htm",
+        "corp10k2021exhibit23.htm",
+        "corp10k2021exhibit311.htm",
+        "corp10k2021exhibit312.htm"
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "accession": "0000950170-23-035122",
+      "documents": [
+        "msft-20230630.htm",
+        "msft-ex21.htm",
+        "msft-ex23_1.htm",
+        "msft-ex31_1.htm",
+        "msft-ex31_2.htm",
+        "msft-ex32_1.htm",
+        "msft-ex32_2.htm"
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "accession": "0001564590-22-026876",
+      "documents": [
+        "msft-10k_20220630.htm",
+        "msft-ex21_8.htm",
+        "msft-ex231_7.htm",
+        "msft-ex311_11.htm",
+        "msft-ex312_10.htm",
+        "msft-ex321_9.htm",
+        "msft-ex322_6.htm"
+      ]
+    },
+    {
+      "ticker": "NFLX",
+      "accession": "0001065280-23-000035",
+      "documents": [
+        "nflx-20221231.htm",
+        "ex1011-globalstockoptionag.htm",
+        "ex211-q422.htm",
+        "ex231_q422.htm",
+        "ex311_q422.htm",
+        "ex312_q422.htm",
+        "ex313_q422.htm",
+        "ex321_q422.htm"
+      ]
+    },
+    {
+      "ticker": "NFLX",
+      "accession": "0001065280-22-000036",
+      "documents": [
+        "nflx-20211231.htm",
+        "ex1011-globalstockoptionag.htm",
+        "ex1012-globalstockoptionag.htm",
+        "ex211-q421.htm",
+        "ex231_q421.htm",
+        "ex311_q421.htm",
+        "ex312_q421.htm",
+        "ex313_q421.htm"
+      ]
+    },
+    {
+      "ticker": "STT",
+      "accession": "0000093751-23-000489",
+      "documents": [
+        "stt-20221231.htm",
+        "exhibit1017-2022incentiv.htm",
+        "exhibit21-december312022.htm",
+        "exhibit23consentletterofey.htm",
+        "exhibit311-december312022.htm",
+        "exhibit312-december312022.htm",
+        "exhibit32-december312022.htm"
+      ]
+    },
+    {
+      "ticker": "STT",
+      "accession": "0000093751-22-000424",
+      "documents": [
+        "stt-20211231.htm",
+        "ex109descriptionofcompen.htm",
+        "exhibit21-december312021.htm",
+        "exhibit23consentletterofey.htm",
+        "exhibit311-december312021.htm",
+        "exhibit312-december312021.htm",
+        "exhibit32-december312021.htm",
+        "exhibit41-sttxdescriptio.htm"
+      ]
+    },
+    {
+      "ticker": "TROW",
+      "accession": "0001113169-23-000007",
+      "documents": [
+        "trow-20221231.htm",
+        "a202210k-exhibit21q42022.htm",
+        "a202210k-exhibit23q42022.htm",
+        "trow-ex31i1_q42022.htm",
+        "trow-ex31i2_q42022.htm",
+        "trow-ex32_q42022.htm"
+      ]
+    },
+    {
+      "ticker": "TROW",
+      "accession": "0001113169-22-000005",
+      "documents": [
+        "trow-20211231.htm",
+        "a202110k-exhibit21q42021.htm",
+        "a202110k-exhibit23q42021.htm",
+        "exh1023transactionagreemen.htm",
+        "exh1024-employmentagreemen.htm",
+        "exh10251formoflockupagreem.htm",
+        "exh10252formoflockupagreem.htm",
+        "exh1026valuecreationagreem.htm"
+      ]
+    },
+    {
+      "ticker": "WFC",
+      "accession": "0000072971-26-000133",
+      "documents": [
+        "wfc-20251231_d2.htm",
+        "wfc-20251231.htm"
+      ]
+    },
+    {
+      "ticker": "WFC",
+      "accession": "0000072971-25-000066",
+      "documents": [
+        "wfc-20241231.htm",
+        "wfc-20241231_d2.htm"
+      ]
+    },
+    {
+      "ticker": "WFC",
+      "accession": "0000072971-24-000064",
+      "documents": [
+        "wfc-20231231.htm",
+        "wfc-20231231_d2.htm"
+      ]
+    },
+    {
+      "ticker": "WFC",
+      "accession": "0000072971-23-000071",
+      "documents": [
+        "wfc-20221231.htm",
+        "wfc-20221231_d2.htm",
+        "wfc-1231x2022xex10a.htm",
+        "wfc-1231x2022xex10b.htm",
+        "wfc-1231x2022xex21.htm",
+        "wfc-1231x2022xex23.htm",
+        "wfc-1231x2022xex24.htm",
+        "wfc-1231x2022xex31a.htm"
+      ]
+    },
+    {
+      "ticker": "WFC",
+      "accession": "0000072971-22-000096",
+      "documents": [
+        "wfc-20211231.htm",
+        "wfc-20211231_d2.htm",
+        "wfc-1231x2021xex10a.htm",
+        "wfc-1231x2021xex10b.htm",
+        "wfc-1231x2021xex10m.htm",
+        "wfc-1231x2021xex21.htm",
+        "wfc-1231x2021xex23.htm",
+        "wfc-1231x2021xex24.htm"
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "accession": "0000320193-25-000079",
+      "ticker": "AAPL",
+      "cik": 320193,
+      "form_type": "10-K",
+      "period_end": "2025-09-27",
+      "filing_date": "2025-10-31",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "aapl-20250927.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-09-27",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Apple Inc.",
+        "EntityCentralIndexKey": "0000320193"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000320193-24-000123",
+      "ticker": "AAPL",
+      "cik": 320193,
+      "form_type": "10-K",
+      "period_end": "2024-09-28",
+      "filing_date": "2024-11-01",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "aapl-20240928.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-09-28",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Apple Inc.",
+        "EntityCentralIndexKey": "0000320193"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000320193-23-000106",
+      "ticker": "AAPL",
+      "cik": 320193,
+      "form_type": "10-K",
+      "period_end": "2023-09-30",
+      "filing_date": "2023-11-03",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "aapl-20230930.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-09-30",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Apple Inc.",
+        "EntityCentralIndexKey": "0000320193"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000320193-22-000108",
+      "ticker": "AAPL",
+      "cik": 320193,
+      "form_type": "10-K",
+      "period_end": "2022-09-24",
+      "filing_date": "2022-10-28",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "aapl-20220924.htm",
+        "a10-kexhibit21109242022.htm",
+        "a10-kexhibit23109242022.htm",
+        "a10-kexhibit31109242022.htm",
+        "a10-kexhibit31209242022.htm",
+        "a10-kexhibit32109242022.htm",
+        "a10-kexhibit4109242022.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-09-24",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Apple Inc.",
+        "EntityCentralIndexKey": "0000320193"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000320193-21-000105",
+      "ticker": "AAPL",
+      "cik": 320193,
+      "form_type": "10-K",
+      "period_end": "2021-09-25",
+      "filing_date": "2021-10-29",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "aapl-20210925.htm",
+        "a10-kexhibit2119252021.htm",
+        "a10-kexhibit2319252021.htm",
+        "a10-kexhibit3119252021.htm",
+        "a10-kexhibit3129252021.htm",
+        "a10-kexhibit3219252021.htm",
+        "a10-kexhibit419252021.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-09-25",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Apple Inc.",
+        "EntityCentralIndexKey": "0000320193"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001018724-26-000004",
+      "ticker": "AMZN",
+      "cik": 1018724,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-06",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "amzn-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "AMAZON.COM, INC.",
+        "EntityCentralIndexKey": "0001018724"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001018724-25-000004",
+      "ticker": "AMZN",
+      "cik": 1018724,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-07",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "amzn-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "AMAZON.COM, INC.",
+        "EntityCentralIndexKey": "0001018724"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001018724-24-000008",
+      "ticker": "AMZN",
+      "cik": 1018724,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-02",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "amzn-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "AMAZON.COM, INC.",
+        "EntityCentralIndexKey": "0001018724"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001018724-23-000004",
+      "ticker": "AMZN",
+      "cik": 1018724,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-03",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "amzn-20221231.htm",
+        "amzn-20221231xex211.htm",
+        "amzn-20221231xex231.htm",
+        "amzn-20221231xex311.htm",
+        "amzn-20221231xex312.htm",
+        "amzn-20221231xex321.htm",
+        "amzn-20221231xex322.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "AMAZON.COM, INC.",
+        "EntityCentralIndexKey": "0001018724"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001018724-22-000005",
+      "ticker": "AMZN",
+      "cik": 1018724,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-04",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "amzn-20211231.htm",
+        "amzn-20211231xex107.htm",
+        "amzn-20211231xex108.htm",
+        "amzn-20211231xex211.htm",
+        "amzn-20211231xex231.htm",
+        "amzn-20211231xex311.htm",
+        "amzn-20211231xex312.htm",
+        "amzn-20211231xex321.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "AMAZON.COM, INC.",
+        "EntityCentralIndexKey": "0001018724"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000070858-26-000157",
+      "ticker": "BAC",
+      "cik": 70858,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-25",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "bac-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Bank of America Corporation",
+        "EntityCentralIndexKey": "0000070858"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000070858-25-000139",
+      "ticker": "BAC",
+      "cik": 70858,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-25",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "bac-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Bank of America Corporation",
+        "EntityCentralIndexKey": "0000070858"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000070858-24-000122",
+      "ticker": "BAC",
+      "cik": 70858,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-20",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "bac-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Bank of America Corporation",
+        "EntityCentralIndexKey": "0000070858"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000070858-23-000092",
+      "ticker": "BAC",
+      "cik": 70858,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-22",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "bac-20221231.htm",
+        "bac-1231202210xkex1062.htm",
+        "bac-1231202210xkex21.htm",
+        "bac-1231202210xkex22.htm",
+        "bac-1231202210xkex23.htm",
+        "bac-1231202210xkex24.htm",
+        "bac-1231202210xkex311.htm",
+        "bac-1231202210xkex312.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Bank of America Corporation",
+        "EntityCentralIndexKey": "0000070858"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000070858-22-000062",
+      "ticker": "BAC",
+      "cik": 70858,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-22",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "bac-20211231.htm",
+        "bac-1231202110xkex1032.htm",
+        "bac-1231202110xkex1033.htm",
+        "bac-1231202110xkex1034.htm",
+        "bac-1231202110xkex1035.htm",
+        "bac-1231202110xkex21.htm",
+        "bac-1231202110xkex23.htm",
+        "bac-1231202110xkex24.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Bank of America Corporation",
+        "EntityCentralIndexKey": "0000070858"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001193125-26-071966",
+      "ticker": "BLK",
+      "cik": 2012383,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-25",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "blk-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "BlackRock, Inc.",
+        "EntityCentralIndexKey": "0002012383"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000950170-25-026584",
+      "ticker": "BLK",
+      "cik": 2012383,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-25",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "blk-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "BlackRock, Inc.",
+        "EntityCentralIndexKey": "0002012383"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000950170-24-019271",
+      "ticker": "BLK",
+      "cik": 1364742,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-23",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "blk-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "BlackRock, Inc.",
+        "EntityCentralIndexKey": "0001364742"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000950170-23-004343",
+      "ticker": "BLK",
+      "cik": 1364742,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-24",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "blk-20221231.htm",
+        "blk-ex21_1.htm",
+        "blk-ex23_1.htm",
+        "blk-ex31_1.htm",
+        "blk-ex31_2.htm",
+        "blk-ex32_1.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "BlackRock, Inc.",
+        "EntityCentralIndexKey": "0001364742"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001564590-22-007117",
+      "ticker": "BLK",
+      "cik": 1364742,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-25",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "blk-10k_20211231.htm",
+        "blk-ex211_11.htm",
+        "blk-ex231_10.htm",
+        "blk-ex311_8.htm",
+        "blk-ex312_7.htm",
+        "blk-ex321_6.htm",
+        "blk-ex412_9.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "BlackRock, Inc.",
+        "EntityCentralIndexKey": "0001364742"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001652044-26-000018",
+      "ticker": "GOOGL",
+      "cik": 1652044,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-05",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "goog-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Alphabet Inc.",
+        "EntityCentralIndexKey": "0001652044"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001652044-25-000014",
+      "ticker": "GOOGL",
+      "cik": 1652044,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-05",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "goog-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Alphabet Inc.",
+        "EntityCentralIndexKey": "0001652044"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001652044-24-000022",
+      "ticker": "GOOGL",
+      "cik": 1652044,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-01-31",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "goog-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Alphabet Inc.",
+        "EntityCentralIndexKey": "0001652044"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001652044-23-000016",
+      "ticker": "GOOGL",
+      "cik": 1652044,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-03",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "goog-20221231.htm",
+        "googexhibit10083q42022.htm",
+        "googexhibit1009q42022.htm",
+        "googexhibit2101q42022.htm",
+        "googexhibit2301q42022.htm",
+        "googexhibit3101q42022.htm",
+        "googexhibit3102q42022.htm",
+        "googexhibit3201q42022.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Alphabet Inc.",
+        "EntityCentralIndexKey": "0001652044"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001652044-22-000019",
+      "ticker": "GOOGL",
+      "cik": 1652044,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-02",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "goog-20211231.htm",
+        "googexhibit10072q42021.htm",
+        "googexhibit1008q42021.htm",
+        "googexhibit2101q42021.htm",
+        "googexhibit2301q42021.htm",
+        "googexhibit3101q42021.htm",
+        "googexhibit3102q42021.htm",
+        "googexhibit3201q42021.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Alphabet Inc.",
+        "EntityCentralIndexKey": "0001652044"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000886982-26-000091",
+      "ticker": "GS",
+      "cik": 886982,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-25",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "gs-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "The Goldman Sachs Group, Inc.",
+        "EntityCentralIndexKey": "0000886982"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000886982-25-000005",
+      "ticker": "GS",
+      "cik": 886982,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-27",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "gs-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "The Goldman Sachs Group, Inc.",
+        "EntityCentralIndexKey": "0000886982"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000886982-24-000006",
+      "ticker": "GS",
+      "cik": 886982,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-23",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "gs-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "The Goldman Sachs Group, Inc.",
+        "EntityCentralIndexKey": "0000886982"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000886982-23-000003",
+      "ticker": "GS",
+      "cik": 886982,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-24",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "gs-20221231.htm",
+        "a1037_formxofxnon-employee.htm",
+        "a1038_formofone-timeslashy.htm",
+        "a1039_formxofxyear-endxrsu.htm",
+        "a1040_formxofxyear-endxrsu.htm",
+        "a1041_formxofxyear-endxrsu.htm",
+        "a1042_formxofxyear-endxsho.htm",
+        "a1046_formxofxfixedxallowa.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "The Goldman Sachs Group, Inc.",
+        "EntityCentralIndexKey": "0000886982"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001193125-22-052682",
+      "ticker": "GS",
+      "cik": 886982,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-25",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "d192225d10k.htm",
+        "d192225dex1020.htm",
+        "d192225dex1039.htm",
+        "d192225dex1040.htm",
+        "d192225dex1041.htm",
+        "d192225dex1042.htm",
+        "d192225dex1043.htm",
+        "d192225dex1044.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "The Goldman Sachs Group, Inc.",
+        "EntityCentralIndexKey": "0000886982"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000914208-26-000079",
+      "ticker": "IVZ",
+      "cik": 914208,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-24",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "ivz-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Invesco Ltd.",
+        "EntityCentralIndexKey": "0000914208"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000914208-25-000114",
+      "ticker": "IVZ",
+      "cik": 914208,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-25",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "ivz-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Invesco Ltd.",
+        "EntityCentralIndexKey": "0000914208"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000914208-24-000219",
+      "ticker": "IVZ",
+      "cik": 914208,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-21",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "ivz-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Invesco Ltd.",
+        "EntityCentralIndexKey": "0000914208"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000914208-23-000297",
+      "ticker": "IVZ",
+      "cik": 914208,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-23",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "ivz-20221231.htm",
+        "ex210subsidiarylisting2022.htm",
+        "ex231pwcconsentq42022.htm",
+        "ex31110k2022.htm",
+        "ex31210k2022.htm",
+        "ex32110k2022.htm",
+        "ex32210k2022.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Invesco Ltd.",
+        "EntityCentralIndexKey": "0000914208"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000914208-22-000319",
+      "ticker": "IVZ",
+      "cik": 914208,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-18",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "ivz-20211231.htm",
+        "ex210subsidiarylisting2021.htm",
+        "ex231pwcconsentq42021.htm",
+        "ex31110k2021.htm",
+        "ex31210k2021.htm",
+        "ex32110k2021.htm",
+        "ex32210k2021.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Invesco Ltd.",
+        "EntityCentralIndexKey": "0000914208"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001628280-26-008131",
+      "ticker": "JPM",
+      "cik": 19617,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-13",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "jpm-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "JPMorgan Chase & Co",
+        "EntityCentralIndexKey": "0000019617"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000019617-25-000270",
+      "ticker": "JPM",
+      "cik": 19617,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-14",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "jpm-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "JPMorgan Chase & Co",
+        "EntityCentralIndexKey": "0000019617"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000019617-24-000225",
+      "ticker": "JPM",
+      "cik": 19617,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-16",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "jpm-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "JPMorgan Chase & Co",
+        "EntityCentralIndexKey": "0000019617"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000019617-23-000231",
+      "ticker": "JPM",
+      "cik": 19617,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-21",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "jpm-20221231.htm",
+        "corp10k2022exhibit1018.htm",
+        "corp10k2022exhibit21.htm",
+        "corp10k2022exhibit222.htm",
+        "corp10k2022exhibit23.htm",
+        "corp10k2022exhibit311.htm",
+        "corp10k2022exhibit312.htm",
+        "corp10k2022exhibit32.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "JPMorgan Chase & Co",
+        "EntityCentralIndexKey": "0000019617"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000019617-22-000272",
+      "ticker": "JPM",
+      "cik": 19617,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-22",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "jpm-20211231.htm",
+        "corp10k2021exhibit1020.htm",
+        "corp10k2021exhibit1023.htm",
+        "corp10k2021exhibit21.htm",
+        "corp10k2021exhibit222.htm",
+        "corp10k2021exhibit23.htm",
+        "corp10k2021exhibit311.htm",
+        "corp10k2021exhibit312.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "JPMorgan Chase & Co",
+        "EntityCentralIndexKey": "0000019617"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001193125-26-323660",
+      "ticker": "MSFT",
+      "cik": 789019,
+      "form_type": "10-K",
+      "period_end": "2026-06-30",
+      "filing_date": "2026-07-29",
+      "label_inferred": 2026,
+      "label_dei": 2026,
+      "status": "match",
+      "documents": [
+        "msft-20260630.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2026",
+        "DocumentPeriodEndDate": "2026-06-30",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "MICROSOFT CORPORATION",
+        "EntityCentralIndexKey": "0000789019"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000950170-25-100235",
+      "ticker": "MSFT",
+      "cik": 789019,
+      "form_type": "10-K",
+      "period_end": "2025-06-30",
+      "filing_date": "2025-07-30",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "msft-20250630.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-06-30",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "MICROSOFT CORPORATION",
+        "EntityCentralIndexKey": "0000789019"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000950170-24-087843",
+      "ticker": "MSFT",
+      "cik": 789019,
+      "form_type": "10-K",
+      "period_end": "2024-06-30",
+      "filing_date": "2024-07-30",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "msft-20240630.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-06-30",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "MICROSOFT CORPORATION",
+        "EntityCentralIndexKey": "0000789019"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000950170-23-035122",
+      "ticker": "MSFT",
+      "cik": 789019,
+      "form_type": "10-K",
+      "period_end": "2023-06-30",
+      "filing_date": "2023-07-27",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "msft-20230630.htm",
+        "msft-ex21.htm",
+        "msft-ex23_1.htm",
+        "msft-ex31_1.htm",
+        "msft-ex31_2.htm",
+        "msft-ex32_1.htm",
+        "msft-ex32_2.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-06-30",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "MICROSOFT CORPORATION",
+        "EntityCentralIndexKey": "0000789019"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001564590-22-026876",
+      "ticker": "MSFT",
+      "cik": 789019,
+      "form_type": "10-K",
+      "period_end": "2022-06-30",
+      "filing_date": "2022-07-28",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "msft-10k_20220630.htm",
+        "msft-ex21_8.htm",
+        "msft-ex231_7.htm",
+        "msft-ex311_11.htm",
+        "msft-ex312_10.htm",
+        "msft-ex321_9.htm",
+        "msft-ex322_6.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-06-30",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "MICROSOFT CORPORATION",
+        "EntityCentralIndexKey": "0000789019"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001065280-26-000034",
+      "ticker": "NFLX",
+      "cik": 1065280,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-01-23",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "nflx-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Netflix, Inc.",
+        "EntityCentralIndexKey": "0001065280"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001065280-25-000044",
+      "ticker": "NFLX",
+      "cik": 1065280,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-01-27",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "nflx-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Netflix, Inc.",
+        "EntityCentralIndexKey": "0001065280"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001065280-24-000030",
+      "ticker": "NFLX",
+      "cik": 1065280,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-01-26",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "nflx-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Netflix, Inc.",
+        "EntityCentralIndexKey": "0001065280"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001065280-23-000035",
+      "ticker": "NFLX",
+      "cik": 1065280,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-01-26",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "nflx-20221231.htm",
+        "ex1011-globalstockoptionag.htm",
+        "ex211-q422.htm",
+        "ex231_q422.htm",
+        "ex311_q422.htm",
+        "ex312_q422.htm",
+        "ex313_q422.htm",
+        "ex321_q422.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Netflix, Inc.",
+        "EntityCentralIndexKey": "0001065280"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001065280-22-000036",
+      "ticker": "NFLX",
+      "cik": 1065280,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-01-27",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "nflx-20211231.htm",
+        "ex1011-globalstockoptionag.htm",
+        "ex1012-globalstockoptionag.htm",
+        "ex211-q421.htm",
+        "ex231_q421.htm",
+        "ex311_q421.htm",
+        "ex312_q421.htm",
+        "ex313_q421.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "Netflix, Inc.",
+        "EntityCentralIndexKey": "0001065280"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000093751-26-000124",
+      "ticker": "STT",
+      "cik": 93751,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-19",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "stt-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "STATE STREET CORPORATION",
+        "EntityCentralIndexKey": "0000093751"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000093751-25-000111",
+      "ticker": "STT",
+      "cik": 93751,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-13",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "stt-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "STATE STREET CORPORATION",
+        "EntityCentralIndexKey": "0000093751"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000093751-24-000498",
+      "ticker": "STT",
+      "cik": 93751,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-15",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "stt-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "STATE STREET CORPORATION",
+        "EntityCentralIndexKey": "0000093751"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000093751-23-000489",
+      "ticker": "STT",
+      "cik": 93751,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-16",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "stt-20221231.htm",
+        "exhibit1017-2022incentiv.htm",
+        "exhibit21-december312022.htm",
+        "exhibit23consentletterofey.htm",
+        "exhibit311-december312022.htm",
+        "exhibit312-december312022.htm",
+        "exhibit32-december312022.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "STATE STREET CORPORATION",
+        "EntityCentralIndexKey": "0000093751"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000093751-22-000424",
+      "ticker": "STT",
+      "cik": 93751,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-17",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "stt-20211231.htm",
+        "ex109descriptionofcompen.htm",
+        "exhibit21-december312021.htm",
+        "exhibit23consentletterofey.htm",
+        "exhibit311-december312021.htm",
+        "exhibit312-december312021.htm",
+        "exhibit32-december312021.htm",
+        "exhibit41-sttxdescriptio.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "STATE STREET CORPORATION",
+        "EntityCentralIndexKey": "0000093751"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001628280-26-008002",
+      "ticker": "TROW",
+      "cik": 1113169,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-13",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "trow-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "PRICE T ROWE GROUP INC",
+        "EntityCentralIndexKey": "0001113169"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001113169-25-000007",
+      "ticker": "TROW",
+      "cik": 1113169,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-14",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "trow-20241231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "PRICE T ROWE GROUP INC",
+        "EntityCentralIndexKey": "0001113169"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001113169-24-000007",
+      "ticker": "TROW",
+      "cik": 1113169,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-16",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "trow-20231231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "PRICE T ROWE GROUP INC",
+        "EntityCentralIndexKey": "0001113169"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001113169-23-000007",
+      "ticker": "TROW",
+      "cik": 1113169,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-15",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "trow-20221231.htm",
+        "a202210k-exhibit21q42022.htm",
+        "a202210k-exhibit23q42022.htm",
+        "trow-ex31i1_q42022.htm",
+        "trow-ex31i2_q42022.htm",
+        "trow-ex32_q42022.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "PRICE T ROWE GROUP INC",
+        "EntityCentralIndexKey": "0001113169"
+      },
+      "error": null
+    },
+    {
+      "accession": "0001113169-22-000005",
+      "ticker": "TROW",
+      "cik": 1113169,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-24",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "trow-20211231.htm",
+        "a202110k-exhibit21q42021.htm",
+        "a202110k-exhibit23q42021.htm",
+        "exh1023transactionagreemen.htm",
+        "exh1024-employmentagreemen.htm",
+        "exh10251formoflockupagreem.htm",
+        "exh10252formoflockupagreem.htm",
+        "exh1026valuecreationagreem.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "PRICE T ROWE GROUP INC",
+        "EntityCentralIndexKey": "0001113169"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000072971-26-000133",
+      "ticker": "WFC",
+      "cik": 72971,
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "filing_date": "2026-02-24",
+      "label_inferred": 2025,
+      "label_dei": 2025,
+      "status": "match",
+      "documents": [
+        "wfc-20251231_d2.htm",
+        "wfc-20251231.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2025",
+        "DocumentPeriodEndDate": "2025-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "WELLS FARGO & COMPANY/MN",
+        "EntityCentralIndexKey": "0000072971"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000072971-25-000066",
+      "ticker": "WFC",
+      "cik": 72971,
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "filing_date": "2025-02-25",
+      "label_inferred": 2024,
+      "label_dei": 2024,
+      "status": "match",
+      "documents": [
+        "wfc-20241231.htm",
+        "wfc-20241231_d2.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2024",
+        "DocumentPeriodEndDate": "2024-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "WELLS FARGO & COMPANY/MN",
+        "EntityCentralIndexKey": "0000072971"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000072971-24-000064",
+      "ticker": "WFC",
+      "cik": 72971,
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "filing_date": "2024-02-20",
+      "label_inferred": 2023,
+      "label_dei": 2023,
+      "status": "match",
+      "documents": [
+        "wfc-20231231.htm",
+        "wfc-20231231_d2.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2023",
+        "DocumentPeriodEndDate": "2023-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "WELLS FARGO & COMPANY/MN",
+        "EntityCentralIndexKey": "0000072971"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000072971-23-000071",
+      "ticker": "WFC",
+      "cik": 72971,
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "filing_date": "2023-02-21",
+      "label_inferred": 2022,
+      "label_dei": 2022,
+      "status": "match",
+      "documents": [
+        "wfc-20221231.htm",
+        "wfc-20221231_d2.htm",
+        "wfc-1231x2022xex10a.htm",
+        "wfc-1231x2022xex10b.htm",
+        "wfc-1231x2022xex21.htm",
+        "wfc-1231x2022xex23.htm",
+        "wfc-1231x2022xex24.htm",
+        "wfc-1231x2022xex31a.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2022",
+        "DocumentPeriodEndDate": "2022-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "WELLS FARGO & COMPANY/MN",
+        "EntityCentralIndexKey": "0000072971"
+      },
+      "error": null
+    },
+    {
+      "accession": "0000072971-22-000096",
+      "ticker": "WFC",
+      "cik": 72971,
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "filing_date": "2022-02-22",
+      "label_inferred": 2021,
+      "label_dei": 2021,
+      "status": "match",
+      "documents": [
+        "wfc-20211231.htm",
+        "wfc-20211231_d2.htm",
+        "wfc-1231x2021xex10a.htm",
+        "wfc-1231x2021xex10b.htm",
+        "wfc-1231x2021xex10m.htm",
+        "wfc-1231x2021xex21.htm",
+        "wfc-1231x2021xex23.htm",
+        "wfc-1231x2021xex24.htm"
+      ],
+      "dei": {
+        "DocumentFiscalYearFocus": "2021",
+        "DocumentPeriodEndDate": "2021-12-31",
+        "DocumentType": "10-K",
+        "AmendmentFlag": "false",
+        "EntityRegistrantName": "WELLS FARGO & COMPANY/MN",
+        "EntityCentralIndexKey": "0000072971"
+      },
+      "error": null
+    }
+  ],
+  "edgar": {
+    "requests_made": 0,
+    "bytes_fetched": 0
+  }
+}

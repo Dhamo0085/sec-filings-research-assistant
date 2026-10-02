@@ -177,6 +177,13 @@ def test_fixed_zero_and_nil_are_distinguishable():
     ("numwordsen", "twenty-one", "21"),
     ("numwordsen", "one hundred", "100"),
     ("numwordsen", "none", "0"),
+    # Both of these took whole filings down before the wider survey: "nil" is
+    # State Street FY2022-2025, the scale word is Bank of America FY2021.
+    ("numwordsen", "nil", "0"),
+    ("numwordsen", "no", "0"),
+    ("numwordsen", "three million", "3000000"),
+    ("numwordsen", "two million five hundred", "2000500"),
+    ("numwordsen", "fifteen", "15"),
 ])
 def test_numeric_transform_table(transform, text, expected):
     assert NUMERIC_TRANSFORMS[transform](text) == Decimal(expected)

@@ -110,14 +110,33 @@ def _parse_date(text: str) -> Optional[date]:
 # the hyphenated Registry-3 spellings and the older run-together Registry-1/2
 # spellings are listed, because a filer may use either.
 
+# Measured, not guessed. Surveying all 250 cached documents (65 filings) found
+# 648 ixt-sec:numwordsen facts using 16 distinct texts: no (192), two, one,
+# three, four, six, five, ten, eight, nil (6), seven, zero, eleven,
+# "three million" (1), none, fifteen. The first survey covered only 12 filings
+# and missed "nil" and the scale word, which is how State Street FY2022-2025
+# and Bank of America FY2021 failed to extract at all.
+_ZERO_WORDS = {"zero", "no", "none", "nil", "nought", "naught"}
+
 _NUMBER_WORDS = {
-    "zero": 0, "no": 0, "none": 0,
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
     "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11,
     "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
     "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
     "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
-    "seventy": 70, "eighty": 80, "ninety": 90, "hundred": 100,
+    "seventy": 70, "eighty": 80, "ninety": 90,
+}
+_NUMBER_WORDS.update(dict.fromkeys(_ZERO_WORDS, 0))
+
+# Multipliers, which is why numwordsen cannot be a flat lookup table: "three
+# million" is 3,000,000, and the flat version read it as an unknown word and
+# took the whole filing down with it.
+_SCALE_WORDS = {
+    "hundred": 100,
+    "thousand": 1_000,
+    "million": 1_000_000,
+    "billion": 1_000_000_000,
+    "trillion": 1_000_000_000_000,
 }
 
 # Characters filers use for "nothing here": ASCII hyphen, non-breaking hyphen,
@@ -216,16 +235,21 @@ def _num_words_en(text: str) -> Decimal:
     total = Decimal(0)
     current = Decimal(0)
     for word in words:
-        if word not in _NUMBER_WORDS:
+        if word in _NUMBER_WORDS:
+            current += Decimal(_NUMBER_WORDS[word])
+        elif word == "hundred":
+            # "hundred" scales what came before it but keeps accumulating:
+            # "one hundred five" is 105, not 100 then 5.
+            current = (current or Decimal(1)) * 100
+        elif word in _SCALE_WORDS:
+            # A larger scale closes the current group: "three million" is
+            # 3,000,000 and "two million five hundred" is 2,000,500.
+            total += (current or Decimal(1)) * Decimal(_SCALE_WORDS[word])
+            current = Decimal(0)
+        else:
             raise ValueParseError(
                 f"numwordsen does not know the word {word!r} (from {text!r})")
-        value = Decimal(_NUMBER_WORDS[word])
-        if value == 100:
-            current = (current or Decimal(1)) * value
-        else:
-            current += value
-    total += current
-    return total
+    return total + current
 
 
 NUMERIC_TRANSFORMS = {
@@ -334,10 +358,13 @@ NONNUMERIC_TRANSFORMS = {
     "datemonthdayyear": _date_month_day_year,
     "date-year-month": _date_year_month,
     "dateyearmonth": _date_year_month,
+    "datemonthdayyearen": _date_monthname_day_year,
     "fixed-true": _fixed_true,
     "fixedtrue": _fixed_true,
+    "booleantrue": _fixed_true,
     "fixed-false": _fixed_false,
     "fixedfalse": _fixed_false,
+    "booleanfalse": _fixed_false,
     "boolballotbox": _bool_ballot_box,
 }
 # Non-numeric transforms this module does not implement (ixt-sec:duryear,

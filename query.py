@@ -313,6 +313,7 @@ def _compute(
                 calculation, [numerator_res, denominator_res],
                 question=question, company=companies.get(resolved[0].ticker),
                 cik=ciks.get(resolved[0].ticker), as_of=route_.as_of,
+                query_type=route_.intent,
             )
 
         ordered = sorted(resolved, key=lambda r: (r.end_date or "", r.fiscal_label))
@@ -340,6 +341,7 @@ def _compute(
             calculation, used, question=question,
             company=companies.get(resolved[0].ticker),
             cik=ciks.get(resolved[0].ticker), as_of=route_.as_of,
+            query_type=route_.intent,
         )
     except CalculationError as exc:
         logger.info(f"calculation refused ({exc}); reporting the underlying figures")

@@ -163,8 +163,16 @@ def computed_answer(
     cik: Optional[int] = None,
     as_of: Optional[str] = None,
     description: Optional[str] = None,
+    query_type: QueryType = QueryType.COMPUTED,
 ) -> Outcome:
-    """A calculator result, with its inputs cited and its formula shown."""
+    """A calculator result, with its inputs cited and its formula shown.
+
+    ``query_type`` is the *question's* classification, not the template's:
+    "how did revenue grow from 2023 to 2024" is a trend question that happens
+    to be answered with a calculation, and 6.5's ``query_type`` describes the
+    query. The smoke run caught the two disagreeing — the router said trend
+    and the response said computed.
+    """
     resolutions = list(resolutions)
     subject = _subject(resolutions[0], company)
     label = description or _calculation_label(calculation, resolutions)
@@ -183,7 +191,7 @@ def computed_answer(
     )
     return Outcome.answered(
         text,
-        query_type=QueryType.COMPUTED,
+        query_type=query_type,
         citations=[
             citation_from(r, i, company=company, cik=cik)
             for i, r in enumerate(resolutions, start=1)

@@ -289,3 +289,21 @@ def test_an_as_of_earlier_than_the_filing_cannot_be_built():
 
     with pytest.raises(ValidationError, match="look-ahead"):
         numeric_answer(resolution(), as_of="2024-06-30")
+
+
+def test_a_computed_answer_reports_the_questions_own_query_type():
+    """6.5's query_type describes the query, not the template that served it.
+
+    "How did revenue grow from 2023 to 2024" is a trend question answered
+    with a calculation; the smoke run (P3-11) caught the router saying trend
+    and the response saying computed.
+    """
+    earlier = resolution(fiscal_label=2023, value=Decimal("383285000000"),
+                         end_date="2023-09-30", accession="0000320193-23-000106",
+                         filing_date="2023-11-03")
+    later = resolution()
+    calc = growth_pct(Operand.from_resolution(later), Operand.from_resolution(earlier))
+
+    assert computed_answer(calc, [earlier, later]).query_type is QueryType.COMPUTED
+    assert computed_answer(calc, [earlier, later],
+                           query_type=QueryType.TREND).query_type is QueryType.TREND

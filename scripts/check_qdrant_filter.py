@@ -79,9 +79,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"collection     : {target}")
     print(f"query          : {args.query!r}\n")
 
-    dense, sparse = encode_query(args.query)
-    sparse_indices = list(getattr(sparse, "indices", []) or [])
-    sparse_values = [float(v) for v in (getattr(sparse, "values", []) or [])]
+    # encode_query returns (dense, sparse_indices, sparse_values) - a 3-tuple,
+    # not (dense, sparse_vector).
+    dense, sparse_indices, sparse_values = encode_query(args.query)
+    sparse_indices = [int(i) for i in sparse_indices]
+    sparse_values = [float(v) for v in sparse_values]
 
     def _search(chunk_type_filter: Optional[str]) -> List[Dict]:
         return hybrid_search(

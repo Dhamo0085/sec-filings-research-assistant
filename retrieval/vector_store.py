@@ -340,8 +340,19 @@ def scroll_by_section(
     Assigns a fixed score of 0.4 so these entries are included as candidates
     but don't dominate before the cross-encoder reranks them.
 
-    Note: query_points() with a payload filter is silently ignored in local
-    Qdrant (no payload indexes), so we fall back to scroll + Python filter.
+    Note: this uses scroll + a Python filter rather than a payload filter.
+
+    The original comment here claimed query_points() silently ignores payload
+    filters in local Qdrant. P1-10 measured that against a real ingested
+    collection with qdrant-client 1.19.1 and it is NOT true: searching
+    AAPL_2024 with chunk_type_filter="table" returned 10/10 table chunks where
+    the unfiltered search returned {text: 2, table: 7, footnote: 1}
+    (reports/phase1/qdrant_filter_check.json; Phase 0 found the same against a
+    synthetic collection). The claim may have been true of an older client.
+
+    Scroll is still correct for this function, which needs an exact
+    section_name match over all points rather than a ranked search, but it is
+    no longer a workaround for a broken filter.
     """
     client = get_client()
     results: List[Dict] = []

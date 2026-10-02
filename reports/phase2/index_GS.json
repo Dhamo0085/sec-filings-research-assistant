@@ -1,0 +1,41 @@
+{
+  "batch_size": 8,
+  "max_length": null,
+  "seconds": 1394.8,
+  "chunks_embedded": 2213,
+  "chunks_per_second": 1.587,
+  "peak_rss_bytes": 953073664,
+  "peak_rss_gb": 0.953,
+  "collections": [
+    {
+      "name": "GS_2025",
+      "chunks_total": 724,
+      "chunks_embedded": 724,
+      "chunks_already_present": 0,
+      "seconds": 451.1,
+      "chunks_per_second": 1.605,
+      "status": "indexed",
+      "error": null
+    },
+    {
+      "name": "GS_2023",
+      "chunks_total": 741,
+      "chunks_embedded": 741,
+      "chunks_already_present": 0,
+      "seconds": 471.0,
+      "chunks_per_second": 1.573,
+      "status": "indexed",
+      "error": null
+    },
+    {
+      "name": "GS_2024",
+      "chunks_total": 748,
+      "chunks_embedded": 748,
+      "chunks_already_present": 0,
+      "seconds": 472.6,
+      "chunks_per_second": 1.583,
+      "status": "indexed",
+      "error": null
+    }
+  ]
+}

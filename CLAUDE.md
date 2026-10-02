@@ -16,8 +16,8 @@ explain every component, so prefer simple, explicit designs and write the briefi
 |---|---|---|
 | Step 0 | Bootstrap: new private GitHub repo via `gh`, root cleanup (`docs/BOOTSTRAP.md`) | COMPLETE (PR #1 merged; report in `reports/bootstrap/REPORT.md`) |
 | 0 | Audit and baseline | COMPLETE (report in `reports/phase0/REPORT.md`) |
-| 1 | Foundation, hardening, catalog, true baseline | COMPLETE (report in `reports/phase1/REPORT.md`; baseline partial: 9 of 25, see its section 4.2) |
-| 2 | Facts engine (extract, store, resolve, calculate) | NOT STARTED |
+| 1 | Foundation, hardening, catalog, true baseline | COMPLETE (PR #2 merged; report in `reports/phase1/REPORT.md`; baseline partial 9 of 25, D21) |
+| 2 | Facts engine (extract, store, resolve, calculate) | COMPLETE; PR #3 awaiting owner merge (`reports/phase2/REPORT.md`). Open: T2-10 exact threshold 99.13% vs 99.5% |
 | 3 | Routing, answers, `as_of`, abstention, UI | NOT STARTED |
 | 4 | Evaluation, ablations, documentation | NOT STARTED |
 | 5 | Productization and release | NOT STARTED |
@@ -40,6 +40,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
 13. **Provenance.** The code started from an earlier MIT-licensed prototype; this is a new personal portfolio repository with fresh history. Keep `LICENSE` and `NOTICE`. Do not copy data, secrets, or deployment links from the old project, and do not reference its URLs or repository.
 14. **GitHub.** Use `git` and `gh` only against this project's own `origin`. Push only at the points the spec names (Step 0 and each phase gate), open pull requests with `gh pr create`, and leave merging to the owner. Never force-push, delete or rename a repository, change visibility or settings, or push to another remote. Never read or print tokens.
 15. **Checks you can trust.** Prefer small Python scripts over nested shell pipelines for scans and checks. Before relying on a "no matches" or "all clear" result, show that the check can fail (a negative control that plants a known match). Report any check you had to redo, as Step 0 did.
+16. **Session continuity.** Durable facts live in files, not in the conversation. At the start of every session, and after any `/compact`, re-read `CLAUDE.md`, `docs/PROJECT_SPEC.md`, `docs/STATE.md`, and `docs/DECISIONS.md`, then state the current phase and task ID before continuing. Update `docs/STATE.md` at every commit batch, at every gate, and **before** running `/compact` or ending a session. Never rely on a remembered detail that the files do not contain.
 
 ## Commands (the Makefile is created in P1-02; keep these targets working afterwards)
 `make setup` · `make test` (offline unit + integration) · `make test-live` · `make lint` · `make ingest` ·

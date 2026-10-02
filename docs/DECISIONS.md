@@ -108,6 +108,123 @@ because K9 genuinely needed local-mode behaviour.
 
 ---
 
+## 2026-10-02 — D2-02 Tiered candidate concepts, and agreement is not ambiguity
+
+**Context.** Spec 6.4 rule 3: use the per-filer override; else if exactly one candidate has a
+value, use it; else return `ambiguous`. The P2-11 coverage sweep over 780 (filer, metric, year)
+resolutions returned **90 `ambiguous_concept`** rows. Inspecting all 90 found two groups, and
+neither is the tie the rule was written for.
+
+**Group 1 — 27 rows where the candidates agree.** JPMorgan tags both `us-gaap:Revenues` and
+`us-gaap:RevenuesNetOfInterestExpense` with the *identical* figure in every year (FY2024:
+$177,556M; FY2023: $158,104M). The literal rule abstains because two candidates have values.
+Refusing to state a number the filing prints twice is not caution, it is a bug.
+
+**Group 2 — 63 rows where the concepts have different definitions.**
+
+| metric | first | second | FY2024 gap |
+|---|---|---|---|
+| `net_income` | `NetIncomeLoss` (parent) | `ProfitLoss` (incl. noncontrolling) | BLK 5,901 vs 6,205 |
+| `stockholders_equity` | `StockholdersEquity` (parent) | `…IncludingPortionAttributableToNoncontrollingInterest` | WFC 187,606 vs 190,110 |
+| `cash_and_equivalents` | `CashAndCashEquivalentsAtCarryingValue` | `CashCashEquivalentsRestricted…` (a superset) | IVZ 1,469 vs 1,932 |
+
+These are not two readings of one number; one of them is what the question means and the other
+is a different, also-correct number. "Net income" means the figure attributable to the
+company's own shareholders.
+
+**Options.** (a) Leave it: abstain on all 90. (b) Write ~30 per-filer overrides, one per
+(filer, metric) pair, each restating the same definitional choice. (c) Add **tiers** to the
+candidate lists plus an **agreement** rule.
+
+**Choice.** (c).
+
+* **Tiers.** A candidate list may be a list of lists. Rule 3 applies *within* a tier; a later
+  tier is consulted only when every concept in the earlier ones is absent from the filing. An
+  ambiguity *inside* a tier is still final — it does not fall through to the next tier, which
+  would be using a fallback concept to dodge a real tie.
+* **Agreement.** When every candidate with a value in a tier reports the same value, that is
+  the value, recorded as `selection="candidates_agree"`.
+
+Result: 634 of 780 resolved (81.3%, up from 69.7%), **zero** `ambiguous_concept`. The remaining
+146 are `metric_not_found_in_filing` and all look correct — banks have no gross profit or R&D
+line, brokers tag no `OperatingIncomeLoss`, and Amazon does not tag `us-gaap:Liabilities`.
+
+**Reason.** (a) refuses 63 answers the filings state plainly. (b) reaches the same place but
+spreads one decision across 30 near-identical entries, where nobody could later see that they
+were one decision or change it in one place. (c) states the choice once, in the open: the
+loader **rejects a tiered metric with no `preference` text**, so the reason is mandatory, and
+the concept actually used always reaches the user through the 6.5 `definition_note`. This is
+the same spirit as D5 (declare which definition is used), applied per metric.
+
+This is a deviation from the literal text of 6.4 rule 3 and is recorded as one in the Phase 2
+report. What it does not do is weaken the rule where it matters: BlackRock's two revenue
+concepts are both tier 1 with different values, so BLK still resolves only through its
+evidenced override, and removing that override makes BLK abstain again (asserted by a test).
+
+**What would change it.** A filer where the tier-1 concept is present but wrong — for example
+one that tags `NetIncomeLoss` as the consolidated total. That is a per-filer override with
+evidence, which is what overrides are for, and the tier order would stay as the general rule.
+
+---
+
+## 2026-10-02 — D2-00 Keep bge-base at full 512 tokens; the 4 chunks/s bar was a proxy
+
+**Context.** P2-00(d) sets a decision rule: keep v1's dense embedding model if a tuned
+setting reaches **≥ 4 chunks/s**, because the full 35,838-chunk corpus would then index in
+about 2.5 hours overnight. Otherwise fall back, in order, to (i) embedding only text and
+footnote chunks for non-core tickers, (ii) a smaller model (declared per D21), (iii) a free
+Colab GPU runtime.
+
+**Measurement** (`reports/phase2/throughput_profile.json`, 200 real chunks stratified by
+(ticker, chunk_type), each configuration in its own subprocess):
+
+| max_length | batch 8 | batch 16 | batch 32 | batch 64 | peak RSS |
+|---|---|---|---|---|---|
+| 512 | **2.35** | 2.17 | 2.15 | 2.22 | 1.0–1.1 GB |
+| 256 | **4.80** | 4.68 | 4.74 | 3.72 | 1.0–1.4 GB |
+
+Two things the grid settles:
+
+* **Batch size is nearly irrelevant** (2.15–2.35 at 512). The corpus median chunk is 986
+  tokens and 81% exceed 512, so every sequence is padded to the cap and cost is one
+  fixed-size sequence per chunk however they are grouped. Tuning batch size was the wrong
+  knob.
+* **P1-00's 1.6 s/chunk was memory pressure, not the model.** The same model on the same
+  machine now measures 0.43 s/chunk — 3.8× faster — because the streaming indexer holds one
+  batch instead of the whole corpus. Peak RSS is 1.0–1.1 GB against the 2.4 GB that drove
+  swap to 9.6 of 10 GB.
+
+**Options.** (a) Keep bge-base at 512 and accept 2.35 chunks/s. (b) Drop `max_length` to 256
+for the 2× speed-up. (c) Fall back to text+footnote chunks only for non-core tickers.
+(d) Switch to a smaller model.
+
+**Choice.** (a) — keep bge-base at 512, with batch 8. No fallback is taken.
+
+**Reason.** The ≥ 4 chunks/s bar is a proxy for "can this be indexed overnight", and at 2.35
+chunks/s the answer is still yes: 4.2 hours for the full corpus, and **78 minutes** for what
+P2-00(e) actually asks for (the 10,976 chunks of the five core tickers with chunk files). The
+bar was set expecting 2.5 hours; 4.2 hours is a longer night, not an infeasible one, so
+taking a fallback would trade real quality for a constraint that is not binding.
+
+Option (b) is rejected on grounds the bar does not capture. `max_length=256` is not a tuning
+knob, it changes **what a vector means**: with a median chunk of 986 tokens, it would embed
+roughly the first quarter of each chunk and discard the rest. It would also make the index
+internally inconsistent — AAPL and AMZN were already embedded at 512 — so adopting it means
+re-indexing everything, and every retrieval number measured before and after would be
+incomparable. Buying 2× throughput with that is a bad trade when the full run already fits
+in a night.
+
+Option (c) would deliberately drop the 77% of the corpus that is table chunks for the
+non-core filers, which are precisely the chunks a financial question needs. It is held in
+reserve.
+
+**What would change it.** A larger corpus (the spec's `FACTS_FILINGS_PER_COMPANY` growing, or
+more tickers) pushing the full run past a night; or a machine with enough RAM to make batch
+size matter again, which would need the grid re-run rather than re-reasoned. If the embedding
+model is ever changed, D21 requires it to be declared in every results table.
+
+---
+
 ## 2026-10-02 — D1-04b Role model orders, chosen by measurement
 
 **Context.** Spec Appendix A proposed roles from *declared* free-tier limits:

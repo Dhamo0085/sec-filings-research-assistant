@@ -39,7 +39,7 @@ from loguru import logger
 from config import COMPANIES, TICKER_TO_COMPANY, settings
 from ingestion.chunker import chunk_all_documents
 from ingestion.downloader import download_all_filings
-from ingestion.embedder import index_chunks
+from ingestion.indexer import index_stream
 from ingestion.parser import parse_all_filings
 from models import Chunk
 from retrieval.parent_store import parent_store
@@ -303,7 +303,7 @@ def ensure_ticker_indexed(
             priority, remaining = chunks, []
 
         try:
-            index_chunks(priority)
+            index_stream(priority)
         except Exception as exc:
             logger.error(f"Auto-ingest embedding failed for {ticker}: {exc}")
             _failed[ticker] = time.time()
@@ -311,7 +311,7 @@ def ensure_ticker_indexed(
 
         # Same pruning api/app.py's bundled-12 ingestion does, and for the
         # same reason: raw HTML and the chunks JSON are scratch space for
-        # getting to embeddings, never read again once index_chunks() has
+        # getting to embeddings, never read again once index_stream() has
         # run (it takes `chunks`/`remaining` as in-memory Chunk lists, not
         # by re-reading these files). The bundled pipeline already prunes
         # itself; this path didn't, so every auto-ingested company outside
@@ -336,7 +336,17 @@ def ensure_ticker_indexed(
         if remaining:
             def _finish_background() -> None:
                 try:
-                    index_chunks(remaining, force_reindex=True)
+                    # No force_reindex, unlike the v1 call this replaces, and
+                    # the two words mean different things. v1's index_chunks
+                    # SKIPPED any collection that already existed, so the
+                    # priority pass above would have made this background pass
+                    # a no-op; force_reindex was how v1 said "upsert into it
+                    # anyway" (it never deleted anything). index_stream resumes
+                    # by point id instead, so the remaining chunks are exactly
+                    # the ones it embeds — and its force_reindex really does
+                    # delete and rebuild, which here would throw away the
+                    # priority chunks a user is already searching.
+                    index_stream(remaining)
                     logger.success(
                         f"Auto-ingest background completion done for {ticker}: "
                         f"{len(remaining)} additional chunks now searchable"

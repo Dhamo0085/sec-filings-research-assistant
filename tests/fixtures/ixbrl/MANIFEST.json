@@ -1,0 +1,167 @@
+[
+  {
+    "name": "aapl_fy2024",
+    "files": [
+      "aapl_fy2024.htm"
+    ],
+    "sources": [
+      "AAPL_2024_0000320193-24-000123.htm"
+    ],
+    "period_end": "2024-09-28",
+    "why": "the baseline case, and a 52/53-week filer: FY2024 runs 2023-10-01 to 2024-09-28, which is 363 days, so a 365-day window would reject every annual fact Apple reports (spec 6.4 rule 2, N7)",
+    "kilobytes": 16.8,
+    "expect": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": "391035000000",
+      "NetIncomeLoss": "93736000000",
+      "Assets": "364980000000",
+      "EarningsPerShareDiluted": "6.08"
+    },
+    "expect_dei": {
+      "DocumentFiscalYearFocus": "2024",
+      "DocumentPeriodEndDate": "2024-09-28",
+      "DocumentType": "10-K",
+      "AmendmentFlag": "false",
+      "EntityCentralIndexKey": "0000320193"
+    },
+    "expect_duration_days": 363
+  },
+  {
+    "name": "nflx_fy2024_thousands",
+    "files": [
+      "nflx_fy2024_thousands.htm"
+    ],
+    "sources": [
+      "NFLX_2024_0001065280-25-000044.htm"
+    ],
+    "period_end": "2024-12-31",
+    "why": "reports in THOUSANDS (scale=3), unlike every other bundled filer; v1's prompt told the LLM to 'assume millions' (K2), which is a 1000x error on this filing",
+    "kilobytes": 10.8,
+    "expect": {
+      "Revenues": "39000966000",
+      "NetIncomeLoss": "8711631000",
+      "Assets": "53630374000"
+    },
+    "expect_dei": {
+      "DocumentFiscalYearFocus": "2024",
+      "EntityCentralIndexKey": "0001065280"
+    },
+    "expect_duration_days": null
+  },
+  {
+    "name": "blk_fy2024_dual_revenue",
+    "files": [
+      "blk_fy2024_dual_revenue.htm"
+    ],
+    "sources": [
+      "BLK_2024_0000950170-25-026584.htm"
+    ],
+    "period_end": "2024-12-31",
+    "why": "tags BOTH us-gaap:Revenues (12,794M, a component) and us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax (20,407M, the income-statement total). A fixed global priority list picks the first and understates revenue by 37% (D0.3), so this filing must resolve as `ambiguous` without an override",
+    "kilobytes": 28.0,
+    "expect": {
+      "Revenues": "12794000000",
+      "RevenueFromContractWithCustomerExcludingAssessedTax": "20407000000",
+      "NetIncomeLoss": "6369000000"
+    },
+    "expect_dei": {
+      "EntityCentralIndexKey": "0002012383"
+    },
+    "expect_duration_days": null
+  },
+  {
+    "name": "bac_fy2024",
+    "files": [
+      "bac_fy2024.htm"
+    ],
+    "sources": [
+      "BAC_2024_0000070858-25-000139.htm"
+    ],
+    "period_end": "2024-12-31",
+    "why": "a bank: revenue is not a product sale, and the sector candidate list has to cope with Revenues / RevenuesNetOfInterestExpense / InterestAndDividendIncomeOperating all being tagged",
+    "kilobytes": 20.4,
+    "expect": {
+      "Revenues": "101887000000",
+      "NetIncomeLoss": "27132000000",
+      "InterestAndDividendIncomeOperating": "146607000000"
+    },
+    "expect_dei": {
+      "EntityCentralIndexKey": "0000070858"
+    },
+    "expect_duration_days": null
+  },
+  {
+    "name": "wfc_fy2024_split",
+    "files": [
+      "wfc_fy2024_split_d1.htm",
+      "wfc_fy2024_split_d2.htm"
+    ],
+    "sources": [
+      "WFC_2024_0000072971-25-000066.htm",
+      "WFC_2024_EX13_d2.htm"
+    ],
+    "period_end": "2024-12-31",
+    "why": "the split-submission case. The 10-K wrapper defines the contexts and holds a handful of facts; the EX-13 exhibit holds 7,285 facts that reference them. Parsed alone the wrapper yields 4 consolidated facts and the exhibit's facts have no periods; pooled they yield 1,289 (spec 6.4 rule 1, T2-03)",
+    "kilobytes": 19.9,
+    "expect": {
+      "RevenuesNetOfInterestExpense": "82296000000",
+      "NetIncomeLoss": "19722000000"
+    },
+    "expect_dei": {
+      "EntityCentralIndexKey": "0000072971"
+    },
+    "expect_duration_days": null
+  },
+  {
+    "name": "gs_fy2023_10ka",
+    "files": [
+      "gs_fy2023_10ka.htm"
+    ],
+    "sources": [
+      "GS_2023_A_0000886982-24-000012.htm"
+    ],
+    "period_end": "2023-12-31",
+    "why": "a 10-K/A, and a finding in its own right: this amendment carries 64 facts and ZERO annual financial facts \u2014 it re-files an exhibit, not the income statement. So D14 must not assume an amendment restates the numbers; resolving 'the latest filing for FY2023' to this document would return nothing at all, and the resolver has to fall back to the 10-K it amends (T2-05)",
+    "kilobytes": 3.3,
+    "expect": {},
+    "expect_dei": {
+      "DocumentType": "10-K/A",
+      "AmendmentFlag": "true",
+      "DocumentFiscalYearFocus": "2023",
+      "DocumentPeriodEndDate": "2023-12-31",
+      "EntityCentralIndexKey": "0000886982"
+    },
+    "expect_duration_days": null
+  },
+  {
+    "name": "aapl_fy2024_negatives",
+    "files": [
+      "aapl_fy2024_negatives.htm"
+    ],
+    "sources": [
+      "AAPL_2024_0000320193-24-000123.htm"
+    ],
+    "period_end": "2024-09-28",
+    "why": "negative values by two different mechanisms: sign=\"-\" on a positive numeral, and parenthesised text. Reading either as positive flips the sign of an expense",
+    "kilobytes": 9.8,
+    "expect": {
+      "NonoperatingIncomeExpense": "269000000"
+    },
+    "expect_dei": {},
+    "expect_duration_days": null
+  },
+  {
+    "name": "aapl_fy2024_edge_values",
+    "files": [
+      "aapl_fy2024_edge_values.htm"
+    ],
+    "sources": [
+      "AAPL_2024_0000320193-24-000123.htm"
+    ],
+    "period_end": "2024-09-28",
+    "why": "ixt:fixed-zero (an em-dash that means 0, with scale=6 attached) and xsi:nil (which means 'not reported', NOT 0 \u2014 reading the two the same way would claim Apple disclosed zero commitments)",
+    "kilobytes": 14.9,
+    "expect": {},
+    "expect_dei": {},
+    "expect_duration_days": null
+  }
+]

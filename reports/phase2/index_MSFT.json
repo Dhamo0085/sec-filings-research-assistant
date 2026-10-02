@@ -1,0 +1,41 @@
+{
+  "batch_size": 8,
+  "max_length": null,
+  "seconds": 427.0,
+  "chunks_embedded": 1182,
+  "chunks_per_second": 2.768,
+  "peak_rss_bytes": 1374404608,
+  "peak_rss_gb": 1.374,
+  "collections": [
+    {
+      "name": "MSFT_2025",
+      "chunks_total": 275,
+      "chunks_embedded": 147,
+      "chunks_already_present": 128,
+      "seconds": 66.5,
+      "chunks_per_second": 2.211,
+      "status": "resumed",
+      "error": null
+    },
+    {
+      "name": "MSFT_2026",
+      "chunks_total": 278,
+      "chunks_embedded": 278,
+      "chunks_already_present": 0,
+      "seconds": 136.6,
+      "chunks_per_second": 2.035,
+      "status": "indexed",
+      "error": null
+    },
+    {
+      "name": "MSFT_2024",
+      "chunks_total": 757,
+      "chunks_embedded": 757,
+      "chunks_already_present": 0,
+      "seconds": 223.9,
+      "chunks_per_second": 3.38,
+      "status": "indexed",
+      "error": null
+    }
+  ]
+}

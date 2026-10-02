@@ -135,6 +135,40 @@ class CatalogStore:
             con.execute("UPDATE filings SET collection_name=? WHERE accession=?",
                         (collection_name, accession))
 
+    def set_fiscal_label(self, accession: str, fiscal_label: int,
+                         source: str = "dei") -> None:
+        """Replace a filing's fiscal label with the one the filer declared (P2-03).
+
+        P1-09 seeded every label from ``period_end.year`` because the DEI facts
+        were not extracted yet. D6 says the company's own label wins, so this
+        records both the value and where it came from — a later reader can tell
+        a declared 2026 from an inferred one.
+        """
+        if source not in ("dei", "period_end"):
+            raise ValueError(f"fiscal_label_source must be 'dei' or 'period_end', "
+                             f"got {source!r}")
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE filings SET fiscal_label = ?, fiscal_label_source = ? "
+                "WHERE accession = ?",
+                (int(fiscal_label), source, accession),
+            )
+
+    def set_exhibit_docs(self, accession: str, docs: Iterable[str]) -> None:
+        """Record every iXBRL document of the submission beyond the primary one.
+
+        Spec 6.1 has the field; P1-09 never filled it because nothing yet read
+        FilingSummary.xml. The facts build needs it: Wells Fargo's numbers are
+        in an exhibit, and a resolver that only knows the primary document
+        would find 4 consolidated facts instead of 1,289.
+        """
+        import json as _json
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE filings SET exhibit_docs = ? WHERE accession = ?",
+                (_json.dumps(list(docs)), accession),
+            )
+
     def mark_facts_built(self, accession: str, when: Optional[str] = None) -> None:
         stamp = when or datetime.now().astimezone().isoformat(timespec="seconds")
         with self._lock, self._connect() as con:

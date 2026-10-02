@@ -1,0 +1,245 @@
+# Metric registry (P2-05, spec 6.3). Configuration, not code.
+#
+# How to read this file, because the ORDER OF `candidates` IS NOT THE POLICY.
+# Spec 6.4 rule 3 is: use the per-filer override if there is one; else if
+# exactly one candidate has a value, use it; else return `ambiguous` with every
+# candidate listed. Never silently pick the first.
+#
+# That rule exists because of a measured failure (D0.3). BlackRock FY2024 tags
+# BOTH us-gaap:Revenues = $12,794M and
+# us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax = $20,407M. A
+# fixed global priority list picks `Revenues`, which is a component, not total
+# revenue — a 37% understatement, confirmed against SEC companyfacts. So the
+# `candidates` lists below are the SEARCH SPACE. The sector split narrows that
+# space (a bank's revenue is not a product sale); it does not break ties.
+#
+# `overrides` break ties, and each one carries its evidence. An override
+# without evidence is a guess with better manners, so the loader rejects it.
+#
+# TIERS. A candidate list may be a list of LISTS. Rule 3 applies WITHIN a tier;
+# a later tier is consulted only when every concept in the earlier ones is
+# absent from the filing. Tiers exist because the P2-11 coverage sweep found 63
+# "ambiguous" resolutions that were not ties at all but pairs of concepts with
+# different DEFINITIONS, where one is plainly what the question means:
+#
+#   net_income           NetIncomeLoss (attributable to the parent) vs
+#                        ProfitLoss (includes noncontrolling interests)
+#   stockholders_equity  StockholdersEquity (parent) vs
+#                        ...IncludingPortionAttributableToNoncontrollingInterest
+#   cash_and_equivalents CashAndCashEquivalentsAtCarryingValue vs
+#                        CashCashEquivalents*Restricted* (a SUPERSET: it adds
+#                        restricted cash, which is not spendable)
+#
+# Abstaining on those would have refused 63 answers the filings state plainly,
+# and writing 30-odd per-filer overrides for one definitional choice would have
+# buried the decision in repetition. A tier is that decision made once, in the
+# open, with `preference` saying why — and the concept actually used always
+# reaches the user through the definition note (spec 6.5). See D2-02.
+#
+# What tiers do NOT do is break a real tie. BlackRock's two revenue concepts are
+# both tier 1 with different values, so BLK still needs its evidenced override.
+#
+# Sectors come from config.COMPANIES: Technology, Banking, Asset Management.
+
+version: 1
+
+sectors:
+  # Maps a ticker to the candidate list it should use. Unlisted tickers get
+  # `default`, which is the right behaviour for an on-demand filer we have
+  # never seen (P3-06) — it searches more broadly and abstains when ambiguous.
+  bank: [JPM, WFC, BAC, GS]
+  asset_manager: [BLK, STT, TROW, IVZ]
+
+metrics:
+
+  revenue:
+    label: "Total net revenue"
+    statement: income
+    period_type: duration
+    unit_kind: money
+    aliases: [revenue, revenues, sales, net sales, total revenue, total revenues,
+              top line, turnover, total net sales, total net revenue]
+    candidates:
+      default:
+        - us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+        - us-gaap:Revenues
+        - us-gaap:RevenueFromContractWithCustomerIncludingAssessedTax
+        - us-gaap:SalesRevenueNet
+      bank:
+        - us-gaap:Revenues
+        - us-gaap:RevenuesNetOfInterestExpense
+      asset_manager:
+        - us-gaap:Revenues
+        - us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    overrides:
+      BLK:
+        concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+        evidence: >-
+          FY2024 10-K accession 0000950170-25-026584: the consolidated statement
+          of income line "Total revenue" is $20,407M, which is the
+          RevenueFromContractWithCustomer tag. us-gaap:Revenues on the same
+          filing is $12,794M, an investment-advisory component. Both values are
+          confirmed by SEC companyfacts, so this is a selection choice, not an
+          extraction error (D0.3, Phase 0 step 2.3).
+
+  net_income:
+    label: "Net income"
+    statement: income
+    period_type: duration
+    unit_kind: money
+    aliases: [net income, net earnings, profit, net profit, bottom line,
+              net income attributable to the company]
+    preference: >-
+      "Net income" in a question means the figure attributable to the
+      company's own shareholders, which is us-gaap:NetIncomeLoss.
+      us-gaap:ProfitLoss is the consolidated total including noncontrolling
+      interests; it is a legitimate number but a different one, and it is used
+      only when a filer tags nothing else. BLK FY2024 reports 5,901 vs 6,205
+      and TROW 3,083 vs 3,099, so the choice is worth 2-5%.
+    candidates:
+      default:
+        - [us-gaap:NetIncomeLoss]
+        - [us-gaap:ProfitLoss]
+      bank:
+        - [us-gaap:NetIncomeLoss]
+        - [us-gaap:ProfitLoss]
+    overrides: {}
+
+  operating_income:
+    label: "Operating income"
+    statement: income
+    period_type: duration
+    unit_kind: money
+    aliases: [operating income, operating profit, income from operations,
+              operating earnings]
+    candidates:
+      default:
+        - us-gaap:OperatingIncomeLoss
+    overrides: {}
+
+  gross_profit:
+    label: "Gross profit"
+    statement: income
+    period_type: duration
+    unit_kind: money
+    aliases: [gross profit, gross margin dollars, gross income]
+    candidates:
+      default:
+        - us-gaap:GrossProfit
+    overrides: {}
+
+  rd_expense:
+    label: "Research and development expense"
+    statement: income
+    period_type: duration
+    unit_kind: money
+    aliases: [r&d, rd, research and development, research and development expense,
+              research spend, r and d]
+    candidates:
+      default:
+        - us-gaap:ResearchAndDevelopmentExpense
+        - us-gaap:ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost
+    overrides: {}
+
+  total_assets:
+    label: "Total assets"
+    statement: balance
+    period_type: instant
+    unit_kind: money
+    aliases: [total assets, assets, balance sheet size]
+    candidates:
+      default:
+        - us-gaap:Assets
+    overrides: {}
+
+  total_liabilities:
+    label: "Total liabilities"
+    statement: balance
+    period_type: instant
+    unit_kind: money
+    aliases: [total liabilities, liabilities]
+    candidates:
+      default:
+        - us-gaap:Liabilities
+    overrides: {}
+
+  stockholders_equity:
+    label: "Total stockholders' equity"
+    statement: balance
+    period_type: instant
+    unit_kind: money
+    aliases: [stockholders equity, shareholders equity, equity, book value,
+              total equity, net assets]
+    preference: >-
+      "Stockholders' equity" means the parent's shareholders' claim
+      (us-gaap:StockholdersEquity). The
+      IncludingPortionAttributableToNoncontrollingInterest variant adds
+      minority interests and is used only when a filer tags nothing else.
+      WFC FY2024 reports 187,606 vs 190,110.
+    candidates:
+      default:
+        - [us-gaap:StockholdersEquity]
+        - [us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest]
+    overrides: {}
+
+  cash_and_equivalents:
+    label: "Cash and cash equivalents"
+    statement: balance
+    period_type: instant
+    unit_kind: money
+    aliases: [cash, cash and equivalents, cash and cash equivalents, cash on hand]
+    preference: >-
+      CashAndCashEquivalentsAtCarryingValue is cash and equivalents.
+      CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents is a
+      SUPERSET that adds restricted cash, which the company cannot freely
+      spend — it is the cash-flow statement's reconciling total, not the
+      balance-sheet cash line. Second tier only, for filers that tag nothing
+      else. IVZ FY2024 reports 1,469 vs 1,932, a 31% difference.
+    candidates:
+      default:
+        - [us-gaap:CashAndCashEquivalentsAtCarryingValue]
+        - [us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents]
+    overrides: {}
+
+  operating_cash_flow:
+    label: "Net cash provided by operating activities"
+    statement: cash_flow
+    period_type: duration
+    unit_kind: money
+    aliases: [operating cash flow, cash from operations, cash flow from operations,
+              ocf, net cash from operating activities]
+    candidates:
+      default:
+        - us-gaap:NetCashProvidedByUsedInOperatingActivities
+        - us-gaap:NetCashProvidedByUsedInOperatingActivitiesContinuingOperations
+    overrides: {}
+
+  capex:
+    label: "Capital expenditures"
+    statement: cash_flow
+    period_type: duration
+    unit_kind: money
+    aliases: [capex, capital expenditures, capital spending,
+              purchases of property and equipment,
+              payments to acquire property plant and equipment]
+    candidates:
+      default:
+        - us-gaap:PaymentsToAcquirePropertyPlantAndEquipment
+        - us-gaap:PaymentsToAcquireProductiveAssets
+    overrides: {}
+
+  eps_diluted:
+    label: "Diluted earnings per share"
+    statement: income
+    period_type: duration
+    # NOT money: the unit is USD/shares. The calculator has to be able to
+    # refuse to add this to revenue (T2-06), and it can only refuse what the
+    # registry distinguishes.
+    unit_kind: per_share
+    aliases: [eps, diluted eps, earnings per share, diluted earnings per share,
+              eps diluted]
+    candidates:
+      default:
+        - us-gaap:EarningsPerShareDiluted
+        - us-gaap:IncomeLossFromContinuingOperationsPerDilutedShare
+    overrides: {}

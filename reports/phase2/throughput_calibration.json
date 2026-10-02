@@ -1,0 +1,93 @@
+{
+  "profiled_at_utc": "2026-10-02T15:27:05Z",
+  "machine": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.12.14",
+    "cpu_count": 8,
+    "swap_mb": {
+      "total": 7168.0,
+      "used": 5627.44,
+      "free": 1540.56
+    }
+  },
+  "sample_chunks": 200,
+  "seed": 20261002,
+  "target_chunks_per_second": 4.0,
+  "results": [
+    {
+      "batch_size": 32,
+      "max_length": 512,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 78.07,
+      "chunks_per_second": 2.562,
+      "seconds_per_chunk": 0.3904,
+      "peak_rss_bytes": 1141850112,
+      "peak_rss_gb": 1.142,
+      "rss_before_gb": 0.375,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 5760.44,
+        "free": 1407.56
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6656.88,
+        "free": 511.12
+      },
+      "slowest_collection_chunks_per_second": 2.008,
+      "failed_collections": []
+    }
+  ],
+  "best": {
+    "batch_size": 32,
+    "max_length": 512,
+    "chunks": 200,
+    "collections": 35,
+    "seconds": 78.07,
+    "chunks_per_second": 2.562,
+    "seconds_per_chunk": 0.3904,
+    "peak_rss_bytes": 1141850112,
+    "peak_rss_gb": 1.142,
+    "rss_before_gb": 0.375,
+    "swap_mb_before": {
+      "total": 7168.0,
+      "used": 5760.44,
+      "free": 1407.56
+    },
+    "swap_mb_after": {
+      "total": 7168.0,
+      "used": 6656.88,
+      "free": 511.12
+    },
+    "slowest_collection_chunks_per_second": 2.008,
+    "failed_collections": []
+  },
+  "best_at_full_512_length": {
+    "batch_size": 32,
+    "max_length": 512,
+    "chunks": 200,
+    "collections": 35,
+    "seconds": 78.07,
+    "chunks_per_second": 2.562,
+    "seconds_per_chunk": 0.3904,
+    "peak_rss_bytes": 1141850112,
+    "peak_rss_gb": 1.142,
+    "rss_before_gb": 0.375,
+    "swap_mb_before": {
+      "total": 7168.0,
+      "used": 5760.44,
+      "free": 1407.56
+    },
+    "swap_mb_after": {
+      "total": 7168.0,
+      "used": 6656.88,
+      "free": 511.12
+    },
+    "slowest_collection_chunks_per_second": 2.008,
+    "failed_collections": []
+  },
+  "note": "Each configuration ran in its own subprocess because ru_maxrss is a per-process high-water mark. max_length below 512 truncates the vector's content (81% of chunks exceed 512 tokens), so it is not a like-for-like comparison and adopting it means re-indexing.",
+  "projected_full_corpus_hours_at_512": 3.89
+}

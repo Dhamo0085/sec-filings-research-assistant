@@ -1,0 +1,261 @@
+{
+  "profiled_at_utc": "2026-10-02T15:36:37Z",
+  "machine": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.12.14",
+    "cpu_count": 8,
+    "swap_mb": {
+      "total": 7168.0,
+      "used": 6632.88,
+      "free": 535.12
+    }
+  },
+  "sample_chunks": 200,
+  "seed": 20261002,
+  "target_chunks_per_second": 4.0,
+  "results": [
+    {
+      "batch_size": 8,
+      "max_length": 512,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 85.05,
+      "chunks_per_second": 2.352,
+      "seconds_per_chunk": 0.4252,
+      "peak_rss_bytes": 1007026176,
+      "peak_rss_gb": 1.007,
+      "rss_before_gb": 0.475,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6624.88,
+        "free": 543.12
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6580.25,
+        "free": 587.75
+      },
+      "slowest_collection_chunks_per_second": 1.847,
+      "failed_collections": []
+    },
+    {
+      "batch_size": 16,
+      "max_length": 512,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 92.36,
+      "chunks_per_second": 2.165,
+      "seconds_per_chunk": 0.4618,
+      "peak_rss_bytes": 1110278144,
+      "peak_rss_gb": 1.11,
+      "rss_before_gb": 0.475,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6572.25,
+        "free": 595.75
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6592.62,
+        "free": 575.38
+      },
+      "slowest_collection_chunks_per_second": 1.411,
+      "failed_collections": []
+    },
+    {
+      "batch_size": 32,
+      "max_length": 512,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 93.01,
+      "chunks_per_second": 2.15,
+      "seconds_per_chunk": 0.4651,
+      "peak_rss_bytes": 1094123520,
+      "peak_rss_gb": 1.094,
+      "rss_before_gb": 0.474,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6536.62,
+        "free": 631.38
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6540.81,
+        "free": 627.19
+      },
+      "slowest_collection_chunks_per_second": 1.819,
+      "failed_collections": []
+    },
+    {
+      "batch_size": 64,
+      "max_length": 512,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 90.27,
+      "chunks_per_second": 2.216,
+      "seconds_per_chunk": 0.4514,
+      "peak_rss_bytes": 1126121472,
+      "peak_rss_gb": 1.126,
+      "rss_before_gb": 0.469,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6516.81,
+        "free": 651.19
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6707.62,
+        "free": 460.38
+      },
+      "slowest_collection_chunks_per_second": 1.918,
+      "failed_collections": []
+    },
+    {
+      "batch_size": 8,
+      "max_length": 256,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 41.68,
+      "chunks_per_second": 4.799,
+      "seconds_per_chunk": 0.2084,
+      "peak_rss_bytes": 1356791808,
+      "peak_rss_gb": 1.357,
+      "rss_before_gb": 0.474,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6707.62,
+        "free": 460.38
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6659.5,
+        "free": 508.5
+      },
+      "slowest_collection_chunks_per_second": 4.071,
+      "failed_collections": []
+    },
+    {
+      "batch_size": 16,
+      "max_length": 256,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 42.69,
+      "chunks_per_second": 4.685,
+      "seconds_per_chunk": 0.2135,
+      "peak_rss_bytes": 1150222336,
+      "peak_rss_gb": 1.15,
+      "rss_before_gb": 0.469,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6659.5,
+        "free": 508.5
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6595.5,
+        "free": 572.5
+      },
+      "slowest_collection_chunks_per_second": 3.962,
+      "failed_collections": []
+    },
+    {
+      "batch_size": 32,
+      "max_length": 256,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 42.17,
+      "chunks_per_second": 4.743,
+      "seconds_per_chunk": 0.2108,
+      "peak_rss_bytes": 1413906432,
+      "peak_rss_gb": 1.414,
+      "rss_before_gb": 0.469,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6595.5,
+        "free": 572.5
+      },
+      "swap_mb_after": {
+        "total": 7168.0,
+        "used": 6571.5,
+        "free": 596.5
+      },
+      "slowest_collection_chunks_per_second": 4.444,
+      "failed_collections": []
+    },
+    {
+      "batch_size": 64,
+      "max_length": 256,
+      "chunks": 200,
+      "collections": 35,
+      "seconds": 53.73,
+      "chunks_per_second": 3.722,
+      "seconds_per_chunk": 0.2687,
+      "peak_rss_bytes": 959397888,
+      "peak_rss_gb": 0.959,
+      "rss_before_gb": 0.474,
+      "swap_mb_before": {
+        "total": 7168.0,
+        "used": 6563.5,
+        "free": 604.5
+      },
+      "swap_mb_after": {
+        "total": 8192.0,
+        "used": 7064.0,
+        "free": 1128.0
+      },
+      "slowest_collection_chunks_per_second": 2.218,
+      "failed_collections": []
+    }
+  ],
+  "best": {
+    "batch_size": 8,
+    "max_length": 256,
+    "chunks": 200,
+    "collections": 35,
+    "seconds": 41.68,
+    "chunks_per_second": 4.799,
+    "seconds_per_chunk": 0.2084,
+    "peak_rss_bytes": 1356791808,
+    "peak_rss_gb": 1.357,
+    "rss_before_gb": 0.474,
+    "swap_mb_before": {
+      "total": 7168.0,
+      "used": 6707.62,
+      "free": 460.38
+    },
+    "swap_mb_after": {
+      "total": 7168.0,
+      "used": 6659.5,
+      "free": 508.5
+    },
+    "slowest_collection_chunks_per_second": 4.071,
+    "failed_collections": []
+  },
+  "best_at_full_512_length": {
+    "batch_size": 8,
+    "max_length": 512,
+    "chunks": 200,
+    "collections": 35,
+    "seconds": 85.05,
+    "chunks_per_second": 2.352,
+    "seconds_per_chunk": 0.4252,
+    "peak_rss_bytes": 1007026176,
+    "peak_rss_gb": 1.007,
+    "rss_before_gb": 0.475,
+    "swap_mb_before": {
+      "total": 7168.0,
+      "used": 6624.88,
+      "free": 543.12
+    },
+    "swap_mb_after": {
+      "total": 7168.0,
+      "used": 6580.25,
+      "free": 587.75
+    },
+    "slowest_collection_chunks_per_second": 1.847,
+    "failed_collections": []
+  },
+  "note": "Each configuration ran in its own subprocess because ru_maxrss is a per-process high-water mark. max_length below 512 truncates the vector's content (81% of chunks exceed 512 tokens), so it is not a like-for-like comparison and adopting it means re-indexing.",
+  "projected_full_corpus_hours_at_512": 4.23
+}

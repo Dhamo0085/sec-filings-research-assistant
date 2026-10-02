@@ -77,3 +77,7 @@ data/chat_history.db*
 data/auto_ingest_access.json
 *.zip
 llm/limits.local.yaml
+# Extra repo-hygiene patterns supplied by the owner (the old project's
+# handle, repository name and hostnames). P2-00(b): never committed, so no
+# tracked file names the old project.
+.hygiene_local

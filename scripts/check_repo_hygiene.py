@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Repo hygiene checks in one reliable command (P1-13). Run via `make hygiene`.
 
-Three checks over the files git actually tracks:
+Checks over the files git actually tracks:
 
 1. **Key-like strings** — report ``file:line`` only, never the matched text.
 2. **Large files** — anything over 5 MB that would be committed.
-3. **Third-party references** — deployment URLs or the old repository name, in
-   any tracked file outside the frozen historical records.
+3. **Third-party references** — deployment URLs, in any tracked file outside
+   the frozen historical records.
+4. **Owner-supplied patterns** (P2-00b) — the old project's handle, repository
+   name and hostnames, read from a gitignored ``.hygiene_local``. Committing
+   that file would put the very strings it hunts for into the repository, so it
+   stays local and the script reports ``file:line`` plus a pattern *index*,
+   never the pattern itself.
 
 Why this exists as a script rather than a shell pipeline: during Step 0 two
 ``xargs``-based shell checks silently produced false results. One printed a
@@ -16,9 +21,13 @@ hiding 28 real hits. Trusting that would have shipped vendor references into
 the new repository. CLAUDE.md rule 15 came out of it: prefer a script, and
 prove the check can fail before trusting a pass.
 
-Hence ``--self-test``: it plants a known key-like string, an oversized file and
-a third-party URL in a scratch directory and asserts each check catches them.
-A check that cannot fail is not evidence.
+Hence ``--self-test``: it plants a known key-like string, an oversized file, a
+third-party URL and a ``.hygiene_local`` pattern in a scratch directory and
+asserts each check catches them. A check that cannot fail is not evidence.
+
+The same reasoning drives the loud notice when ``.hygiene_local`` is absent or
+empty: check 4 would then pass on every tree, and "clean" would mean "nothing
+was looked for" rather than "nothing was found".
 
 Exit codes: 0 all clear · 1 findings · 2 could not run (e.g. not a git repo).
 """
@@ -51,9 +60,10 @@ KEY_PATTERNS = {
 # Scope note: "Financial_RAG" is deliberately NOT matched. It is this
 # project's own working name — CLAUDE.md, docs/PROJECT_SPEC.md and the
 # Makefile all use it in their titles — so matching it would flag the owner's
-# own documents. The old GitHub repository's actual name/URL is not known to
-# this script; see the Phase 1 report's owner questions. Add it here when the
-# owner supplies it.
+# own documents. The old project's handle, repository name and hostnames are
+# NOT listed here either: writing them into a tracked file is the thing the
+# check exists to prevent. They go in the gitignored .hygiene_local instead
+# (P2-00b), and check_local_references() reads them from there.
 REFERENCE_PATTERNS = {
     "railway_app_url": re.compile(rb"[A-Za-z0-9.-]*\.up\.railway\.app", re.I),
     "railway_config": re.compile(rb"\brailway\.toml\b", re.I),
@@ -141,6 +151,86 @@ def check_references(root: Path, files: Iterable[str]) -> List[Finding]:
     return out
 
 
+LOCAL_PATTERNS_FILE = ".hygiene_local"
+
+
+class LocalPattern(NamedTuple):
+    label: str                  # "local#1" — an index, never the pattern text
+    pattern: re.Pattern
+
+
+def load_local_patterns(root: Path) -> List[LocalPattern]:
+    """Read the owner's extra patterns from the gitignored ``.hygiene_local``.
+
+    Format, one per line: a literal substring, matched case-insensitively, or
+    a regular expression when prefixed with ``re:``. ``#`` starts a comment and
+    blank lines are skipped.
+
+    Labels are indexes rather than the pattern text. The point of this check is
+    that the old project's identifiers never appear in anything the repository
+    or a report could carry, and a finding that printed its own pattern would
+    leak exactly that into the terminal and into the phase report.
+    """
+    path = root / LOCAL_PATTERNS_FILE
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    out: List[LocalPattern] = []
+    for line in raw.splitlines():
+        text = line.strip()
+        if not text or text.startswith("#"):
+            continue
+        body = text[3:].strip() if text.startswith("re:") else None
+        try:
+            if body is not None:
+                compiled = re.compile(body.encode("utf-8"), re.I)
+            else:
+                compiled = re.compile(re.escape(text.encode("utf-8")), re.I)
+        except re.error as exc:
+            # Report the failure without echoing the pattern.
+            raise RuntimeError(
+                f"{LOCAL_PATTERNS_FILE}: pattern #{len(out) + 1} is not a valid "
+                f"regular expression ({exc.msg})"
+            ) from exc
+        out.append(LocalPattern(f"local#{len(out) + 1}", compiled))
+    return out
+
+
+def check_local_references(root: Path, files: Iterable[str]) -> List[Finding]:
+    """Owner-supplied patterns, over EVERY tracked file (P2-00b).
+
+    No historical-record exemption, unlike check_references(). P2-00(b) says
+    plainly that "no committed file names the old project", without carving out
+    reports/ or eval/phase0/ — and a stale handle sitting in a committed Phase 0
+    report is precisely the thing the owner wants surfaced. If a historical
+    record does name the old project, that is a finding for the owner to decide
+    on, not something this script should quietly exempt.
+    """
+    patterns = load_local_patterns(root)
+    if not patterns:
+        return []
+    out: List[Finding] = []
+    for rel in files:
+        if rel == LOCAL_PATTERNS_FILE:
+            # It holds the patterns, so it always matches itself. Being tracked
+            # at all is the finding, and check_untracked_runtime_files owns it.
+            continue
+        path = root / rel
+        try:
+            data = path.read_bytes()
+        except OSError:
+            continue
+        if b"\0" in data[:4096]:
+            continue
+        for lineno, line in enumerate(data.split(b"\n"), 1):
+            for lp in patterns:
+                if lp.pattern.search(line):
+                    out.append(Finding("local-reference", f"{rel}:{lineno}",
+                                       f"pattern={lp.label}"))
+    return out
+
+
 def check_required_files(root: Path, files: Iterable[str]) -> List[Finding]:
     """LICENSE and NOTICE must stay tracked (D17 provenance, T1-12)."""
     tracked = set(files)
@@ -155,7 +245,7 @@ def check_untracked_runtime_files(root: Path, files: Iterable[str]) -> List[Find
     """.env and the chat database must never be tracked (T1-10, T1-12)."""
     tracked = set(files)
     out = []
-    for name in (".env", "data/chat_history.db"):
+    for name in (".env", "data/chat_history.db", LOCAL_PATTERNS_FILE):
         if name in tracked:
             out.append(Finding("must-not-track", name, "is tracked but must not be"))
     for rel in tracked:
@@ -168,6 +258,7 @@ CHECKS = (
     ("secrets", check_keys),
     ("large files", check_large_files),
     ("third-party references", check_references),
+    ("owner patterns (local)", check_local_references),
     ("required files", check_required_files),
     ("untracked runtime files", check_untracked_runtime_files),
 )
@@ -195,6 +286,9 @@ def self_test() -> int:
         (root / "LICENSE").write_text("MIT\n", encoding="utf-8")
         (root / "NOTICE").write_text("provenance\n", encoding="utf-8")
         (root / "clean.py").write_text("x = 1\n", encoding="utf-8")
+        # Mirror the real repository: the patterns file is gitignored, so it is
+        # read from disk but never part of the tracked tree.
+        (root / ".gitignore").write_text(f"{LOCAL_PATTERNS_FILE}\n", encoding="utf-8")
 
         # one planted violation per check
         planted_key = "gsk_" + ("A" * 32)
@@ -202,6 +296,21 @@ def self_test() -> int:
         (root / "big.bin").write_bytes(b"\x01" * (MAX_FILE_BYTES + 1024))
         (root / "stale.md").write_text(
             "see https://example-app.up.railway.app/ for the old deploy\n", encoding="utf-8"
+        )
+        # T2-12: an owner pattern in .hygiene_local must be caught too. The
+        # pattern is invented here, not the owner's real one, and the scratch
+        # repo is thrown away.
+        (root / LOCAL_PATTERNS_FILE).write_text(
+            "# scratch patterns for the self-test\n"
+            "old-project-handle\n"
+            r"re:old[-_]deploy[0-9]{2}\.example\.net" "\n",
+            encoding="utf-8",
+        )
+        (root / "oldname.md").write_text(
+            "migrated from old-project-handle/whatever\n", encoding="utf-8"
+        )
+        (root / "oldhost.md").write_text(
+            "pointed at old_deploy07.example.net once\n", encoding="utf-8"
         )
         _git(["add", "-A"], root)
 
@@ -214,6 +323,7 @@ def self_test() -> int:
             "secret": "leak.py:1",
             "large-file": "big.bin",
             "reference": "stale.md:1",
+            "local-reference": "oldname.md:1",
         }
         for check, where in expectations.items():
             hits = by_check.get(check, [])
@@ -223,6 +333,20 @@ def self_test() -> int:
                 print(f"  FAIL  {check:14s} did NOT catch {where} (saw {hits})")
                 failures.append(check)
 
+        # the `re:` form must fire too, not just the literal form
+        if any(f.location.startswith("oldhost.md") for f in findings):
+            print("  PASS  local-reference caught the re: pattern (oldhost.md:1)")
+        else:
+            print("  FAIL  local-reference did NOT catch the re: pattern")
+            failures.append("local-reference-regex")
+
+        loaded = load_local_patterns(root)
+        if len(loaded) == 2:
+            print(f"  PASS  loader read {len(loaded)} pattern(s), skipping the comment")
+        else:
+            print(f"  FAIL  loader read {len(loaded)} pattern(s), expected 2")
+            failures.append("local-pattern-loader")
+
         # the clean file must not be reported
         if any("clean.py" in f.location for f in findings):
             print("  FAIL  clean.py was reported (false positive)")
@@ -231,7 +355,7 @@ def self_test() -> int:
             print("  PASS  clean file not reported")
 
         # removing the planted files must yield a clean run
-        for name in ("leak.py", "big.bin", "stale.md"):
+        for name in ("leak.py", "big.bin", "stale.md", "oldname.md", "oldhost.md"):
             (root / name).unlink()
         _git(["add", "-A"], root)
         remaining = run(root)
@@ -240,6 +364,26 @@ def self_test() -> int:
             failures.append("clean-tree")
         else:
             print("  PASS  clean tree reports nothing")
+
+        # the patterns file must be ignored, not merely absent from the index
+        ignored = _git(["check-ignore", "-q", LOCAL_PATTERNS_FILE], root)
+        if ignored.returncode == 0:
+            print(f"  PASS  gitignore      covers {LOCAL_PATTERNS_FILE}")
+        else:
+            print(f"  FAIL  gitignore      does NOT cover {LOCAL_PATTERNS_FILE}")
+            failures.append("local-gitignore")
+
+        # and if someone force-adds it anyway, that must be a finding
+        _git(["add", "--force", LOCAL_PATTERNS_FILE], root)
+        forced = [f for f in run(root)
+                  if f.check == "must-not-track" and f.location == LOCAL_PATTERNS_FILE]
+        if forced:
+            print(f"  PASS  must-not-track caught a force-added {LOCAL_PATTERNS_FILE}")
+        else:
+            print(f"  FAIL  must-not-track did NOT catch a force-added "
+                  f"{LOCAL_PATTERNS_FILE}")
+            failures.append("local-force-added")
+        _git(["rm", "--cached", "-q", LOCAL_PATTERNS_FILE], root)
 
         # the required-file check must fire when LICENSE is gone
         (root / "LICENSE").unlink()
@@ -276,6 +420,19 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     files = tracked_files(root)
     print(f"repo hygiene: {len(files)} tracked files under {root}")
+
+    # rule 15: say plainly when a check had nothing to look for, so "clean"
+    # cannot be read as "the old project's names are definitely absent".
+    local = load_local_patterns(root)
+    if local:
+        print(f"  {'owner patterns loaded':26s} {len(local)} from {LOCAL_PATTERNS_FILE}")
+    elif (root / LOCAL_PATTERNS_FILE).exists():
+        print(f"  {'owner patterns loaded':26s} 0 — {LOCAL_PATTERNS_FILE} is EMPTY, "
+              f"so the old project's names were NOT scanned for")
+    else:
+        print(f"  {'owner patterns loaded':26s} 0 — no {LOCAL_PATTERNS_FILE}, "
+              f"so the old project's names were NOT scanned for")
+
     for label, fn in CHECKS:
         hits = fn(root, files)
         status = f"{len(hits)} finding(s)" if hits else "clean"

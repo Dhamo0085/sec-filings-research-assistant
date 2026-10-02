@@ -1,0 +1,41 @@
+{
+  "batch_size": 8,
+  "max_length": null,
+  "seconds": 541.2,
+  "chunks_embedded": 970,
+  "chunks_per_second": 1.792,
+  "peak_rss_bytes": 1012105216,
+  "peak_rss_gb": 1.012,
+  "collections": [
+    {
+      "name": "GOOGL_2023",
+      "chunks_total": 318,
+      "chunks_embedded": 318,
+      "chunks_already_present": 0,
+      "seconds": 180.4,
+      "chunks_per_second": 1.763,
+      "status": "indexed",
+      "error": null
+    },
+    {
+      "name": "GOOGL_2025",
+      "chunks_total": 319,
+      "chunks_embedded": 319,
+      "chunks_already_present": 0,
+      "seconds": 190.2,
+      "chunks_per_second": 1.677,
+      "status": "indexed",
+      "error": null
+    },
+    {
+      "name": "GOOGL_2024",
+      "chunks_total": 333,
+      "chunks_embedded": 333,
+      "chunks_already_present": 0,
+      "seconds": 170.6,
+      "chunks_per_second": 1.952,
+      "status": "indexed",
+      "error": null
+    }
+  ]
+}

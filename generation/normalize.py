@@ -45,13 +45,32 @@ _BRACKET_STYLES = (
 _FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９",
                                   "0123456789")
 
+#: The body of a marker: one number, or a comma/semicolon separated list of
+#: them. The list form is allowed inside every bracket style, because a model
+#: that writes fullwidth brackets can also write "【1, 2】".
+_MARKER_BODY = r"([0-9０-９]+(?:\s*[,;]\s*[0-9０-９]+)*)"
+
 _PATTERNS = tuple(
-    (name, re.compile(f"{re.escape(open_ch)}\\s*([0-9０-９]+)\\s*{re.escape(close_ch)}"))
+    (name, re.compile(f"{re.escape(open_ch)}\\s*{_MARKER_BODY}\\s*{re.escape(close_ch)}"))
     for name, open_ch, close_ch in _BRACKET_STYLES
 )
 
 #: An ASCII marker whose digits are fullwidth: "[１]".
 _ASCII_WITH_FULLWIDTH_DIGITS = re.compile(r"\[\s*([０-９]+)\s*\]")
+
+#: Several sources in one bracket: "[1, 2]", "[1,2,3]", "[1; 2]".
+#:
+#: Observed live from Gemini Flash-Lite in the P3-09 walkthrough ("...a
+#: majority of supplier facilities ... located outside the U.S [1, 2]"), and
+#: it defeats the single-marker machinery completely: the remapper in
+#: generation/citations.py and the pruner in answering/text_answer.py both
+#: match ``[(\d+)]`` only, so the second source was dropped from the citation
+#: list while the text still pointed at it — a reference the reader cannot
+#: follow, which is exactly what the pruning exists to prevent.
+#:
+#: A range ("[1-3]") is deliberately not matched: it is not a list of
+#: sources, and expanding it would invent references.
+_COMBINED_MARKER = re.compile(r"\[\s*(\d+(?:\s*[,;]\s*\d+)+)\s*\]")
 
 
 def normalize_markers(text: str) -> Tuple[str, Dict[str, int]]:
@@ -71,15 +90,27 @@ def normalize_markers(text: str) -> Tuple[str, Dict[str, int]]:
 
     def _replace(name: str):
         def inner(match: re.Match) -> str:
-            digits = match.group(1).translate(_FULLWIDTH_DIGITS)
-            if not digits.isdigit():
+            body = match.group(1).translate(_FULLWIDTH_DIGITS)
+            numbers = [n.strip() for n in re.split(r"[,;]", body)]
+            if not all(n.isdigit() for n in numbers) or not numbers:
                 return match.group(0)
             counts[name] = counts.get(name, 0) + 1
-            return f"[{int(digits)}]"
+            if len(numbers) > 1:
+                counts["combined_markers"] = counts.get("combined_markers", 0) + 1
+            return " ".join(f"[{int(n)}]" for n in numbers)
         return inner
 
     out = text
     for name, pattern in _PATTERNS:
         out = pattern.sub(_replace(name), out)
     out = _ASCII_WITH_FULLWIDTH_DIGITS.sub(_replace("fullwidth_digits"), out)
+
+    def _split_combined(match: re.Match) -> str:
+        numbers = [n.strip() for n in re.split(r"[,;]", match.group(1))]
+        counts["combined_markers"] = counts.get("combined_markers", 0) + 1
+        return " ".join(f"[{int(n)}]" for n in numbers)
+
+    # Last, so a combined marker written in fullwidth brackets has already
+    # become an ASCII one by the time this runs.
+    out = _COMBINED_MARKER.sub(_split_combined, out)
     return out, counts

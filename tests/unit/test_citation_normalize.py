@@ -83,3 +83,39 @@ def test_leading_zeros_are_normalised():
 def test_empty_input_is_safe(text):
     out, counts = normalize_markers(text)
     assert out == text and counts == {}
+
+
+# ── several sources in one bracket ───────────────────────────────────────────
+
+@pytest.mark.parametrize("raw,expected", [
+    ("Supplier sites are outside the U.S [1, 2].",
+     "Supplier sites are outside the U.S [1] [2]."),
+    ("A claim [1,2,3].", "A claim [1] [2] [3]."),
+    ("A claim [1; 2].", "A claim [1] [2]."),
+    ("A claim [ 10 , 11 ].", "A claim [10] [11]."),
+])
+def test_a_combined_marker_is_split_into_separate_ones(raw, expected):
+    """Observed live from Gemini Flash-Lite. The single-marker parser cannot
+    see "[1, 2]", so source 2 was dropped from the citation list while the
+    text still referred to it."""
+    out, counts = normalize_markers(raw)
+    assert out == expected
+    assert counts["combined_markers"] == 1
+
+
+def test_a_combined_marker_in_fullwidth_brackets_is_handled_too():
+    out, counts = normalize_markers("A claim 【1, 2】.")
+    assert out == "A claim [1] [2]."
+    assert counts == {"cjk_brackets": 1, "combined_markers": 1}
+
+
+def test_a_single_marker_is_not_counted_as_combined():
+    _out, counts = normalize_markers("A claim [1].")
+    assert "combined_markers" not in counts
+
+
+def test_a_bracketed_range_is_not_a_combined_marker():
+    """"[1-3]" is not a citation list; splitting it would invent sources."""
+    raw = "See table [1-3] for detail."
+    out, counts = normalize_markers(raw)
+    assert out == raw and counts == {}

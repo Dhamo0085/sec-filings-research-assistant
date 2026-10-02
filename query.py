@@ -180,11 +180,10 @@ def _abstain_from_facts(
 ) -> Outcome:
     """Turn the resolver's typed refusal into the user-facing one (G3)."""
     reason = reason_from_facts(refusal.reason)
-    available: Sequence[int] = ()
-    try:
-        available = catalog.available_fiscal_labels(ticker, as_of=route_.as_of)
-    except Exception:
-        available = ()
+    # The years this system can answer, not every year on EDGAR — see
+    # _available_for.
+    available: Sequence[int] = _available_for(catalog, [ticker], route_.as_of,
+                                              kind="facts")
 
     candidates = ""
     if refusal.candidate_values:
@@ -377,7 +376,8 @@ def _collection_of(chunk) -> str:
     return f"{chunk.ticker}_{chunk.fiscal_year}"
 
 
-def _answer_from_text(deps: Deps, route_: Route, question: str) -> Outcome:
+def _answer_from_text(deps: Deps, route_: Route, question: str,
+                      *, history: str = "") -> Outcome:
     catalog = deps.get_catalog()
     labels = list(route_.period.labels) or None
     collections, by_collection = eligible_collections(
@@ -385,13 +385,21 @@ def _answer_from_text(deps: Deps, route_: Route, question: str) -> Outcome:
     )
 
     if not collections:
+        indexed = _available_for(catalog, route_.tickers, route_.as_of, kind="text")
+        # "I don't have {period} for {company}" has to read as English when no
+        # period was named at all, which is the normal case for a narrative
+        # question — and the hint must offer *indexed* years, not years we
+        # merely have facts for.
+        period = (route_.period.describe() if route_.period.labels or
+                  route_.period.period_end
+                  else ("any indexed filing text" if not indexed
+                        else "filing text for that period"))
         return abstain_for(
             AbstainReason.PERIOD_NOT_COVERED,
             query_type=QueryType.NARRATIVE, query=question, as_of=route_.as_of,
             company=(_company_name(route_, route_.tickers[0], catalog)
                      if route_.tickers else None),
-            period=route_.period.describe(),
-            available=_available_for(catalog, route_.tickers, route_.as_of),
+            period=period, available=indexed,
             trace=route_.trace(),
         )
 
@@ -406,20 +414,42 @@ def _answer_from_text(deps: Deps, route_: Route, question: str) -> Outcome:
     return answer_from_text(
         question, retrieved=retrieved, by_collection=by_collection,
         collection_of=_collection_of, llm=deps.get_llm(), as_of=route_.as_of,
-        scope_description=scope, trace=route_.trace(),
+        scope_description=scope, trace=route_.trace(), history=history,
     )
 
 
-def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str]) -> List[int]:
+def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str],
+                   *, kind: str = "any") -> List[int]:
+    """Years this system can actually answer about, for the refusal's hint.
+
+    ``kind`` picks which capability is being offered: ``"facts"`` for years
+    with a built facts store, ``"text"`` for years with an indexed text
+    collection, ``"any"`` for either. The distinction is not cosmetic — Wells
+    Fargo has facts for five years and no text index at all, so offering
+    "fiscal 2021 to 2025" under a refusal of a *narrative* question sends the
+    reader back to ask four more questions that will each refuse.
+
+    NOT every year in the catalog: the catalog holds a filer's whole EDGAR
+    history (483 rows for the bundled set, back to the 1990s), while only the
+    filings that have facts built or text indexed can be answered. Offering
+    the rest produced "I do have fiscal 1994, 1995, 1996 ..." under a refusal
+    — a list of years that would each refuse in turn, which is worse than no
+    hint at all.
+    """
     years: set = set()
     for ticker in tickers:
         try:
-            years.update(catalog.available_fiscal_labels(ticker, as_of=as_of))
+            filings = catalog.for_ticker(ticker, as_of=as_of)
         except Exception as exc:
-            # Only used to make a refusal more helpful ("I do have fiscal
-            # 2022 to 2025"), so a catalog hiccup drops the hint rather than
-            # the refusal.
-            logger.debug(f"could not list fiscal labels for {ticker}: {exc}")
+            # The hint is a courtesy; a catalog hiccup drops it, not the refusal.
+            logger.debug(f"could not list filings for {ticker}: {exc}")
+            continue
+        for f in filings:
+            has = {"facts": bool(f.facts_built_at),
+                   "text": bool(f.collection_name),
+                   "any": bool(f.facts_built_at or f.collection_name)}[kind]
+            if has:
+                years.add(f.fiscal_label)
     return sorted(years)
 
 
@@ -431,6 +461,7 @@ def ask(
     as_of: Optional[str] = None,
     tickers: Optional[Sequence[str]] = None,
     years: Optional[Sequence[int]] = None,
+    history: str = "",
     deps: Optional[Deps] = None,
 ) -> Outcome:
     """Answer ``question``, or say exactly why not. Never raises.
@@ -439,11 +470,21 @@ def ask(
     the user, so they override what the router read out of the sentence. They
     are applied after routing rather than before, so the intent, metric and
     focus are still decided from the question itself.
+
+    ``history`` is earlier conversation. It is deliberately **not** part of
+    what gets routed. v1's chat endpoint prepended prior turns to the question
+    so its LLM classifier could resolve "compare to last year", and with a
+    rules-first router that is actively harmful: a previous answer mentioning
+    "fiscal 2024 (year ended 2024-09-28)" injects three years into the period
+    parse and turns a plain figure request into a trend. Observed in the UI
+    walkthrough — the same question asked twice came back as a trend over
+    every year the earlier answer named. The history reaches the text
+    generator as context and nothing else.
     """
     deps = deps or Deps()
     try:
         return _ask_inner(question, as_of=as_of, deps=deps,
-                          tickers=tickers, years=years)
+                          tickers=tickers, years=years, history=history)
     except LLMError as exc:
         code = error_code_for(exc)
         logger.error(f"dependency failure [{code.value}]: {type(exc).__name__}: {exc}")
@@ -462,6 +503,7 @@ def _ask_inner(
     question: str, *, as_of: Optional[str], deps: Deps,
     tickers: Optional[Sequence[str]] = None,
     years: Optional[Sequence[int]] = None,
+    history: str = "",
 ) -> Outcome:
     catalog_tickers: Sequence[str] = ()
     try:
@@ -503,7 +545,7 @@ def _ask_inner(
         )
     if route_.path is Path.FACTS:
         return _answer_from_facts(deps, route_, question)
-    return _answer_from_text(deps, route_, question)
+    return _answer_from_text(deps, route_, question, history=history)
 
 
 def _apply_filters(

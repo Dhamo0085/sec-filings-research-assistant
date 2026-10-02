@@ -237,6 +237,7 @@ def answer_from_text(
     as_of: Optional[str] = None,
     scope_description: str = "",
     trace: Optional[Dict[str, Any]] = None,
+    history: str = "",
     max_tokens: int = 900,
 ) -> Outcome:
     """Generate a cited answer from retrieved chunks, or abstain.
@@ -265,12 +266,18 @@ def answer_from_text(
             trace={**trace, "retrieved": len(retrieved), "in_scope": 0},
         )
 
+    # Earlier turns go in as their own section, clearly labelled, so a
+    # follow-up reads naturally — and never into the routed question, where
+    # they would corrupt the deterministic period and entity parse (see
+    # query.ask's docstring).
+    prior = (f"EARLIER IN THIS CONVERSATION (for reference only, not a "
+             f"source):\n{history}\n\n" if history.strip() else "")
     data, completion = llm.complete_json(
         role="generator",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user",
-             "content": f"CONTEXT:\n{context}\n\nQUESTION: {question}"},
+             "content": f"{prior}CONTEXT:\n{context}\n\nQUESTION: {question}"},
         ],
         temperature=0.1,
         max_tokens=max_tokens,

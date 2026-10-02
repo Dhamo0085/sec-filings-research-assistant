@@ -168,3 +168,22 @@ def test_every_facts_layer_reason_maps_onto_the_enum(constant):
 def test_an_unknown_reason_string_raises_rather_than_being_passed_through():
     with pytest.raises(ValueError, match=r"not in the 6\.5 enum"):
         reason_from_facts("something_new")
+
+
+def test_the_period_not_covered_message_reads_as_english_without_a_year():
+    """A narrative question names no period; "I don't have no period named
+    for Wells Fargo" is what the first UI walkthrough produced."""
+    text = message_for(AbstainReason.PERIOD_NOT_COVERED,
+                       company="Wells Fargo & Company",
+                       period="any indexed filing text")
+    assert text == ("I don't have any indexed filing text for "
+                    "Wells Fargo & Company.")
+    assert "no period named" not in text
+
+
+def test_a_registered_name_does_not_produce_a_doubled_period():
+    """"Apple Inc." already ends in one, and the sentence supplies its own."""
+    text = message_for(AbstainReason.PERIOD_NOT_COVERED, company="Apple Inc.",
+                       period="fiscal 2019")
+    assert text == "I don't have fiscal 2019 for Apple Inc."
+    assert ".." not in text

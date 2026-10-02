@@ -56,6 +56,11 @@ MESSAGES: Dict[AbstainReason, str] = {
     AbstainReason.PERIOD_NOT_COVERED: (
         "I don't have {period} for {company}.{available}"
     ),
+    # The template above reads as English for every value the caller passes
+    # for ``period``, including "any indexed filing text" — which is what the
+    # text path passes when a filer has facts but no indexed text at all
+    # (Wells Fargo). A narrative question there must not be answered with a
+    # list of years that only the numeric path can serve.
     AbstainReason.PERIOD_NOT_FILED_AS_OF: (
         "As of {as_of}, {company} had not yet filed its annual report for "
         "{period} — that filing became public on {filing_date}. Answering "
@@ -134,6 +139,10 @@ CLARIFICATION_NO_COMPANY = (
 )
 
 
+def _trim_trailing_period(name: str) -> str:
+    return name[:-1] if name.endswith(".") else name
+
+
 def _available_note(available: Optional[Sequence[int]]) -> str:
     """" I do have fiscal 2022 to 2025." — a refusal needs a next step."""
     years = sorted({int(y) for y in available or ()})
@@ -156,7 +165,11 @@ def message_for(reason: AbstainReason, **facts: Any) -> str:
     """
     template = MESSAGES[reason]
     values: Dict[str, Any] = {
-        "company": facts.get("company") or facts.get("ticker") or "that company",
+        # Registered names end in a period ("Apple Inc."), and every sentence
+        # here supplies its own, so "for Apple Inc.." is what the first
+        # walkthrough produced.
+        "company": _trim_trailing_period(
+            facts.get("company") or facts.get("ticker") or "that company"),
         "period": facts.get("period") or "that period",
         "period_phrase": facts.get("period_phrase") or "A quarterly or interim period",
         "metric": facts.get("metric") or "that measure",

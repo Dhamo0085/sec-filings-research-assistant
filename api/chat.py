@@ -107,7 +107,7 @@ except Exception:
 
 # ── Pipeline helper ───────────────────────────────────────────────────────────
 
-def _run_pipeline(question: str, tickers=None, years=None, as_of=None):
+def _run_pipeline(question: str, tickers=None, years=None, as_of=None, history=""):
     """Run the pipeline. Returns the P3-01 Outcome.
 
     P3-03 retired routing/classifier.py: the filter chips are now an override
@@ -115,7 +115,8 @@ def _run_pipeline(question: str, tickers=None, years=None, as_of=None):
     still read from the question rather than guessed again by a second,
     differently-prompted model call.
     """
-    return ask(question, as_of=as_of, tickers=tickers, years=years)
+    return ask(question, as_of=as_of, tickers=tickers, years=years,
+               history=history)
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -213,17 +214,20 @@ def chat(req: ChatRequest):
         except sqlite3.Error as exc:
             logger.warning(f"Chat history unavailable (prior turns): {exc}")
 
-    # Build question with conversation context so the classifier/LLM can resolve
-    # follow-up references like "this", "compare to last year", etc.
-    question = req.question
+    # Prior turns are passed SEPARATELY, never prepended to the question.
+    # v1 prepended them so its LLM classifier could resolve "compare to last
+    # year"; with a rules-first router (P3-03) that corrupts the parse — a
+    # previous answer naming "fiscal 2024 (year ended 2024-09-28)" injects
+    # years into the period parse and turns a figure request into a trend.
+    history = ""
     if prior:
-        ctx = "\n---\n".join(
+        history = "\n---\n".join(
             f"Q: {r['question']}\nA: {r['answer'][:400]}" for r in reversed(prior)
         )
-        question = f"[Conversation history]\n{ctx}\n\n[Current question]\n{req.question}"
 
     try:
-        outcome = _run_pipeline(question, req.tickers, req.years, req.as_of)
+        outcome = _run_pipeline(req.question, req.tickers, req.years,
+                                req.as_of, history)
     except Exception as exc:
         logger.exception("Chat pipeline error")
         raise HTTPException(500, "Something went wrong while answering your question. Please try again.") from exc

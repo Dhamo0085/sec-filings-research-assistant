@@ -243,3 +243,19 @@ def test_an_as_of_query_never_errors(world, as_of, ticker):
                 as_of=as_of.isoformat(), deps=deps_for(world))
     assert out.status is not Status.ERROR, out.answer
     assert out.as_of == as_of.isoformat()
+
+
+def test_conversation_history_does_not_change_the_route(world):
+    """The UI defect: history prepended to the question turned a figure
+    request into a trend over every year the previous answer mentioned."""
+    history = ("Q: What was Apple's revenue in fiscal 2024?\n"
+               "A: Apple Inc.'s total net revenue for fiscal 2024 (year ended "
+               "2024-09-28) was $391.04 billion. Earlier years: 2023, 2022, 2021.")
+
+    plain = Q.ask("What was Apple's revenue in fiscal 2024?", deps=deps_for(world))
+    with_history = Q.ask("What was Apple's revenue in fiscal 2024?",
+                         history=history, deps=deps_for(world))
+
+    assert with_history.query_type is plain.query_type
+    assert with_history.query_type.value == "numeric_fact"
+    assert with_history.answer == plain.answer

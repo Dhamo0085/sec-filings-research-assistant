@@ -99,6 +99,30 @@ body{font-family:var(--font-body);color:var(--t1);background:var(--ink)}
 .health-dot.ok{background:var(--ok)}
 .health-dot.degraded{background:var(--wa)}
 .health-dot.down{background:var(--er)}
+.asof-wrap{margin-left:auto;display:inline-flex;align-items:center;gap:6px}
+.asof-wrap label{color:var(--t3);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.asof-wrap input[type=date]{background:var(--s2);color:var(--t1);border:1px solid var(--bd);
+  border-radius:6px;padding:2px 6px;font-family:var(--font-mono);font-size:11px}
+.asof-clear{background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;text-decoration:underline}
+.asof-note{display:flex;align-items:center;gap:6px;margin:0 0 10px 0;padding:6px 10px;
+  border:1px solid var(--bd);border-left:3px solid var(--acc);border-radius:6px;
+  background:var(--s2);color:var(--t2);font-size:12px}
+.def-note{margin-top:10px;padding:8px 10px;border-left:3px solid var(--bd);
+  background:var(--s2);border-radius:0 6px 6px 0;color:var(--t2);font-size:12px;
+  font-family:var(--font-mono);line-height:1.5}
+.def-note b{color:var(--t1);font-family:inherit}
+.reason-note{margin-top:8px;color:var(--t3);font-size:11px;font-family:var(--font-mono)}
+.cit-kind{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9.5px;
+  text-transform:uppercase;letter-spacing:.05em;font-family:var(--font-mono)}
+.cit-kind.fact{background:rgba(52,168,83,.15);color:#34a853}
+.cit-kind.text{background:rgba(66,133,244,.15);color:#4285f4}
+.cit-filing{margin-top:6px;font-family:var(--font-mono);font-size:10.5px;color:var(--t3);
+  word-break:break-all}
+.cit-filing a{color:var(--acc);text-decoration:none}
+.cit-filing a:hover{text-decoration:underline}
+.cit-restated{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;
+  background:rgba(251,188,5,.15);color:#f9ab00;font-size:9.5px;text-transform:uppercase}
+.cit-value{margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--t1)}
 .brand-status{font-family:var(--font-mono);font-size:9.5px;color:var(--t3);letter-spacing:.05em;text-transform:uppercase}
 
 .new-btn{
@@ -297,7 +321,8 @@ body{font-family:var(--font-body);color:var(--t1);background:var(--ink)}
 }
 .send:hover{background:#dba851}
 .send:disabled{opacity:.35;cursor:not-allowed;background:var(--brass)}
-.inp-hint{font-family:var(--font-mono);font-size:10px;color:var(--t3);text-align:center;margin-top:6px;letter-spacing:.02em}
+.inp-hint{font-family:var(--font-mono);font-size:10px;color:var(--t3);margin-top:6px;letter-spacing:.02em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#inp-hint-text{flex:1;text-align:center}
 
 /* ── Sources panel ───────────────────────────────────────────────── */
 .src{display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--line);overflow:hidden}
@@ -436,7 +461,15 @@ body{font-family:var(--font-body);color:var(--t1);background:var(--ink)}
           <button class="send" id="sbtn" onclick="send()" title="Send"></button>
         </div>
       </div>
-      <div class="inp-hint" id="inp-hint">SEC 10-K filings only</div>
+      <div class="inp-hint" id="inp-hint">
+        <span id="inp-hint-text">SEC 10-K filings only</span>
+        <span class="asof-wrap" title="Answer as if today were this date: only filings published on or before it are used.">
+          <label for="asof">As of</label>
+          <input type="date" id="asof" onchange="onAsOf()">
+          <button class="asof-clear" id="asof-clear" onclick="clearAsOf()"
+                  style="display:none" title="Clear the as-of date">clear</button>
+        </span>
+      </div>
     </div>
   </main>
 
@@ -500,6 +533,7 @@ document.getElementById('rev-title').innerHTML = ICONS.book + ' Q&amp;A Review';
 // ── State ──────────────────────────────────────────────────────
 const S = {
   sid: null,
+  asOf: null,      // ISO date; only filings public on or before it are used (D2)
   tickers: [],
   years: [],
   cits: [],
@@ -574,7 +608,9 @@ function buildFilters(collectionNames) {
   const years   = [...new Set(collectionNames.map(c => c.split('_').pop()))].sort();
   S.companies = tickers;
 
-  document.getElementById('inp-hint').textContent =
+  // Only the sentence, not the whole bar: the as-of control lives in the
+  // same row and setting textContent on the parent would delete it.
+  document.getElementById('inp-hint-text').textContent =
     `${tickers.length} compan${tickers.length!==1?'ies':'y'} indexed · SEC 10-K filings only — ask about any public company`;
 
   // Don't rebuild while the user has active filter selections — avoid
@@ -641,7 +677,7 @@ async function openSess(id) {
   if (turns.length) {
     const last = turns[turns.length-1];
     setTitle(last.question);
-    setBadge(last.query_type);
+    setBadge(last.status || last.query_type);
     if (last.citations?.length) setCits(last.citations);
   }
 }
@@ -712,6 +748,7 @@ async function send() {
         question: q,
         tickers: S.tickers.length ? S.tickers : null,
         years:   S.years.length   ? S.years   : null,
+        as_of:   S.asOf || null,
       }),
     });
 
@@ -725,7 +762,7 @@ async function send() {
     else clearCits();
 
     setTitle(q);
-    setBadge(turn.query_type);
+    setBadge(turn.status || turn.query_type);
     await loadSessions();
     document.querySelectorAll('.sess-item').forEach(e=>e.classList.remove('active'));
     document.getElementById(`si-${S.sid}`)?.classList.add('active');
@@ -792,7 +829,31 @@ async function typeIn(el, rawText) {
 // Query types that mean "the system couldn't fully proceed" rather than
 // a normal grounded answer — given a distinct notice treatment instead of
 // looking identical to a regular cited response.
-const NOTICE_TYPES = new Set(['unresolved_company','clarification_needed','out_of_scope']);
+// A response whose body is a refusal or a failure, not an answer: rendered in
+// the muted "notice" style so it cannot be mistaken for one at a glance.
+const NOTICE_STATUSES = new Set(['abstained','clarification_needed','error']);
+
+// D9 status -> badge. The status is what the user needs: "answered" means every
+// number came from a tagged fact, "answered_text" means it came from filing
+// prose and was not fact-verified, and the rest are refusals and failures.
+function sc(status) {
+  return {answered:'b-single', answered_text:'b-multi', abstained:'b-oos',
+          clarification_needed:'b-info', error:'b-oos'}[status] || 'b-single';
+}
+function sl(status) {
+  return {answered:'Verified facts', answered_text:'From filing text',
+          abstained:'Not answered', clarification_needed:'Needs detail',
+          error:'Service error'}[status] || status;
+}
+// Why a question was refused, in the user's words.
+const REASON_LABEL = {
+  company_not_found:'Company not found', no_filing_for_company:'No filing on file',
+  period_not_covered:'Period not covered', period_not_filed_as_of:'Not yet filed on that date',
+  future_period:'Future period', metric_not_supported:'Measure not supported',
+  metric_not_found_in_filing:'Not tagged in the filing',
+  ambiguous_concept:'Ambiguous in the filing', unsupported_period_type:'Annual reports only',
+  out_of_scope:'Out of scope', insufficient_evidence:'Not enough evidence',
+};
 
 async function renderTurn(turn, area, animate=false) {
   const g = document.createElement('div');
@@ -801,18 +862,32 @@ async function renderTurn(turn, area, animate=false) {
   const cdata = JSON.stringify(turn.citations||[]).replace(/'/g,'&#39;');
   const pills = (turn.citations||[]).slice(0,5).map(c =>
     `<span class="cit-pill" onclick='showPillCits(this)'
-           data-cits='${cdata}'>[${c.index}] ${esc(c.ticker)} FY${c.fiscal_year}</span>`
+           data-cits='${cdata}'>[${c.index}] ${esc(c.ticker)} FY${c.fiscal_year ?? c.fiscal_label}</span>`
   ).join('');
 
-  const bodyClass = NOTICE_TYPES.has(turn.query_type) ? 'msg-ai notice' : 'msg-ai';
+  const status = turn.status || 'answered_text';
+  const bodyClass = NOTICE_STATUSES.has(status) ? 'msg-ai notice' : 'msg-ai';
+  const asOfNote = turn.as_of
+    ? `<div class="asof-note">As of ${esc(turn.as_of)} — only filings published on or before that date were used.</div>`
+    : '';
+  const defNote = turn.definition_note
+    ? `<div class="def-note"><b>Definition used:</b> ${esc(turn.definition_note)}</div>`
+    : '';
+  const reason = turn.abstain_reason || turn.error_code;
+  const reasonNote = reason
+    ? `<div class="reason-note">reason: ${esc(REASON_LABEL[reason] || reason)} (${esc(reason)})</div>`
+    : '';
 
   g.innerHTML = `<div class="msg-ai-wrap">
     <div class="msg-ai-hd">
       <div class="ai-av">${ICONS.logo}</div>
       <span class="ai-nm">Financial RAG</span>
-      <span class="badge ${bc(turn.query_type)}">${bl(turn.query_type)}</span>
+      <span class="badge ${sc(status)}">${sl(status)}</span>
+      ${turn.query_type ? `<span class="badge ${bc(turn.query_type)}">${bl(turn.query_type)}</span>` : ''}
     </div>
+    ${asOfNote}
     <div class="${bodyClass}" id="ai-body-${turn.id}"></div>
+    ${defNote}${reasonNote}
     <div class="msg-foot">
       <span class="msg-ts">${fmt(turn.created_at)}</span>
       <div class="cit-pills">${pills}</div>
@@ -834,24 +909,60 @@ function setCits(cits) {
   S.cits = cits;
   const el = document.getElementById('cit-list');
   document.getElementById('cit-cnt').textContent = `(${cits.length})`;
-  el.innerHTML = cits.map(c => `
+  el.innerHTML = cits.map(c => {
+    const kind = c.kind || 'text';
+    const year = c.fiscal_year ?? c.fiscal_label;
+    const link = edgarUrl(c);
+    const filing = c.accession
+      ? `<div class="cit-filing">${link ? `<a href="${link}" target="_blank" rel="noopener noreferrer">${esc(c.accession)}</a>` : esc(c.accession)}
+           · filed ${esc(c.filing_date || '?')}${c.restated ? '<span class="cit-restated">restated</span>' : ''}</div>`
+      : '';
+    // A fact citation shows the figure and the concept it came from, which is
+    // what makes the number traceable (G1); a text citation shows its section.
+    const detail = kind === 'fact'
+      ? `<div class="cit-value">${esc(c.value || '')} ${esc(c.unit || '')}</div>
+         <div class="cit-sec">${esc(c.concept || '')}</div>`
+      : `<div class="cit-sec">${esc(c.section||'')}</div>`;
+    const score = (typeof c.score === 'number' && c.score > 0)
+      ? `<div class="cit-bar">
+           <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,Math.min(100,(c.score*10+50)))}%"></div></div>
+           <span class="bar-val">${c.score.toFixed(3)}</span>
+         </div>`
+      : '';
+    return `
     <div class="cit-card">
-      <div class="cit-rank">Source [${c.index}]</div>
+      <div class="cit-rank">Source [${c.index}] <span class="cit-kind ${kind}">${kind}</span></div>
       <div class="cit-co">${esc(c.company||c.ticker)}</div>
       <div>
         <span class="cit-tk">${esc(c.ticker)}</span>
-        <span class="cit-yr">FY${c.fiscal_year}</span>
+        <span class="cit-yr">FY${year}</span>
       </div>
-      <div class="cit-sec">${esc(c.section||'')}</div>
-      <div class="cit-bar">
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,Math.min(100,(c.score*10+50)))}%"></div></div>
-        <span class="bar-val">${c.score.toFixed(3)}</span>
-      </div>
-    </div>
-  `).join('');
+      ${detail}${filing}${score}
+    </div>`;
+  }).join('');
   const btn = document.getElementById('src-btn');
   btn.style.display = 'flex';
   document.getElementById('src-cnt').textContent = cits.length;
+}
+
+function onAsOf() {
+  const el = document.getElementById('asof');
+  S.asOf = el.value || null;
+  document.getElementById('asof-clear').style.display = S.asOf ? 'inline' : 'none';
+  if (S.asOf) toast(`Answering as of ${S.asOf} — later filings are excluded`, 'ok');
+}
+
+function clearAsOf() {
+  document.getElementById('asof').value = '';
+  onAsOf();
+}
+
+// EDGAR's filing index needs both the CIK and the accession; there is no
+// accession-only permalink, so a citation without a CIK simply has no link.
+function edgarUrl(c) {
+  if (!c.cik || !c.accession) return '';
+  return `https://www.sec.gov/Archives/edgar/data/${c.cik}/`
+       + `${String(c.accession).replace(/-/g,'')}/${c.accession}-index.htm`;
 }
 
 function showPillCits(el) {
@@ -920,7 +1031,7 @@ function renderRev(data) {
   list.innerHTML = data.map(t => {
     const cls = t.is_correct===true ? 'ok' : t.is_correct===false ? 'bad' : '';
     const pills = (t.citations||[]).slice(0,3).map(c=>
-      `<span class="cit-pill">${esc(c.ticker)} FY${c.fiscal_year}</span>`
+      `<span class="cit-pill">${esc(c.ticker)} FY${c.fiscal_year ?? c.fiscal_label}</span>`
     ).join('');
     return `<div class="rc ${cls}" data-tid="${t.id}" data-sid="${t.session_id}">
       <div class="rc-top">
@@ -1022,14 +1133,20 @@ function fmt(iso) {
   catch { return iso; }
 }
 
+// Spec 6.5 query_type. The pre-Phase-3 names are kept so an old chat history
+// still renders rather than showing a raw identifier.
 function bc(t) {
-  return {single_doc:'b-single',multi_doc:'b-multi',temporal:'b-temp',
+  return {numeric_fact:'b-single',computed:'b-temp',compare:'b-multi',
+          trend:'b-temp',narrative:'b-sum',unsupported:'b-oos',
+          single_doc:'b-single',multi_doc:'b-multi',temporal:'b-temp',
           summarization:'b-sum',out_of_scope:'b-oos',
           unresolved_company:'b-info',clarification_needed:'b-info',
           ingest_failed:'b-info',error:'b-oos'}[t]||'b-single';
 }
 function bl(t) {
-  return {single_doc:'Q&A',multi_doc:'Compare',temporal:'Trend',
+  return {numeric_fact:'Figure',computed:'Calculated',compare:'Comparison',
+          trend:'Trend',narrative:'Narrative',unsupported:'Unsupported',
+          single_doc:'Q&A',multi_doc:'Compare',temporal:'Trend',
           summarization:'Summary',out_of_scope:'Out of scope',
           unresolved_company:'Not found',clarification_needed:'Needs detail',
           ingest_failed:'Try again',error:'Service error'}[t]||t;
@@ -1040,10 +1157,16 @@ function setTitle(text) {
   el.innerHTML = text ? esc(text) : '<span class="chat-title-ph">Start or select a conversation</span>';
 }
 
-function setBadge(type) {
+// The header badge shows the D9 status when there is one (that is what the
+// reader needs to know first: verified facts, filing text, or a refusal) and
+// falls back to the query type for a pre-Phase-3 history entry.
+function setBadge(value) {
   const el = document.getElementById('qbadge');
-  if (!type) { el.style.display='none'; return; }
-  el.className = `badge ${bc(type)}`; el.textContent = bl(type); el.style.display='inline-block';
+  if (!value) { el.style.display='none'; return; }
+  const isStatus = sl(value) !== value;
+  el.className = `badge ${isStatus ? sc(value) : bc(value)}`;
+  el.textContent = isStatus ? sl(value) : bl(value);
+  el.style.display='inline-block';
 }
 
 function scrollBot() {

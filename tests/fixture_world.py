@@ -102,6 +102,12 @@ def build_world(tmp_path: Path, *, collections: bool = False) -> World:
             period_end=spec["period_end"], fiscal_label=spec["fiscal_label"],
         )
     catalog.upsert(filings)
+    # `make facts` marks each filing once its facts are stored, and the
+    # refusal messages read that flag to offer the years they can answer.
+    # A fixture that skips it quietly tests a state the real build never
+    # produces.
+    for filing in filings:
+        catalog.mark_facts_built(filing.accession)
 
     resolver = FactsResolver(catalog=catalog, store=store,
                              registry=load_registry(), statements=None,

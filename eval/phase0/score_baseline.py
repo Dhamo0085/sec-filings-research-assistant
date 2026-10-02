@@ -279,7 +279,11 @@ def main() -> int:
         row["retrieval_diagnostic"] = retrieval_diagnostic(rec, exp)
         scored.append(row)
 
-    (OUT / "baseline_scores.json").write_text(json.dumps(scored, indent=2), encoding="utf-8")
+    # Write next to the results file, not to a fixed reports/phase0/ path.
+    # The fixed default silently overwrote the committed Phase 0 scores when
+    # this scorer was re-used for the Phase 1 baseline.
+    scores_path = res_path.with_name("baseline_scores.json")
+    scores_path.write_text(json.dumps(scored, indent=2), encoding="utf-8")
 
     from collections import Counter, defaultdict
     by_cat = defaultdict(Counter)
@@ -291,7 +295,7 @@ def main() -> int:
         print(f"{str(cat):14s} {c['PASS']:5d} {c['FAIL']:5d} {other:6d}")
     print(f"\nScored {len(scored)} of {len(questions)} questions; "
           f"{len(questions) - len(scored)} not_run.")
-    print(f"wrote {OUT / 'baseline_scores.json'}")
+    print(f"wrote {scores_path}")
     return 0
 
 

@@ -73,5 +73,7 @@ models/
 .venv*/
 data/derived/
 data/chat_history.db*
+# Runtime bookkeeping written by ingestion/auto_ingest.py
+data/auto_ingest_access.json
 *.zip
 llm/limits.local.yaml

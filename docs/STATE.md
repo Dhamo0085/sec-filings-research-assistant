@@ -1,8 +1,8 @@
 # STATE — living handoff for Claude Code sessions
 
 Seeded from `reports/phase1/REPORT.md` and the Phase 0/Step 0 reports at the end of Phase 1 (2026-10-02);
-carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure and again at P3-00
-(2026-10-02) against spec v1.5.
+carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure, at P3-00, and at the
+Phase 3 gate (2026-10-02) against spec v1.5.
 **Read this at the start of every session and after any `/compact`. Update it at every commit batch, at every gate, and *before* running `/compact`.** If this file and the code disagree, trust the code, then fix this file. Facts here that you have not re-verified are marked (seed).
 
 ## 1. Where we are
@@ -12,9 +12,19 @@ carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure a
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
-| Phase 3 | IN PROGRESS on `phase-3-answers` off `main`. P3-00 done (section audit, D3-00, SEC-cache guard). P3-01 to P3-12 open |
-| Current task | Phase 3 |
-| Tests | `make test` → **567 passed, 2 xfailed (documented, D3-00), 0 skipped**; ruff clean. `make test` writes to `reports/phase3/tests/` (Makefile `PHASE` bumped) |
+| Phase 3 | COMPLETE on `phase-3-answers`, awaiting owner approval and merge (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL and not built |
+| Current task | none — awaiting the owner's UI walkthrough, PR merge, and "Approved: start Phase 4" |
+| Tests | `make test` → **1,052 passed, 2 xfailed (strict, documented under D3-00), 0 skipped**; ruff and hygiene clean. Artifacts in `reports/phase3/tests/` |
+
+## 1b. Phase 3 facts (measured, 2026-10-02)
+- **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.
+- **G1–G4 are validators on `answering/outcome.py`, not conventions.** An Outcome with an untraceable number, a citation newer than `as_of`, a reasonless or citation-carrying refusal, or an outage shaped like a clarification raises on construction. Citation indices must be exactly 1..n (kills K1).
+- **Routing costs nothing.** All 30 smoke questions route with **zero** LLM calls (`eval/phase3/smoke.py --dry-run`). In the live run only the 6 narrative questions called a model.
+- **Smoke eval (P3-11): 30/30 expected status.** 0 look-ahead violations, 0 answered rows missing a fact citation or definition note, 0 refusals carrying a citation or figure. Latency p50 0.03 s (facts, no model) / p95 7.59 s (narrative generation). Transcripts: `reports/phase3/smoke/`.
+- **Section quality (P3-00, D3-00): 238 of 429 audited slices usable; Item 1A missing from 17 of 39 filings.** Three candidate parser fixes ablated over 13 filings moved the corpus +1 of 143, so the parser is **unchanged** (byte-identical to `main`) and the two fixable classes are pinned as `xfail(strict=True)` in `tests/unit/test_parser_sections.py`.
+- **Indexed collections: 25** (BLK_2023 added — 1,037 chunks, 286.5 s, 3.62 chunks/s). **`catalog.collection_name` is now populated for all 25**; before P3-06 it was null on all 483 rows, which would have left the text path's `as_of` scope empty on real data. Re-run `python -m ingestion.catalog_ingest --link` after any indexing.
+- **D24 proved**: BLK's filing list spans CIKs [1364742, 2012383]; with `as_of=2025-01-01` the BLK scope is `[BLK_2023]` alone.
+- Coverage: facts 88.8%, catalog 95.5%, llm 90.5%, answering 97.2%, routing/entities 95.5%, routing/periods 98.8%; lowest new file 73.6%.
 
 ## 1a. Phase 2 facts (measured, 2026-10-02)
 - **Facts store built**: `data/derived/facts.sqlite`, **29,002 facts**, 94 submissions, 18 tickers (13 bundled + the 5 cross-check-only filers), 3,492 distinct concepts, newest 5 originals per ticker plus amendments. `make facts` is idempotent: a second run reports all 94 `unchanged` and `--rebuild` reproduces the byte-identical content hash (T2-08) — re-verified after the D22 change.
@@ -52,6 +62,9 @@ Numeric 2/2 pass (N1, N5); computed 0/1 (C1: classification failure); trend 0/1 
 ## 6. Decisions in force (see `docs/DECISIONS.md` and spec section 4)
 D1 facts from iXBRL · D2 `as_of` via catalog · D5 headline total net revenue · D6 company's own fiscal label (DEI) · D7 typed errors · D13 admin fail-closed · D14 restatement rule · D17 portfolio repo · D18 no paid services · D19 `Co-Authored-By: Claude` · D20 normalize citation brackets (counted) · D21 partial baseline accepted, evaluation-core tickers indexed before Phase 3.
 
+## 6b. Phase 3 decisions
+**D3-00** v1's section boundaries are documented, not fixed, in Phase 3: the ablation moved the corpus +1 of 143 slices and adopting a change would cost a re-index and the comparability of every retrieval number so far. D23's prohibition stands and widens — nothing user-visible may assert a section slice is complete, which constrains what a narrative citation may claim.
+
 ## 6a. Phase 2 decisions
 D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0; **now part of spec 6.4 rule 3 rather than a deviation from it**) · D2-03 precision preference (D22), which took corpus-wide exactness from 99.1347% to 99.9787%.
 
@@ -60,12 +73,14 @@ Spec v1.5 also carries **D23** (v1's parsed statement sections are not trusted; 
 ## 7. Open items
 Closed at P2-13: P2-00(e) indexing (all 8 core tickers), T2-10's exact threshold (now met), the owner spot-check (20/20 OK), and the empty `.hygiene_local` (now filled; the T2-12 skip is gone).
 
-Closed at P3-00: the section-quality audit (item 1 below, now measured and decided as D3-00) and the SEC error-page cache (item 3).
+Closed in Phase 3: the section-quality audit (now measured and decided as D3-00), the SEC error-page cache guard, and the BLK FY2023 text-index hole (D24, now indexed).
 
-Carried into the rest of Phase 3:
+Carried into Phase 4:
 1. **v1's section boundaries are broken for the text path too, and are staying that way in Phase 3 (D3-00).** Measured by `scripts/audit_sections.py` over 39 filings: 238 of 429 (filing, audited section) pairs usable, 122 missing, 24 heading-only, 45 oversized. **Item 1A Risk Factors is missing from 17 of 39 filings**, including AMZN, GS, JPM and NFLX; Item 3 Legal is usable in 3. Three candidate parser fixes were ablated and moved the corpus by +1 of 143 pairs, so the limit is documented instead (full reasoning and the ablation table in D3-00; raw counts in `reports/phase3/section_audit_ablation.json`). The two fixable defect classes are pinned as `xfail(strict=True)` in `tests/unit/test_parser_sections.py`, so a future fix cannot land silently. **Consequence for P3-05: a narrative citation names the filing and the section title only — nothing user-visible may assert that a section slice is complete (D23).**
-2. **BLK FY2023 is absent from the text index** (its 10-K is under the old CIK 1364742 and was never chunked; the catalog and facts store both have it). **D24 / P3-06** make ingestion catalog-driven across every CIK, with this as the proof case.
-3. `.cache/company_tickers.json` still holds the SEC error page on disk. Nothing reads it (v1 uses `data/company_tickers.json`, which is valid) and both SEC fetchers now refuse to write or trust such a page (`ingestion/sec_cache.py`), so it is inert — but the owner may delete it.
+2. **Follow-up questions no longer resolve.** `/chat` used to prepend conversation history to the question; with a rules-first router that turned a repeated question into a trend over every year the previous answer named. History now goes to the text generator only. A deterministic follow-up rewriter is proposed in the Phase 3 report section 9.
+3. **Text coverage is far narrower than facts coverage**: 25 indexed collections against 483 catalogued filings. WFC, STT, TROW and IVZ have facts and **no** indexed text, so they answer numbers and refuse narrative (the refusal says which capability is missing). Four tickers x 3 years is about one overnight run at 3.62 chunks/s.
+4. `.cache/company_tickers.json` still holds the SEC error page on disk. Nothing reads it (v1 uses `data/company_tickers.json`, which is valid) and both SEC fetchers now refuse to write or trust such a page (`ingestion/sec_cache.py`), so it is inert — but the owner may delete it.
+5. **Four v1 modules are off the answer path but kept**: `routing/classifier.py`, `routing/resolver.py`, `generation/generator.py`, `generation/synthesizer.py`. `eval/phase0/run_baseline.py` patches into them and the baseline must stay reproducible (D21). Propose deleting in Phase 5.
 4. Phase 0 scorer mislabels passing numeric answers `retrieval_found_llm_misread` (rewritten in P4-03).
 5. Runner instruments only the generator; P4-04 must instrument every LLM role.
 6. `llm/__init__.py` coverage 50% (shim); ignore unless it grows.
@@ -73,6 +88,9 @@ Carried into the rest of Phase 3:
 8. The old project's handle/repo name belongs in the gitignored `.hygiene_local` only, never in a committed file.
 
 ## 8. Gotchas that already cost time (do not repeat)
+- **Driving the real UI found four defects no test could.** Every unit and integration test called `ask()` directly, so none of them saw that `/chat` prepended conversation history to the routed question. Walk the UI by hand before claiming a phase is done.
+- **A local dev server holds the Qdrant local-mode storage lock.** The first live smoke run returned `status=error` for all 6 narrative questions for that reason alone. Stop `uvicorn` before running anything that opens Qdrant.
+- A long-running `make test` writes to `reports/$(PHASE)/tests/`; bump `PHASE` in the Makefile at the start of each phase or the previous phase's committed artifacts get overwritten.
 - `app.routes` is nested under `include_router` in this FastAPI version: inventory routes recursively, key allow-lists by `(method, path)`.
 - `str.format()` on a prompt containing JSON braces breaks silently into the fallback path.
 - `pytest.mark.skipif` is evaluated at collection time, before `pytest-socket` patches; use runtime checks.

@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # handful of collections.
     qdrant_url:     Optional[str] = None
     qdrant_api_key: Optional[str] = None
-    # Set MODEL_CACHE_DIR=/content/drive/MyDrive/fastembed_cache in Colab to
+    # Set MODEL_CACHE_DIR to a persistent path in a hosted notebook to
     # persist the 219 MB embedding model across runtime restarts.
     model_cache_dir: Optional[Path] = None
 
@@ -65,10 +65,10 @@ class Settings(BaseSettings):
     # Parse/chunk ProcessPoolExecutor size. Each worker is a whole separate
     # Python process (lxml/BeautifulSoup imports and all) — os.cpu_count()
     # reflects the HOST's core count, not what a container is actually
-    # allocated, so sizing off it on a memory-capped host (Railway, etc.)
+    # allocated, so sizing off it on a memory-capped host (containers, etc.)
     # spawns far more processes than the container can hold at once and
     # exhausts it within seconds. Defaults to sequential (1); raise via the
-    # PARSE_WORKERS env var on a host known to have room (local dev, Colab).
+    # PARSE_WORKERS env var on a host known to have room (local dev, notebooks).
     parse_workers: int = 1
 
     # Chunking
@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     generation_model: str = "llama-3.3-70b-versatile"
     routing_model:    str = "llama-3.1-8b-instant"
 
-    # Dashboard env-var inputs (Railway, Render, ...) commonly end up with a
+    # Dashboard env-var inputs (PaaS dashboards, ...) commonly end up with a
     # trailing newline or extra whitespace from copy-paste — invisible in the
     # UI, but any of these get embedded directly in an HTTP header (User-
     # Agent for SEC EDGAR, Authorization for Groq), and a bare "\n" in a

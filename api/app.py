@@ -44,7 +44,7 @@ _FAVICON_FILE = Path(__file__).parent.parent / "ui" / "favicon.svg"
 # query wouldn't pay the model-load cost — but that leaves the dense/
 # sparse/reranker models (several hundred MB combined) resident from the
 # moment the container starts, for the container's entire lifetime. On
-# Railway's memory-capped tier that baseline was apparently already close
+# a memory-capped host tier that baseline was apparently already close
 # enough to the limit that ingestion's download/parse/chunk/embed work —
 # even with every other fix applied (no subprocess, no forking, no
 # duplicate model copies, sequential parsing) — still crashed the whole
@@ -191,7 +191,7 @@ def disk_usage(token: Optional[str] = Query(None)):
 # always falls back to fork()+exec(). fork() from a process that already
 # holds the dense/sparse/reranker models warm (several hundred MB) forces
 # the kernel to momentarily account for a full copy of that memory — and on
-# Railway's cgroup-limited container, every single subprocess attempt (four
+# a cgroup-limited container, every single subprocess attempt (four
 # different redesigns, including ones with zero extra work happening in the
 # child) killed the WHOLE container within seconds, wiping this process's
 # own state too. That's the signature of a fork-time kill, not anything the
@@ -199,7 +199,7 @@ def disk_usage(token: Optional[str] = Query(None)):
 # the trade-off is a crash mid-pipeline can take the API down with it, same
 # as before subprocess isolation was tried — but every step here already
 # skips already-done work (see each ingestion/*.py step), so a retry after
-# Railway's restartPolicy brings the container back just resumes.
+# the host's restart policy brings the container back just resumes.
 _ingest_lock = threading.Lock()
 _ingest_running = False
 _ingest_tail: List[str] = []
@@ -260,7 +260,7 @@ def _run_ingestion_background() -> None:
        filers alone produce thousands of table chunks each; all 12
        companies' chunks held in memory simultaneously plus the embedding
        output arrays is a very different memory profile than one company
-       at a time. On Railway's memory-capped tier that's a plausible OOM
+       at a time. On a memory-capped host tier that's a plausible OOM
        kill — which would explain /ingest/status staying at
        exit_code=null indefinitely: a hard kill skips the except/finally
        below entirely, so nothing ever gets the chance to record failure.
@@ -276,7 +276,7 @@ def _run_ingestion_background() -> None:
     parse, data/chunks only to embed, while data/qdrant (the index) and
     data/parsed (parent_store's full-section context, loaded at query time)
     are the only things actually needed to serve queries. On a small
-    Railway volume (e.g. 500MB) the raw HTML alone is easily 1.5GB+ across
+    a small host volume (e.g. 500MB) the raw HTML alone is easily 1.5GB+ across
     12 companies, so keeping it around after it's served its purpose would
     fill the volume long before ingestion finishes. This pruning is
     deliberately scoped to THIS remote/deployment path only — the local
@@ -391,7 +391,7 @@ def restore_data(
 ):
     """
     Seed the volume from a pre-built local index instead of re-running
-    ingestion on Railway's constrained CPU (which, at observed local
+    ingestion on a constrained shared CPU (which, at observed local
     embedding speeds, can take hours per company — see _run_ingestion_background).
 
     For a large index, upload in several smaller archives with
@@ -409,7 +409,7 @@ def restore_data(
     never reads — no need to include it.
 
     The archive is extracted directly onto the volume, then the process
-    exits so Railway's restart policy brings up a fresh instance. A clean
+    exits so the host's restart policy brings up a fresh instance. A clean
     Python-level restart is required, not optional: local-mode Qdrant's
     client caches its collection registry for the life of the process (see
     retrieval/vector_store.get_client()), so a process that already has an
@@ -434,7 +434,7 @@ def restore_data(
         # generic error message): this is admin_token-gated, remote-only
         # diagnosis for exactly this feature — a first attempt failed with
         # a bare "Internal Server Error" and no way to see why without
-        # Railway CLI/log access, so the real exception needs to reach the
+        # host CLI/log access, so the real exception needs to reach the
         # response body to be debuggable at all.
         logger.exception("restore-data extraction failed")
         raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}")
@@ -447,7 +447,7 @@ def restore_data(
             # Nonzero on purpose: platform restart policies commonly only
             # auto-restart on a crash (nonzero exit), treating exit(0) as an
             # intentional, successful stop that should stay stopped. Observed
-            # on Railway — the container never came back after os._exit(0)
+            # on one such host — the container never came back after os._exit(0)
             # here, requiring a manual restart from the dashboard every time.
             os._exit(1)
 
@@ -504,7 +504,7 @@ def delete_data_path(
             # Nonzero on purpose: platform restart policies commonly only
             # auto-restart on a crash (nonzero exit), treating exit(0) as an
             # intentional, successful stop that should stay stopped. Observed
-            # on Railway — the container never came back after os._exit(0)
+            # on one such host — the container never came back after os._exit(0)
             # here, requiring a manual restart from the dashboard every time.
             os._exit(1)
         background_tasks.add_task(_restart_soon)
@@ -557,10 +557,10 @@ def migrate_to_remote(
     retrieval.vector_store.migrate_local_to_remote for why this is
     preferred over re-running /ingest against the new store. Runs in the
     background and reports via GET /admin/migrate-to-remote/status, since a
-    full copy of 35 collections can run past Railway's ~15s proxy timeout.
+    full copy of 35 collections can run past a typical ~15s edge-proxy timeout.
 
     Only meaningful while this process is STILL in local mode (QDRANT_URL
-    not yet set): set QDRANT_URL/QDRANT_API_KEY in Railway's Variables tab
+    not yet set): set QDRANT_URL/QDRANT_API_KEY in the host's env-var settings
     only AFTER this completes successfully, then redeploy to cut over.
     """
     if settings.admin_token and token != settings.admin_token:

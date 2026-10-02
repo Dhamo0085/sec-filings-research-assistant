@@ -50,7 +50,7 @@ def _get_dense() -> TextEmbedding:
             # resident for a 215MB model) to avoid malloc/free overhead across
             # repeated inference calls. Disabling it cuts that to ~450-650MB —
             # the difference between fitting and OOM-killing on a 512MB-1GB
-            # memory-capped host (Railway's smaller tiers, etc.) — at the cost
+            # memory-capped host (small container tiers, etc.) — at the cost
             # of allocating fresh buffers per call instead of reusing a pool,
             # which barely matters here since compute time already dominates.
             "enable_cpu_mem_arena": False,

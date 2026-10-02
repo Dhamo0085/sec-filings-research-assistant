@@ -141,7 +141,7 @@ stop cleanly. Save after every question (`reports/phase0/baseline_results.jsonl`
 
 ## Step 4: Live deployment check (read-only)
 
-Live URL: `https://financialrag-production-420e.up.railway.app/`
+Live URL: `<third-party deployment; probed read-only in Phase 0, out of scope for v2 (see docs/PROJECT_SPEC.md section 3)>`
 
 4.1 `GET /health`, `GET /collections`, `GET /ingest/status`. Compare the collection list with the local one.
 

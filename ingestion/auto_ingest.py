@@ -317,7 +317,7 @@ def ensure_ticker_indexed(
         # itself; this path didn't, so every auto-ingested company outside
         # the original 12 — which is now most of them, see /health's
         # collection count — left its raw filing (tens of MB) and chunk
-        # JSON sitting on the Railway volume forever. Safe to do before the
+        # JSON sitting on the host volume forever. Safe to do before the
         # background `remaining` thread finishes, since it doesn't touch
         # either file either. One chunks.json per document now that a
         # single call can fetch several years' worth.

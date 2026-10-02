@@ -4,7 +4,7 @@ TextCrossEncoder (same model weights as the sentence-transformers/PyTorch
 cross-encoder this used to run, just ONNX-converted) so the whole retrieval
 stack — dense embedding, sparse embedding, and reranking — shares one ONNX
 runtime instead of also pulling in PyTorch. That matters most on memory-
-constrained hosts (e.g. Railway's smaller tiers): PyTorch's own runtime
+constrained hosts (e.g. small container tiers): PyTorch's own runtime
 footprint is large regardless of model size, so dropping it here is the
 single biggest lever for staying under a low memory cap.
 

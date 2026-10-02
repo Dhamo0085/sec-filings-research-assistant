@@ -40,7 +40,7 @@ def _conn():
     con = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     con.row_factory = sqlite3.Row
     # WAL needs shared-memory-mapped -wal/-shm files with specific locking
-    # semantics that some network/bind-mounted volumes (observed on Railway)
+    # semantics that some network/bind-mounted volumes (observed on a hosted volume)
     # don't support, raising "disk I/O error" — which, unguarded, crashed
     # this at IMPORT time and took the entire API down with it (every
     # route, not just chat), since api/app.py imports this module directly.
@@ -152,7 +152,7 @@ def chat(req: ChatRequest):
 
     History (session validation, prior-turn context, persisting the turn)
     is best-effort: a flaky disk under the sqlite file (observed on
-    Railway — sqlite3.OperationalError: disk I/O error on an otherwise
+    a hosted volume — sqlite3.OperationalError: disk I/O error on an otherwise
     healthy volume) must not stop the actual question from being answered.
     Every history touchpoint below degrades independently instead of
     raising, so the answer generation path always runs regardless of

@@ -9,7 +9,7 @@
 ## 1. Summary
 
 1. New private GitHub repository created with fresh history; `main`, `v2-dev` and tag `v1-baseline` are on `origin`.
-2. Three commits; 84 tracked files; no file over 5 MB; **0 key-like strings** in anything committed.
+2. Five commits; 84 tracked files; no file over 5 MB; **0 key-like strings** in anything committed.
 3. `.env` exists locally and is ignored (`.gitignore:2`). It was never read, printed, or staged.
 4. Local junk removed: `.venv-phase0/` (149 MB), `.pytest_cache/`, `./.DS_Store`, `data/chat_history.db` (+ `-wal`, `-shm`).
 5. `.cache/` (187 MB, 219 files) preserved and ignored, as the runbook requires.
@@ -157,9 +157,11 @@ No file named like `Rate_Limit*.html` existed; nothing of that kind was copied a
 | 1 | `867041b` | `Initial import: v1 prototype code and Phase 0 audit artifacts` |
 | 2 | `386ea77` | `docs: add v2 project specification and standing instructions` |
 | 3 | `b47dd34` | `chore: remove deployment-specific and legacy files; add README stub and .env.example` |
+| 4 | `61a9d96` | `docs: add Step 0 bootstrap report` |
+| 5 | (see `git log`) | `docs: correct bootstrap report commit table; mark Step 0 complete` — this correction, which also updates the `CLAUDE.md` phase-status table |
 
 **Tag:** `v1-baseline` (annotated, object `bc2fd54`) → commit `867041b`.
-**Branches:** `main` → `386ea77` · `v2-dev` → `b47dd34` (both tracking `origin`).
+**Branches:** `main` → `386ea77` · `v2-dev` → commit 5 above (both tracking `origin`). `main` deliberately stays at commit 2: merging `v2-dev` into `main` is the owner's action (spec section 14).
 
 **On `origin`:**
 ```
@@ -215,6 +217,7 @@ authoritative.
 | D-2 | Commit 1 was amended once to add that trailer, changing its hash (`acc2646` → `867041b`), and `v1-baseline` was deleted and recreated. | Done **before any push**: nothing was published, so no history was rewritten and no force-push occurred. |
 | D-3 | `data/chat_history.db-wal` and `-shm` deleted alongside the database. | Same SQLite database; see section 4. |
 | D-4 | B1.1 (`git check-ignore .env`) ran after `git init` rather than before. | `check-ignore` needs a repository; the runbook itself notes this ordering. No commit happened in between. |
+| D-5 | Two extra commits beyond the runbook's four: the report commit (`61a9d96`) and one correction that fixes this report's own commit table and sets Step 0 to COMPLETE in `CLAUDE.md`. | A report cannot list the hash of the commit that creates it. `CLAUDE.md` requires the status table to be updated at every gate; `docs/BOOTSTRAP.md` B8 does not mention it, so it is recorded here rather than done silently. |
 
 **Open items for the owner**
 
@@ -244,6 +247,7 @@ Nothing in this step touched `/admin/*`, any hosted instance, or any repository 
 - [x] B6 private repository created; `main`, tag, and `v2-dev` pushed; visibility verified PRIVATE
 - [x] B7 cleanup commit on `v2-dev`; README stub and `.env.example` exact; references neutralized; `compileall` clean; pushed
 - [x] B8 this report, committed and pushed to `v2-dev`
+- [x] `CLAUDE.md` phase-status table updated: Step 0 → COMPLETE (CLAUDE.md asks for this at every gate; B8 does not name it — recorded as deviation D-5)
 - [ ] Owner resolves the three REVIEW items and six open items (sections 5 and 7)
 
 ---

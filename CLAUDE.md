@@ -14,7 +14,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
 ## Phase status (update this table at every gate; the owner approves each start)
 | Phase | Name | Status |
 |---|---|---|
-| Step 0 | Bootstrap: new private GitHub repo via `gh`, root cleanup (`docs/BOOTSTRAP.md`) | NOT STARTED, awaiting owner |
+| Step 0 | Bootstrap: new private GitHub repo via `gh`, root cleanup (`docs/BOOTSTRAP.md`) | COMPLETE (report in `reports/bootstrap/REPORT.md`) |
 | 0 | Audit and baseline | COMPLETE (report in `reports/phase0/REPORT.md`) |
 | 1 | Foundation, hardening, catalog, true baseline | NOT STARTED, awaiting owner: "Start Phase 1" |
 | 2 | Facts engine (extract, store, resolve, calculate) | NOT STARTED |

@@ -21,6 +21,7 @@ from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
 from pydantic import BaseModel
 
+from api.auth import ADMIN_DEPENDENCY
 from config import settings
 from generation.generator import generate_answer
 from generation.synthesizer import synthesize
@@ -263,14 +264,19 @@ def get_session(sid: str):
     return [_to_out(r) for r in rows]
 
 
-@router.delete("/sessions/{sid}", status_code=204)
+# Destructive and previously unauthenticated (spec issue N5): anyone who
+# could reach the API could delete any session. Admin-guarded until P5-04
+# gives each session its own secret.
+@router.delete("/sessions/{sid}", status_code=204, dependencies=[ADMIN_DEPENDENCY])
 def delete_session(sid: str):
     with _conn() as con:
         con.execute("DELETE FROM turns   WHERE session_id=?", (sid,))
         con.execute("DELETE FROM sessions WHERE id=?",        (sid,))
 
 
-@router.patch("/sessions/{sid}/turns/{tid}", response_model=TurnOut)
+# Mutates stored review labels; same reasoning as DELETE above (N5).
+@router.patch("/sessions/{sid}/turns/{tid}", response_model=TurnOut,
+              dependencies=[ADMIN_DEPENDENCY])
 def review_turn(sid: str, tid: str, body: ReviewPatch):
     """Mark a turn as correct (true), incorrect (false), or unreviewed (null)."""
     val = None if body.is_correct is None else int(body.is_correct)

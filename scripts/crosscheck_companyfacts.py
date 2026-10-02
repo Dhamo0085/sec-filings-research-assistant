@@ -313,16 +313,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"\nno oracle available for: "
               f"{', '.join(sorted(set(tickers_missing_oracle)))}")
 
+    # The CSV carries the rows that CONSTITUTE the check — the comparable
+    # pairs — and not the `not_in_oracle` ones, which record only that the
+    # oracle has no row to compare against. With all 33,512 rows this artifact
+    # was 4.6 MB against the repository's own 5 MB hygiene limit, so one more
+    # filer would have broken `make hygiene`. The counts for every class,
+    # including not_in_oracle, stay in the JSON summary beside it, and the
+    # concepts the oracle lacks are listed there too.
+    comparable_rows = [r for r in rows if r["classification"] != "not_in_oracle"]
     out = REPO_ROOT / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0]) if rows else
-                                ["ticker", "accession", "concept", "end_date",
-                                 "unit", "ours", "oracle", "classification",
-                                 "note", "decimals"])
+        writer = csv.DictWriter(fh, fieldnames=list(comparable_rows[0])
+                                if comparable_rows else
+                                ["ticker", "accession", "concept", "start_date",
+                                 "end_date", "unit", "ours", "oracle",
+                                 "classification", "note", "decimals",
+                                 "on_registry"])
         writer.writeheader()
-        writer.writerows(rows)
-    print(f"\nwrote {out.relative_to(REPO_ROOT)}")
+        writer.writerows(comparable_rows)
+    size_mb = out.stat().st_size / 1e6
+    print(f"\nwrote {out.relative_to(REPO_ROOT)} ({size_mb:.1f} MB, "
+          f"{len(comparable_rows)} comparable row(s); the "
+          f"{len(rows) - len(comparable_rows)} not_in_oracle rows are "
+          f"summarised in the JSON)")
 
     summary = {
         "checked_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -345,6 +359,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         },
         "mismatches": mismatches,
         "tickers_missing_oracle": sorted(set(tickers_missing_oracle)),
+        "not_in_oracle_concepts": sorted({
+            r["concept"] for r in rows if r["classification"] == "not_in_oracle"
+        }),
         "edgar_requests": oracle.requests_made,
     }
     summary_path = REPO_ROOT / args.summary

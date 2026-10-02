@@ -1,0 +1,80 @@
+# Tooling configuration (P1-02). No build backend: this project is run, not packaged.
+
+[tool.ruff]
+# Pinned explicitly so the rule set does not drift when ruff's defaults change.
+target-version = "py312"
+line-length = 120
+extend-exclude = [
+    ".venv", ".venv-phase0", ".cache", "data",
+    # Phase 0 artifacts are frozen historical records (spec section 7).
+    "tests/phase0", "eval/phase0",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes (unused imports/variables, undefined names)
+    "I",      # import sorting
+    "C4",     # flake8-comprehensions
+    "B",      # flake8-bugbear
+    "S",      # flake8-bandit (security)
+    "DTZ",    # naive datetime usage
+    "SIM",    # simplifications
+    "RUF",    # ruff-specific
+    "PLW",    # pylint warnings
+]
+# Deferred rule families, with reasons (see docs/DECISIONS.md D1-02):
+#   UP (pyupgrade) — would rewrite 300+ typing annotations across v1 code
+#     (List[str] -> list[str], Optional[X] -> X | None). Mechanical churn with
+#     no behavioural effect; it would bury the Phase 1 diff. Proposed for a
+#     dedicated commit later.
+#   BLE001 (blind except) — 48 occurrences. The routing ones are the actual
+#     F1 defect and are fixed deliberately in P1-05; a blanket sweep now would
+#     mix a real fix into unrelated edits.
+ignore = [
+    "S101",    # assert is the right tool in tests and in audit scripts
+    "E501",    # long lines: v1 comments are prose; line-length is advisory here
+    "SIM105",  # contextlib.suppress over try/except/pass is not clearer in v1's parser
+    # Typographic punctuation (em dash, curly quote, ellipsis) is used
+    # deliberately throughout v1's comments, docstrings and LLM prompts.
+    "RUF001", "RUF002", "RUF003",
+    # Module-level `global` backs the lazy singletons (Qdrant client, embedding
+    # models, ingest-running flag). Reworking them into classes is out of
+    # Phase 1 scope and would touch the hot paths the baseline measures.
+    "PLW0603",
+    # Rebinding a loop variable is used as a running accumulator in the parser.
+    "PLW2901",
+    # try/except/pass sites are deliberate best-effort bootstraps (NLTK data
+    # probe, fiscal-year fallbacks). P1-05 makes the LLM paths fail loudly;
+    # these are local and non-silent by design.
+    "S110",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Audit and script entry points legitimately use subprocess and prints.
+"scripts/*" = ["S603", "S607"]
+"tests/*"   = ["S603", "S607", "PLW1510"]
+# B008: `Query(None)` / `File(...)` in parameter defaults is the required
+# FastAPI idiom, not a mutable-default bug.
+"api/app.py" = ["B008"]
+# S608: the only interpolated fragment is chosen from a fixed three-entry dict
+# of literal WHERE clauses, so no caller input reaches the SQL. Verified by
+# reading api/chat.py:296-305. Kept narrow to this file so a genuinely
+# dynamic query elsewhere would still be reported.
+"api/chat.py" = ["B008", "S608"]
+# DTZ005: ParsedDocument.parsed_at uses naive datetime.now(). Making it
+# timezone-aware changes the string written into every parsed artifact, so it
+# is deferred to P5-03 (structured logging and timestamps) rather than
+# invalidating the Phase 1 baseline artifacts mid-phase.
+"models.py" = ["DTZ005"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: pure functions, no network, no LLM",
+    "integration: pipeline with fixtures and FakeLLM, no network",
+    "live: needs the network and/or a real LLM provider",
+    "slow: long-running",
+]
+filterwarnings = ["ignore::DeprecationWarning"]

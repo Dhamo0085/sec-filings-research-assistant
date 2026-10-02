@@ -1,0 +1,12 @@
+# Optional RAGAS evaluation stack (P1-02). Heavy (langchain, datasets, and a
+# torch-backed embedding path) — deliberately kept out of requirements.txt so
+# it never reaches the serving image (spec issue N3).
+#
+# evaluation/ragas_eval.py is the only consumer and is optional until Phase 4
+# replaces it with eval/ (spec section 11).
+-r requirements.txt
+
+ragas>=0.2.0
+datasets>=2.20.0
+langchain-groq>=0.1.0
+langchain-huggingface>=0.0.3

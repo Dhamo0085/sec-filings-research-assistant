@@ -1,38 +1,47 @@
+# Serving + ingestion runtime (P1-02).
+#
+# This file holds ONLY what the API, the query pipeline and the ingestion
+# pipeline import. Test tooling lives in requirements-dev.txt; the optional
+# RAGAS evaluation stack lives in requirements-eval.txt (it pulls langchain and
+# datasets, which must not land in the serving image — spec issue N3).
+#
+# Verified on macOS 26 arm64 (Apple Silicon) with CPython 3.12.14; the Docker
+# image pins the same minor version. Exact installed versions for the Phase 1
+# baseline are recorded in reports/phase1/REPORT.md.
+
 # Data acquisition
 sec-edgar-downloader>=5.0.0
+requests>=2.31.0            # ingestion/registry.py (SEC ticker registry)
 
 # HTML parsing
 beautifulsoup4>=4.12.0
-lxml>=5.0.0
+lxml>=5.0.0                 # BeautifulSoup backend + pandas.read_html flavor
 pandas>=2.0.0
 
 # Data models & config
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
+python-dotenv>=1.0.0        # required by pydantic-settings for env_file support
 
-# Tokenization
+# Tokenization / chunking
 nltk>=3.8.0
 tiktoken>=0.7.0
 
 # Vector store
 qdrant-client>=1.9.0
-fastembed>=0.3.6   # ONNX dense/sparse embeddings AND cross-encoder reranking — no PyTorch
 
-# LLM — Groq free tier
+# Embeddings & reranking — ONNX, no PyTorch
+fastembed>=0.3.6
+onnxruntime>=1.17.0         # imported directly by ingestion/embedder.py
+numpy>=1.24.0               # imported directly by ingestion/embedder.py
+
+# LLM provider SDKs
 groq>=0.9.0
 
 # API layer
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
-python-multipart>=0.0.9   # required by FastAPI's UploadFile/File() (POST /admin/restore-data)
+python-multipart>=0.0.9     # FastAPI UploadFile/File() on POST /admin/restore-data
 
-# Evaluation (RAGAS + judge LLM wrappers)
-ragas>=0.2.0
-datasets>=2.20.0
-langchain-groq>=0.1.0
-langchain-huggingface>=0.0.3
-
-# Utilities
-python-dotenv>=1.0.0
-tqdm>=4.66.0
+# Logging
 loguru>=0.7.0

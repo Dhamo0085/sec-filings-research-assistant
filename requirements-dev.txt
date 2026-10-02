@@ -1,0 +1,8 @@
+# Test and lint tooling (P1-02). Not installed in the serving image.
+-r requirements.txt
+
+pytest>=8.0.0
+pytest-cov>=5.0.0
+pytest-socket>=0.7.0        # `make test` runs with sockets blocked
+hypothesis>=6.100.0         # property tests (calculator, as_of invariants)
+ruff>=0.5.0

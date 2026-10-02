@@ -10,9 +10,9 @@ carried into Phase 2 on 2026-10-02 against spec v1.4.
 | Repository | private, `github.com/Dhamo0085/sec-filings-research-assistant`; branch model: `main` + one `phase-N-<slug>` branch per phase, merged by the owner via PR |
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
-| Phase 2 | IN PROGRESS on branch `phase-2-facts-engine`; owner approved the start on 2026-10-02 |
-| Current task | P2-09/P2-10 done next; P2-00(e) core-ticker indexing running in the background |
-| Tests | `make test` → 289 passed at the Phase 1 gate; Phase 2 has added ~130 more (facts extract/calc/indexer/hygiene). Re-run before the gate. |
+| Phase 2 | COMPLETE at the gate; PR open from `phase-2-facts-engine` (9 commits). Two items open: T2-10's exact threshold and P2-00(e) indexing |
+| Current task | none — awaiting "Approved: start Phase 3" |
+| Tests | `make test` → **511 passed, 1 documented skip**; `facts/` 88.7%, `catalog/` 96.4%; ruff and hygiene clean |
 
 ## 1a. Phase 2 facts (measured, 2026-10-02)
 - **Facts store built**: `data/derived/facts.sqlite`, **26,041 facts**, 66 submissions, 13 tickers, 3,040 distinct concepts, from the newest 5 originals per ticker plus the GS FY2023 10-K/A. `make facts` is idempotent: a second run reports all 66 `unchanged` and `--rebuild` reproduces the byte-identical content hash (T2-08).
@@ -52,7 +52,12 @@ D1 facts from iXBRL · D2 `as_of` via catalog · D5 headline total net revenue �
 D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0).
 
 ## 7. Open items
-1. P2-00: indexing throughput profile, streaming indexer, evaluation-core tickers (AAPL, AMZN done; MSFT, JPM, GOOGL, NFLX, BLK, GS next).
+1. **P2-00(e) indexing is unfinished.** AAPL, AMZN, MSFT, JPM indexed; GOOGL, BLK, GS still to go at a measured ~1.6 chunks/s. Resume with `make index ONLY=GS` (resumable by point id, so re-running costs nothing for what is done). NFLX has no chunk files at all — it needs download/parse/chunk first.
+2. **T2-10's exact threshold is not met**: 99.13% corpus-wide vs the 99.5% bar. The whole shortfall is 233 values in filings that tag one concept twice (rounded in prose, exact in a table); they agree within the declared precision and none is a registry concept. Fix proposed in the report section 9 item 1.
+3. **v1's parsed statement sections are unreliable** and Phase 3's text path reads the same ones: the section titled "Consolidated Statements of Operations" is 106 chars of heading for AMZN, empty for JPM in all three years, over a megabyte for GS, and GOOGL's "Balance Sheets" section holds the auditors' report. This is why 51 validations are `conflict`.
+4. `.hygiene_local` is still EMPTY, so the old project's names are not being scanned for (the check works; it has nothing to look for).
+5. Owner spot-check sheet `reports/phase2/owner_spotcheck.csv` is the Phase 2 gate: 20 rows to mark OK/WRONG.
+6. Old Phase 1 items that remain: the Phase 0 scorer mislabels passing numeric answers (P4-03 rewrites it); the runner instruments only the generator (P4-04).
 2. Phase 0 scorer mislabels passing numeric answers `retrieval_found_llm_misread` (rewritten in P4-03).
 3. Runner instruments only the generator; P4-04 must instrument every LLM role.
 4. `llm/__init__.py` coverage 50% (shim); ignore unless it grows.

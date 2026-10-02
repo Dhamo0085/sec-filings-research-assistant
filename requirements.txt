@@ -43,5 +43,9 @@ fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
 # python-multipart was only needed by POST /admin/restore-data, removed in P1-06.
 
+# LLM provider access (llm/client.py speaks the OpenAI-compatible HTTP API
+# directly, so no provider SDK is required; PyYAML reads llm/providers.yaml).
+pyyaml>=6.0
+
 # Logging
 loguru>=0.7.0

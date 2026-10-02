@@ -1,0 +1,76 @@
+# Provider and model registry (P1-04, spec section 9 rule 1 and rule 11).
+#
+# Providers are CONFIGURATION, not code: llm/client.py speaks the
+# OpenAI-compatible chat-completions API against the base_url below, so adding
+# a provider means adding an entry here.
+#
+# Rule 11: never hard-code limits or model names in code. The seeds below come
+# from Appendix A of docs/PROJECT_SPEC.md (read from the owner's consoles on
+# 2026-10-02) and from the P1-00 measurement of what the Groq key can actually
+# see. The client corrects them at runtime from rate-limit response headers,
+# and llm/limits.local.yaml (gitignored) overrides them.
+#
+# `capabilities` is the registry the client checks before using a model for a
+# role: a role that needs json_object must not be served by a model that
+# cannot produce it (T1-11).
+
+providers:
+  groq:
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: [groq_api, GROQ_API_KEY]
+    # Measured in P1-00: this free-tier key sees 11 models, and v1's two
+    # defaults (llama-3.1-8b-instant, llama-3.3-70b-versatile) are NOT among
+    # them — they are marked Enterprise. That is the confirmed cause of the
+    # old deployment's failure (Phase 0 F1).
+    models:
+      openai/gpt-oss-120b:
+        context_window: 131072
+        capabilities: [chat, json_object, reasoning]
+        # Free-plan limits are not published on the models page; measured from
+        # response headers in P1-04 and written to llm/limits.local.yaml.
+        limits: {rpm: null, rpd: null, tpm: null}
+        notes: >-
+          Reasoning model: the answer text arrives in message.content while the
+          chain of thought arrives in a separate `reasoning` field. Verified in
+          P1-00 that content is clean JSON for v1's classifier prompt.
+      openai/gpt-oss-20b:
+        context_window: 131072
+        capabilities: [chat, json_object, reasoning]
+        limits: {rpm: null, rpd: null, tpm: null}
+      qwen/qwen3.8-27b:
+        context_window: 131072
+        capabilities: [chat, json_object]
+        limits: {rpm: null, rpd: null, tpm: null}
+        notes: preview model; no separate reasoning field observed in P1-00.
+
+  gemini:
+    # Google's OpenAI-compatible surface.
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    api_key_env: [GEMINI_API_KEY, gemini_api_key]
+    models:
+      gemini-3.5-flash-lite:
+        context_window: 1048576
+        capabilities: [chat, json_object]
+        limits: {rpm: 15, tpm: 250000, rpd: 500}
+      gemini-3.1-flash-lite:
+        context_window: 1048576
+        capabilities: [chat, json_object]
+        limits: {rpm: 15, tpm: 250000, rpd: 500}
+        notes: separate quota from 3.5, so failover across the two is useful.
+
+# Ordered provider:model lists per role. These are DEFAULTS; the environment
+# (ROUTER_PROVIDERS / GENERATOR_PROVIDERS / JUDGE_PROVIDERS / LLM_PROVIDERS)
+# overrides them, and the P1-04 bake-off decides the final order.
+#
+# Spec section 9 rule 10: a judge must come from a different model than the
+# generator, and evaluation runs pin one entry with no failover.
+roles:
+  router:
+    requires: [chat, json_object]
+    order: [groq:openai/gpt-oss-20b, gemini:gemini-3.5-flash-lite]
+  generator:
+    requires: [chat]
+    order: [groq:openai/gpt-oss-120b, gemini:gemini-3.5-flash-lite]
+  judge:
+    requires: [chat, json_object]
+    order: [gemini:gemini-3.1-flash-lite, groq:qwen/qwen3.8-27b]

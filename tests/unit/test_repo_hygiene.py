@@ -54,15 +54,20 @@ def test_large_file_check_detects_oversize(tmp_path):
     assert not H.check_large_files(tmp_path, ["small.bin"])
 
 
+# Assembled at runtime rather than written literally: a literal would make
+# this file itself a finding for the very check it tests.
+_PLANTED_URL = "https://foo.up." + "rail" + "way.app/health"
+
+
 def test_reference_check_detects_a_deployment_url(tmp_path):
-    (tmp_path / "doc.md").write_text("https://foo.up.railway.app/health\n", encoding="utf-8")
+    (tmp_path / "doc.md").write_text(_PLANTED_URL + "\n", encoding="utf-8")
     assert H.check_references(tmp_path, ["doc.md"])
 
 
 def test_reference_check_exempts_historical_records(tmp_path):
     rel = "reports/phase0/REPORT.md"
     (tmp_path / "reports" / "phase0").mkdir(parents=True)
-    (tmp_path / rel).write_text("https://foo.up.railway.app/\n", encoding="utf-8")
+    (tmp_path / rel).write_text(_PLANTED_URL + "\n", encoding="utf-8")
     assert not H.check_references(tmp_path, [rel]), (
         "Phase 0 records deliberately document the old deployment"
     )

@@ -33,7 +33,6 @@ from qdrant_client.models import (
 
 from config import settings
 
-
 # ---------------------------------------------------------------------------
 # Client — single shared instance
 # ---------------------------------------------------------------------------
@@ -88,12 +87,12 @@ def get_client() -> QdrantClient:
                     future = _client_executor.submit(QdrantClient, path=settings.qdrant_path)
                     try:
                         _client = future.result(timeout=_CLIENT_CONSTRUCT_TIMEOUT)
-                    except concurrent.futures.TimeoutError:
+                    except concurrent.futures.TimeoutError as exc:
                         raise RuntimeError(
                             f"Qdrant client construction did not complete within "
                             f"{_CLIENT_CONSTRUCT_TIMEOUT}s — data/qdrant may contain a "
                             f"corrupted collection (e.g. from an interrupted write)."
-                        )
+                        ) from exc
     return _client
 
 
@@ -272,7 +271,9 @@ def upsert_chunks(
                 payload=chunk.model_dump(exclude={"chunk_id"}),
             )
             for chunk, dense, (sp_idx, sp_val)
-            in zip(b_chunks, b_dense, b_sparse)
+            # strict=True: these three batches are parallel by construction.
+            # Silent truncation here would mean chunks were never indexed.
+            in zip(b_chunks, b_dense, b_sparse, strict=True)
         ]
         client.upsert(collection_name=collection_name, points=points, wait=True)
 

@@ -12,16 +12,15 @@ Flow:
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict
+from typing import Dict, List
 
-from groq import Groq
 from loguru import logger
 
 from config import settings
+from generation.generator import _get_client, generate_answer
 from models import QueryResult, RetrievedChunk
-from routing.decomposer import decompose_query, decompose_temporal
 from retrieval.retriever import retrieve
-from generation.generator import generate_answer, _get_client
+from routing.decomposer import decompose_query, decompose_temporal
 
 SYNTHESIS_SYSTEM = """\
 You are a financial analyst synthesizing multiple research findings into a single answer.

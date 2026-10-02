@@ -14,11 +14,11 @@ cosine similarity because it sees both query and passage together.
 """
 
 import re
-from typing import List, Dict
 from functools import lru_cache
+from typing import Dict, List
 
-from loguru import logger
 from fastembed.rerank.cross_encoder import TextCrossEncoder
+from loguru import logger
 
 from config import settings
 
@@ -96,7 +96,9 @@ def rerank(
     scores = list(reranker.rerank(query, texts))
 
     scored = sorted(
-        zip(scores, candidates),
+        # strict=True: one score per candidate by construction. If that ever
+        # stops holding, fail loudly rather than silently dropping candidates.
+        zip(scores, candidates, strict=True),
         key=lambda x: x[0],
         reverse=True,
     )

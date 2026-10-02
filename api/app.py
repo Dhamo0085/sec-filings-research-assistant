@@ -20,16 +20,16 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, UploadFile, File
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from api.chat import router as chat_router
 from config import settings
 from query import ask
-from retrieval.vector_store import list_collections, delete_collection, migrate_local_to_remote
-from api.chat import router as chat_router
+from retrieval.vector_store import delete_collection, list_collections, migrate_local_to_remote
 
 _UI_FILE = Path(__file__).parent.parent / "ui" / "index.html"
 _FAVICON_FILE = Path(__file__).parent.parent / "ui" / "favicon.svg"
@@ -284,10 +284,10 @@ def _run_ingestion_background() -> None:
     """
     global _ingest_running, _ingest_tail, _ingest_exit_code
     from config import COMPANIES
-    from ingestion.downloader import download_all_filings
-    from ingestion.parser import parse_all_filings
     from ingestion.chunker import chunk_all_documents
+    from ingestion.downloader import download_all_filings
     from ingestion.embedder import index_chunks
+    from ingestion.parser import parse_all_filings
 
     _ingest_tail = []
     _ingest_exit_code = None
@@ -428,7 +428,7 @@ def restore_data(
         with tarfile.open(fileobj=file.file, mode="r|gz") as tar:
             n = _safe_extract(tar, settings.data_dir)
     except (tarfile.TarError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=f"Bad archive: {exc}")
+        raise HTTPException(status_code=400, detail=f"Bad archive: {exc}") from exc
     except Exception as exc:
         # Deliberately broad and detailed (unlike every other endpoint's
         # generic error message): this is admin_token-gated, remote-only
@@ -437,7 +437,7 @@ def restore_data(
         # host CLI/log access, so the real exception needs to reach the
         # response body to be debuggable at all.
         logger.exception("restore-data extraction failed")
-        raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}")
+        raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
 
     logger.success(f"Restored {n} file(s) from uploaded archive" + (" — restarting to pick them up" if restart else " (no restart requested — more batches expected)"))
 
@@ -659,7 +659,7 @@ def query(req: QueryRequest):
         result = ask(req.question)
     except Exception as exc:
         logger.exception("Pipeline error")
-        raise HTTPException(status_code=500, detail="Something went wrong while answering your question. Please try again.")
+        raise HTTPException(status_code=500, detail="Something went wrong while answering your question. Please try again.") from exc
 
     citations = [
         CitationOut(

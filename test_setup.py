@@ -6,7 +6,6 @@ Run this first to verify your environment before running the full pipeline.
 It checks packages, config, and downloads ONE filing (AAPL, 1 year) as a smoke test.
 """
 
-import sys
 
 def check(label: str, fn):
     try:
@@ -57,8 +56,8 @@ check("punkt / punkt_tab", _nltk_check)
 print("\n=== 5. Download smoke test (AAPL, 1 filing) ===")
 print("  (this contacts SEC EDGAR — may take 10-30 seconds)")
 def _dl_test():
-    from ingestion.downloader import download_all_filings
     from config import COMPANIES
+    from ingestion.downloader import download_all_filings
     records = download_all_filings(
         companies=[c for c in COMPANIES if c["ticker"] == "AAPL"],
         limit=1,

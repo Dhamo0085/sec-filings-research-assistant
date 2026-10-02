@@ -14,22 +14,21 @@ and the child chunk's metadata for citations.
 """
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional
+from typing import List
 
 from loguru import logger
 
 from config import settings
-from models import Chunk, RetrievedChunk
 from ingestion.embedder import encode_query
+from models import Chunk, RetrievedChunk
+from retrieval.parent_store import parent_store
+from retrieval.reranker import rerank
 from retrieval.vector_store import (
-    collection_exists,
     get_collection_name,
     hybrid_search,
     list_collections,
     scroll_by_section_id,
 )
-from retrieval.reranker import rerank
-from retrieval.parent_store import parent_store
 
 # Which section a given `focus` (see routing/classifier.py's VALID_FOCUS)
 # should be guaranteed a scroll-based candidate pass for, the same way

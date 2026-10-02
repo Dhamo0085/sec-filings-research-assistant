@@ -11,11 +11,10 @@ Rules per block type:
 """
 
 import json
-import os
 import re
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Generator
+from typing import Generator, List
 
 import nltk
 import tiktoken
@@ -88,7 +87,7 @@ def _split_table(text: str, max_tokens: int) -> List[str]:
 
     effective_rows = data_rows[len(context_rows):]
 
-    fixed_header = "\n".join([header, separator] + context_rows) + "\n"
+    fixed_header = "\n".join([header, separator, *context_rows]) + "\n"
     header_tokens = _count_tokens(fixed_header)
 
     sample      = "\n".join(effective_rows[:10])
@@ -98,7 +97,7 @@ def _split_table(text: str, max_tokens: int) -> List[str]:
     sub_chunks = []
     for i in range(0, len(effective_rows), rows_per_chunk):
         batch      = effective_rows[i : i + rows_per_chunk]
-        chunk_text = "\n".join([header, separator] + context_rows + batch)
+        chunk_text = "\n".join([header, separator, *context_rows, *batch])
         sub_chunks.append(chunk_text)
 
     return sub_chunks if sub_chunks else [text]
@@ -172,16 +171,16 @@ def _chunks_from_block(
 ) -> Generator[Chunk, None, None]:
     """Yield one or more Chunk objects from a single ContentBlock."""
 
-    base_meta = dict(
-        parent_id    = section.section_id,
-        doc_id       = doc.doc_id,
-        company      = doc.company,
-        ticker       = doc.ticker,
-        filing_type  = doc.filing_type,
-        fiscal_year  = doc.fiscal_year,
-        section_name = section.title,
-        chunk_type   = block.block_type,
-    )
+    base_meta = {
+        "parent_id": section.section_id,
+        "doc_id": doc.doc_id,
+        "company": doc.company,
+        "ticker": doc.ticker,
+        "filing_type": doc.filing_type,
+        "fiscal_year": doc.fiscal_year,
+        "section_name": section.title,
+        "chunk_type": block.block_type,
+    }
 
     if block.block_type == "table":
         # Prepend a context header so table chunks are discoverable by both

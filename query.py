@@ -8,14 +8,15 @@ Query entry point — routes a question through the full pipeline.
 
 import re
 import sys
+
 from loguru import logger
 
 from config import settings
-from routing.resolver import classify_and_ensure
-from retrieval.retriever import retrieve
 from generation.generator import generate_answer
 from generation.synthesizer import synthesize
 from models import QueryResult
+from retrieval.retriever import retrieve
+from routing.resolver import classify_and_ensure
 
 # Catches the model's own "not found" phrasing so a refused single_doc
 # answer can trigger one broadened retry instead of being accepted as final.

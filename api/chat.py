@@ -22,12 +22,12 @@ from loguru import logger
 from pydantic import BaseModel
 
 from config import settings
-from query import ask
-from routing.resolver import classify_and_ensure
-from retrieval.retriever import retrieve
 from generation.generator import generate_answer
 from generation.synthesizer import synthesize
 from models import QueryResult
+from query import ask
+from retrieval.retriever import retrieve
+from routing.resolver import classify_and_ensure
 
 # ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -208,7 +208,7 @@ def chat(req: ChatRequest):
         result = _run_pipeline(question, req.tickers, req.years)
     except Exception as exc:
         logger.exception("Chat pipeline error")
-        raise HTTPException(500, "Something went wrong while answering your question. Please try again.")
+        raise HTTPException(500, "Something went wrong while answering your question. Please try again.") from exc
 
     tid = str(uuid.uuid4())
     try:

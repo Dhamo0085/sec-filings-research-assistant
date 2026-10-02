@@ -14,6 +14,7 @@ RUFF    := $(VENV)/bin/ruff
 # junit.xml/coverage.xml (a Phase 1 runner overwrote a committed Phase 0
 # artifact that way; see reports/phase1/REPORT.md section 6).
 PHASE   ?= phase2
+comma   := ,
 HOST    ?= 127.0.0.1
 PORT    ?= 8000
 BASE_URL ?= http://localhost:$(PORT)
@@ -70,8 +71,8 @@ catalog: ## Build the filing catalog from SEC EDGAR submissions (P1-09)
 index: ## Stream-index the chunk corpus one collection at a time (P2-00c)
 	$(PY) -m ingestion.indexer $(if $(ONLY),--only $(ONLY),)
 
-facts: ## Build the iXBRL facts store (Phase 2)
-	@echo "facts: not implemented until Phase 2 (facts/ package, task P2-04)." && exit 1
+facts: ## Build the iXBRL facts store from the catalog (P2-04)
+	$(PY) -m facts.build $(if $(ONLY),$(foreach t,$(subst $(comma), ,$(ONLY)),--ticker $(t)),)
 
 eval-smoke: ## Small evaluation run (Phase 4)
 	@echo "eval-smoke: not implemented until Phase 4 (eval/runner.py, task P4-04)." && exit 1

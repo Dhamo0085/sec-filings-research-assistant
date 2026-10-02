@@ -1,0 +1,123 @@
+{
+  "built_at_utc": "2026-10-02T15:54:24.165103+00:00",
+  "filings_per_ticker": 5,
+  "offline": false,
+  "rebuild": false,
+  "counts": {
+    "unchanged": 5,
+    "built": 1
+  },
+  "facts_db": "/Users/dhamo_85/Downloads/Financial_RAG-main/data/derived/facts.sqlite",
+  "store_stats": {
+    "facts": 26041,
+    "tickers": 13,
+    "concepts": 3040,
+    "accessions": 65,
+    "submissions": 66
+  },
+  "content_hash": "a713a6d7d0275aa5a5b18d9fb4b563650ea4eedcf8f0f202a97d5a22c57d7995",
+  "edgar": {
+    "requests_made": 2,
+    "bytes_fetched": 121317
+  },
+  "rows": [
+    {
+      "accession": "0000886982-26-000091",
+      "ticker": "GS",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "gs-20251231.htm"
+      ],
+      "facts_stored": 586,
+      "facts_total": 0,
+      "status": "unchanged",
+      "error": null
+    },
+    {
+      "accession": "0000886982-25-000005",
+      "ticker": "GS",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "gs-20241231.htm"
+      ],
+      "facts_stored": 579,
+      "facts_total": 0,
+      "status": "unchanged",
+      "error": null
+    },
+    {
+      "accession": "0000886982-24-000006",
+      "ticker": "GS",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "gs-20231231.htm"
+      ],
+      "facts_stored": 585,
+      "facts_total": 0,
+      "status": "unchanged",
+      "error": null
+    },
+    {
+      "accession": "0000886982-23-000003",
+      "ticker": "GS",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "gs-20221231.htm",
+        "a1037_formxofxnon-employee.htm",
+        "a1038_formofone-timeslashy.htm",
+        "a1039_formxofxyear-endxrsu.htm",
+        "a1040_formxofxyear-endxrsu.htm",
+        "a1041_formxofxyear-endxrsu.htm",
+        "a1042_formxofxyear-endxsho.htm",
+        "a1046_formxofxfixedxallowa.htm"
+      ],
+      "facts_stored": 576,
+      "facts_total": 0,
+      "status": "unchanged",
+      "error": null
+    },
+    {
+      "accession": "0001193125-22-052682",
+      "ticker": "GS",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "d192225d10k.htm",
+        "d192225dex1020.htm",
+        "d192225dex1039.htm",
+        "d192225dex1040.htm",
+        "d192225dex1041.htm",
+        "d192225dex1042.htm",
+        "d192225dex1043.htm",
+        "d192225dex1044.htm"
+      ],
+      "facts_stored": 579,
+      "facts_total": 0,
+      "status": "unchanged",
+      "error": null
+    },
+    {
+      "accession": "0000886982-24-000012",
+      "ticker": "GS",
+      "form_type": "10-K/A",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "gs-20231231.htm"
+      ],
+      "facts_stored": 0,
+      "facts_total": 64,
+      "status": "built",
+      "error": null
+    }
+  ]
+}

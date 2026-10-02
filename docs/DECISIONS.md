@@ -108,6 +108,65 @@ because K9 genuinely needed local-mode behaviour.
 
 ---
 
+## 2026-10-02 — D2-02 Tiered candidate concepts, and agreement is not ambiguity
+
+**Context.** Spec 6.4 rule 3: use the per-filer override; else if exactly one candidate has a
+value, use it; else return `ambiguous`. The P2-11 coverage sweep over 780 (filer, metric, year)
+resolutions returned **90 `ambiguous_concept`** rows. Inspecting all 90 found two groups, and
+neither is the tie the rule was written for.
+
+**Group 1 — 27 rows where the candidates agree.** JPMorgan tags both `us-gaap:Revenues` and
+`us-gaap:RevenuesNetOfInterestExpense` with the *identical* figure in every year (FY2024:
+$177,556M; FY2023: $158,104M). The literal rule abstains because two candidates have values.
+Refusing to state a number the filing prints twice is not caution, it is a bug.
+
+**Group 2 — 63 rows where the concepts have different definitions.**
+
+| metric | first | second | FY2024 gap |
+|---|---|---|---|
+| `net_income` | `NetIncomeLoss` (parent) | `ProfitLoss` (incl. noncontrolling) | BLK 5,901 vs 6,205 |
+| `stockholders_equity` | `StockholdersEquity` (parent) | `…IncludingPortionAttributableToNoncontrollingInterest` | WFC 187,606 vs 190,110 |
+| `cash_and_equivalents` | `CashAndCashEquivalentsAtCarryingValue` | `CashCashEquivalentsRestricted…` (a superset) | IVZ 1,469 vs 1,932 |
+
+These are not two readings of one number; one of them is what the question means and the other
+is a different, also-correct number. "Net income" means the figure attributable to the
+company's own shareholders.
+
+**Options.** (a) Leave it: abstain on all 90. (b) Write ~30 per-filer overrides, one per
+(filer, metric) pair, each restating the same definitional choice. (c) Add **tiers** to the
+candidate lists plus an **agreement** rule.
+
+**Choice.** (c).
+
+* **Tiers.** A candidate list may be a list of lists. Rule 3 applies *within* a tier; a later
+  tier is consulted only when every concept in the earlier ones is absent from the filing. An
+  ambiguity *inside* a tier is still final — it does not fall through to the next tier, which
+  would be using a fallback concept to dodge a real tie.
+* **Agreement.** When every candidate with a value in a tier reports the same value, that is
+  the value, recorded as `selection="candidates_agree"`.
+
+Result: 634 of 780 resolved (81.3%, up from 69.7%), **zero** `ambiguous_concept`. The remaining
+146 are `metric_not_found_in_filing` and all look correct — banks have no gross profit or R&D
+line, brokers tag no `OperatingIncomeLoss`, and Amazon does not tag `us-gaap:Liabilities`.
+
+**Reason.** (a) refuses 63 answers the filings state plainly. (b) reaches the same place but
+spreads one decision across 30 near-identical entries, where nobody could later see that they
+were one decision or change it in one place. (c) states the choice once, in the open: the
+loader **rejects a tiered metric with no `preference` text**, so the reason is mandatory, and
+the concept actually used always reaches the user through the 6.5 `definition_note`. This is
+the same spirit as D5 (declare which definition is used), applied per metric.
+
+This is a deviation from the literal text of 6.4 rule 3 and is recorded as one in the Phase 2
+report. What it does not do is weaken the rule where it matters: BlackRock's two revenue
+concepts are both tier 1 with different values, so BLK still resolves only through its
+evidenced override, and removing that override makes BLK abstain again (asserted by a test).
+
+**What would change it.** A filer where the tier-1 concept is present but wrong — for example
+one that tags `NetIncomeLoss` as the consolidated total. That is a per-filer override with
+evidence, which is what overrides are for, and the tier order would stay as the general rule.
+
+---
+
 ## 2026-10-02 — D2-00 Keep bge-base at full 512 tokens; the 4 chunks/s bar was a proxy
 
 **Context.** P2-00(d) sets a decision rule: keep v1's dense embedding model if a tuned

@@ -811,11 +811,152 @@ def parse_submission(
     return submission
 
 
+# ── precision preference (D22) ─────────────────────────────────────────────
+#
+# A filing can tag the same concept, in the same context, more than once at
+# different precisions: Apple's FY2024 10-K reports UnrecognizedTaxBenefits for
+# context c-21 as 22,000,000,000 with decimals="-8" (the narrative sentence,
+# "$22.0 billion") and as 22,038,000,000 with decimals="-6" (the tax-footnote
+# table). Both are real tagged values and neither is wrong; they are the same
+# quantity stated to different precisions.
+#
+# Before this rule the extractor kept whichever came first in document order,
+# which was the coarse one often enough to account for the ENTIRE shortfall
+# against the SEC's own rendering in P2-09 (233 of 27,506 comparable values).
+# companyfacts keeps the precise instance, and so should we: a reader checking
+# an answer against the filing will find the table.
+#
+# What this rule must not do is merge values that genuinely disagree. The test
+# is the precision the filer itself declared: @decimals="-8" asserts accuracy to
+# the nearest 10^8, so a value carries a half-unit tolerance of 0.5 x 10^8.
+# Two instances describe the same quantity only if they fall within the sum of
+# their tolerances. Outside that, both are kept and the resolver reports
+# `ambiguous_concept` — which is the right outcome, because something is wrong
+# and this module cannot tell what.
+
+# Sentinel for decimals="INF" (exact), which is more precise than any integer.
+_DECIMALS_EXACT = 10_000
+
+
+def decimals_rank(raw: Optional[str]) -> Optional[int]:
+    """Comparable precision from ``@decimals``. Larger is more precise.
+
+    ``None`` means the filer declared no precision, in which case nothing can be
+    inferred and the instances are not merged.
+    """
+    if raw is None:
+        return None
+    text = raw.strip()
+    if not text:
+        return None
+    if text.upper() == "INF":
+        return _DECIMALS_EXACT
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
+def decimals_tolerance(raw: Optional[str]) -> Optional[Decimal]:
+    """Half-unit tolerance implied by ``@decimals``, or None when undeclared.
+
+    ``decimals="-6"`` means the value is accurate to the nearest million, so it
+    may differ from the true quantity by up to half a million.
+    """
+    rank = decimals_rank(raw)
+    if rank is None:
+        return None
+    if rank == _DECIMALS_EXACT:
+        return Decimal(0)
+    return Decimal(1).scaleb(-rank) / 2
+
+
+def _instances_agree(a: "Fact", b: "Fact") -> bool:
+    """Do two instances state the same quantity to their declared precisions?"""
+    if a.value is None or b.value is None:
+        return False
+    if a.value == b.value:
+        return True
+    tol_a = decimals_tolerance(a.decimals)
+    tol_b = decimals_tolerance(b.decimals)
+    if tol_a is None or tol_b is None:
+        # Undeclared precision: no basis for calling them the same quantity.
+        return False
+    return abs(a.value - b.value) <= tol_a + tol_b
+
+
+def _precision_sort_key(fact: "Fact") -> Tuple[int, int, str, str, str]:
+    """Most precise first, then a total order so a rebuild is deterministic."""
+    rank = decimals_rank(fact.decimals)
+    return (
+        0 if rank is not None else 1,          # declared precision wins
+        -(rank if rank is not None else 0),    # larger decimals first
+        fact.element_id or "",
+        fact.source_doc or "",
+        str(fact.value),
+    )
+
+
+@dataclass(frozen=True)
+class PrecisionMerge:
+    """One instance dropped in favour of a more precisely tagged one."""
+
+    concept: str
+    context_id: str
+    unit: Optional[str]
+    kept_value: Decimal
+    kept_decimals: Optional[str]
+    dropped_value: Decimal
+    dropped_decimals: Optional[str]
+
+    @property
+    def changed_the_value(self) -> bool:
+        return self.kept_value != self.dropped_value
+
+
+def prefer_precise_instances(
+    facts: Sequence["Fact"],
+) -> Tuple[List["Fact"], List[PrecisionMerge]]:
+    """Collapse duplicate instances of a fact, keeping the most precise (D22).
+
+    Grouped by (concept, context, unit) — the triple that identifies one
+    quantity. Returns the kept facts in their original order, plus a record of
+    every merge, so a build can report how many values the rule changed rather
+    than changing them silently.
+    """
+    groups: Dict[Tuple[str, str, Optional[str]], List["Fact"]] = {}
+    for fact in facts:
+        groups.setdefault((fact.concept, fact.context_id, fact.unit), []).append(fact)
+
+    dropped: set = set()
+    merges: List[PrecisionMerge] = []
+    for (concept, context_id, unit), members in groups.items():
+        if len(members) == 1:
+            continue
+        ordered = sorted(members, key=_precision_sort_key)
+        keeper = ordered[0]
+        for other in ordered[1:]:
+            if not _instances_agree(keeper, other):
+                # A real disagreement. Keep both: the resolver will see two
+                # values for one concept and abstain, which is what should
+                # happen when a filing contradicts itself.
+                continue
+            dropped.add(id(other))
+            if other.value != keeper.value:
+                merges.append(PrecisionMerge(
+                    concept=concept, context_id=context_id, unit=unit,
+                    kept_value=keeper.value, kept_decimals=keeper.decimals,
+                    dropped_value=other.value, dropped_decimals=other.decimals,
+                ))
+    return [f for f in facts if id(f) not in dropped], merges
+
+
 def annual_facts(
     submission: Submission,
     period_end: date,
     *,
     tolerance_days: int = 3,
+    prefer_precise: bool = True,
 ) -> List[Fact]:
     """Consolidated facts belonging to the fiscal year ending at ``period_end``.
 
@@ -837,6 +978,11 @@ def annual_facts(
                 and abs((ctx.end - period_end).days) <= tolerance_days
                 and ctx.is_annual_duration()):
             out.append(fact)
+    if prefer_precise:
+        # D22. Exposed as a flag rather than applied unconditionally so T2-13
+        # can assert what changes when it is off — a rule whose effect cannot
+        # be switched off has not been shown to have one.
+        out, _merges = prefer_precise_instances(out)
     return out
 
 

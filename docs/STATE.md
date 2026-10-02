@@ -1,7 +1,7 @@
 # STATE — living handoff for Claude Code sessions
 
 Seeded from `reports/phase1/REPORT.md` and the Phase 0/Step 0 reports at the end of Phase 1 (2026-10-02);
-carried into Phase 2 on 2026-10-02 against spec v1.4.
+carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure against spec v1.5.
 **Read this at the start of every session and after any `/compact`. Update it at every commit batch, at every gate, and *before* running `/compact`.** If this file and the code disagree, trust the code, then fix this file. Facts here that you have not re-verified are marked (seed).
 
 ## 1. Where we are
@@ -10,14 +10,16 @@ carried into Phase 2 on 2026-10-02 against spec v1.4.
 | Repository | private, `github.com/Dhamo0085/sec-filings-research-assistant`; branch model: `main` + one `phase-N-<slug>` branch per phase, merged by the owner via PR |
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
-| Phase 2 | COMPLETE; PR #3 open from `phase-2-facts-engine`. One item open: T2-10's exact threshold (99.13% vs 99.5%) |
+| Phase 2 | COMPLETE through P2-13 closure; PR #3 open from `phase-2-facts-engine`. All T2 tests pass and all T2-10 thresholds are met |
 | Current task | none — awaiting "Approved: start Phase 3" |
-| Tests | `make test` → **511 passed, 1 documented skip**; `facts/` 88.7%, `catalog/` 96.4%; ruff and hygiene clean |
+| Tests | `make test` → **547 passed, 0 skipped**; `facts/` 88.7%, `catalog/` 95.4%; ruff and hygiene clean |
 
 ## 1a. Phase 2 facts (measured, 2026-10-02)
-- **Facts store built**: `data/derived/facts.sqlite`, **26,041 facts**, 66 submissions, 13 tickers, 3,040 distinct concepts, from the newest 5 originals per ticker plus the GS FY2023 10-K/A. `make facts` is idempotent: a second run reports all 66 `unchanged` and `--rebuild` reproduces the byte-identical content hash (T2-08).
-- **Oracle cross-check (P2-09)**: 20,892 comparable (accn, concept, start, end, unit) pairs. **99.11% bit-exact overall; 100.00% on the 1,330 pairs for the 23 concepts the metric registry uses; 100% agree within the filer's declared precision. Zero scale errors, zero sign errors, zero unclassified mismatches.** The 181 `rounding` rows are filings tagging a concept twice — rounded in prose (`decimals="-8"`) and exact in a table; the oracle keeps the precise one, we keep the other. None touches a registry concept.
-- **Coverage (P2-11)**: 634 of 780 (ticker, metric, year) resolutions = 81.3%, **zero ambiguous**. 146 `metric_not_found_in_filing`, all plausible (banks: no gross profit, no R&D, no OperatingIncomeLoss; AMZN tags no `us-gaap:Liabilities`). 51 `conflict` validations remain and are mostly v1 parser section-boundary defects, not extraction errors.
+- **Facts store built**: `data/derived/facts.sqlite`, **29,002 facts**, 94 submissions, 18 tickers (13 bundled + the 5 cross-check-only filers), 3,492 distinct concepts, newest 5 originals per ticker plus amendments. `make facts` is idempotent: a second run reports all 94 `unchanged` and `--rebuild` reproduces the byte-identical content hash (T2-08) — re-verified after the D22 change.
+- **Oracle cross-check (P2-09, after P2-13)**: 23,429 comparable (accn, concept, start, end, unit) pairs. **99.9787% bit-exact; 100.00% on the 1,047 pairs for the 23 registry concepts; 100% agree within the filer's declared precision. Zero scale errors, zero sign errors, zero unclassified mismatches, zero `rounding`.** All T2-10 thresholds met. Before P2-13 it was 99.1347% with 233 `rounding` rows; the before/after is in the report section 4.1a.
+- **Precision preference (D22 / D2-03)**: when a filing tags one concept twice in one context at different precisions, keep the larger-`@decimals` instance — only when the two agree within the coarser declared tolerance (half a unit each, summed). Disagreements beyond it are never merged; both are kept and the resolver abstains. Undeclared `@decimals` is never merged. 272 values changed, 4,510 duplicate instances collapsed. The owner-signed spot-check values all re-resolve unchanged.
+- **Coverage (P2-11)**: 634 of 780 (ticker, metric, year) resolutions = 81.3%, **zero ambiguous** — unchanged by D22. 146 `metric_not_found_in_filing`, all plausible (banks: no gross profit, no R&D, no OperatingIncomeLoss; AMZN tags no `us-gaap:Liabilities`). Validation after D22: validated 256 (was 223), unvalidated 327, `conflict` 51 — the conflicts are v1 parser section-boundary defects, not extraction errors (D23).
+- **Owner gate**: spot-check sheet signed **20 of 20 OK, zero WRONG**, each row noted against the statement line it was checked on.
 - **Indexing throughput (P2-00d)**: batch size is worth ~9% at 512 tokens (2.15-2.35 chunks/s); sequence length is worth 2x (4.8 chunks/s at 256) but changes what a vector means, so it was rejected (D2-00). Batch 8 in a real run against an existing index: **1.34 GB peak RSS vs 3.05 GB at batch 64, and faster** — Qdrant local mode holds every existing collection in RAM, which the isolated grid did not capture. `config.index_batch_size = 8`.
 - **iXBRL formats**: across all 250 cached documents (65 filings) there are exactly **7** distinct `ix:nonFraction/@format` values, all implemented. `ixt-sec:numwordsen` uses 16 distinct texts including `nil` and `three million`.
 - **DEI labels (P2-03)**: 65 of 65 match `period_end.year`; catalog now records `fiscal_label_source='dei'` for those 65. **29 of 65 filings are multi-document submissions** (not just WFC) and `exhibit_docs` is populated.
@@ -49,20 +51,22 @@ Numeric 2/2 pass (N1, N5); computed 0/1 (C1: classification failure); trend 0/1 
 D1 facts from iXBRL · D2 `as_of` via catalog · D5 headline total net revenue · D6 company's own fiscal label (DEI) · D7 typed errors · D13 admin fail-closed · D14 restatement rule · D17 portfolio repo · D18 no paid services · D19 `Co-Authored-By: Claude` · D20 normalize citation brackets (counted) · D21 partial baseline accepted, evaluation-core tickers indexed before Phase 3.
 
 ## 6a. Phase 2 decisions
-D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0).
+D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0; **now part of spec 6.4 rule 3 rather than a deviation from it**) · D2-03 precision preference (D22), which took corpus-wide exactness from 99.1347% to 99.9787%.
+
+Spec v1.5 also carries **D23** (v1's parsed statement sections are not trusted; `validation_status` is informational only and must never affect an answer — guarded by two tests in `test_facts_resolve.py`; P3-00 audits section quality) and **D24** (ingestion resolves filings through the catalog across every CIK a ticker has filed under; P3-06 uses BLK FY2023 as the proof case).
 
 ## 7. Open items
-1. **P2-00(e) is DONE** (all 8 core tickers). Residual gap: **BLK FY2023** has no chunk files because that 10-K is under BlackRock's old CIK. Decide whether Phase 4's V0 subset needs it.
-2. **T2-10's exact threshold is not met**: 99.13% corpus-wide vs the 99.5% bar. The whole shortfall is 233 values in filings that tag one concept twice (rounded in prose, exact in a table); they agree within the declared precision and none is a registry concept. Fix proposed in the report section 9 item 1.
-3. **v1's parsed statement sections are unreliable** and Phase 3's text path reads the same ones: the section titled "Consolidated Statements of Operations" is 106 chars of heading for AMZN, empty for JPM in all three years, over a megabyte for GS, and GOOGL's "Balance Sheets" section holds the auditors' report. This is why 51 validations are `conflict`.
-4. `.hygiene_local` is still EMPTY, so the old project's names are not being scanned for (the check works; it has nothing to look for).
-5. Owner spot-check sheet `reports/phase2/owner_spotcheck.csv` is the Phase 2 gate: 20 rows to mark OK/WRONG.
-6. Old Phase 1 items that remain: the Phase 0 scorer mislabels passing numeric answers (P4-03 rewrites it); the runner instruments only the generator (P4-04).
-2. Phase 0 scorer mislabels passing numeric answers `retrieval_found_llm_misread` (rewritten in P4-03).
-3. Runner instruments only the generator; P4-04 must instrument every LLM role.
-4. `llm/__init__.py` coverage 50% (shim); ignore unless it grows.
-5. Rate limiter is per-process, in memory (fine for local-first).
-6. Old project's handle/repo name belongs in the gitignored `.hygiene_local` patterns file only, never in a committed file.
+Closed at P2-13: P2-00(e) indexing (all 8 core tickers), T2-10's exact threshold (now met), the owner spot-check (20/20 OK), and the empty `.hygiene_local` (now filled; the T2-12 skip is gone).
+
+Carried into Phase 3:
+1. **v1's parsed statement sections are unreliable** and the text path reads the same ones: "Consolidated Statements of Operations" is 106 chars of heading for AMZN, empty for JPM in all three years, over a megabyte for GS, and GOOGL's "Balance Sheets" section holds the auditors' report. This is why 51 validations are `conflict`. **P3-00** audits it; **D23** forbids anything user-visible depending on it in the meantime.
+2. **BLK FY2023 is absent from the text index** (its 10-K is under the old CIK 1364742 and was never chunked; the catalog and facts store both have it). **D24 / P3-06** make ingestion catalog-driven across every CIK, with this as the proof case.
+3. `.cache/company_tickers.json` holds a cached SEC **error page** rather than JSON. Nothing reads it today (v1 uses `data/company_tickers.json`, which is valid), but a cache that stores failures as data is a trap. **P3-00(b)**.
+4. Phase 0 scorer mislabels passing numeric answers `retrieval_found_llm_misread` (rewritten in P4-03).
+5. Runner instruments only the generator; P4-04 must instrument every LLM role.
+6. `llm/__init__.py` coverage 50% (shim); ignore unless it grows.
+7. Rate limiter is per-process, in memory (fine for local-first).
+8. The old project's handle/repo name belongs in the gitignored `.hygiene_local` only, never in a committed file.
 
 ## 8. Gotchas that already cost time (do not repeat)
 - `app.routes` is nested under `include_router` in this FastAPI version: inventory routes recursively, key allow-lists by `(method, path)`.
@@ -71,6 +75,8 @@ D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.
 - Hand-written text matchers under-match real model output (typographic apostrophes, `isn't`, fullwidth brackets, years counted as claims). Test matchers on real outputs.
 - A check that has never failed has not been tested: add a negative control. Prefer small Python scripts over nested shell pipelines.
 - Never let a runner overwrite committed artifacts (the Phase 0 scorer's hard-coded output path did).
+- `None` as a constructor default meaning "use the default" rather than "disabled" makes tests read real on-disk data without saying so. `FactsResolver(statements=...)` uses an explicit sentinel for this reason.
+- A test that asserts a COUNT of extracted facts goes stale the moment extraction changes. Assert the values and the per-concept cardinality instead.
 
 ## 9. Resume commands
 `make setup` · `make test` · `make lint` · `make hygiene` · `python scripts/check_repo_hygiene.py --self-test` · `make catalog` · `make up` · `python scripts/smoke.py --base-url http://localhost:8000` · resumable indexing: `python eval/phase1/index_per_ticker.py --only AAPL,AMZN` (run from the v1 worktree).

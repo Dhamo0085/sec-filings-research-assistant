@@ -156,7 +156,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     required = {"BLK", "BAC", "GS", "WFC", "NFLX"}
     missing = required - {r["ticker"] for r in out_rows}
 
-    print(f"{len(out_rows)} row(s) written to {out.relative_to(REPO_ROOT)}")
+    # relative_to raises for a path outside the repo, which is a legitimate
+    # thing to ask for (writing a comparison copy elsewhere) and should not
+    # crash after the work is already done.
+    try:
+        shown = out.relative_to(REPO_ROOT)
+    except ValueError:
+        shown = out
+    print(f"{len(out_rows)} row(s) written to {shown}")
     print(f"sectors covered: {', '.join(sorted(sectors))}")
     print(f"spec-required filers present: "
           f"{'all' if not missing else 'MISSING ' + ', '.join(sorted(missing))}")

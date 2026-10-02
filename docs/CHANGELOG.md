@@ -6,10 +6,11 @@ Report: `reports/phase2/REPORT.md` · Owner explainer: `docs/explainers/phase2.m
 
 **The headline: numeric answers now come from the filer's own XBRL tags, and
 that extraction is independently verified.** Against SEC `companyfacts` — the
-same filings rendered by the SEC's own pipeline — 27,506 comparable values from
-94 submissions across 18 companies: **99.13% bit-exact overall, 100.00% exact on
-the 1,861 values for the 23 concepts the system uses to answer questions, zero
-scale errors, zero sign errors, zero unclassified mismatches.**
+same filings rendered by the SEC's own pipeline — 23,429 comparable values from
+94 submissions across 18 companies: **99.98% bit-exact overall, 100.00% exact on
+the 1,047 values for the 23 concepts the system uses to answer questions, zero
+scale errors, zero sign errors, zero unclassified mismatches.** All of T2-10's
+thresholds are met.
 
 ### Added
 - `facts/extract.py` — inline XBRL to typed facts: contexts, units, `scale`,
@@ -68,11 +69,21 @@ scale errors, zero sign errors, zero unclassified mismatches.**
   zero, without weakening the rule where it matters — BlackRock still resolves
   only through its evidenced override, and a test proves removing it abstains.
 
+### Closure (P2-13, after the owner's gate)
+- Owner spot-check: **20 of 20 OK, zero WRONG.** All 20 re-resolve unchanged
+  after the rebuild below.
+- **D22 / D2-03 precision preference** implemented in `facts/extract.py`: when a
+  filing tags one concept twice in one context at different precisions, keep the
+  instance with the larger `@decimals` — but only when the two agree within the
+  coarser declared tolerance. Disagreements beyond it are never merged; both are
+  kept and the resolver abstains. Corpus-wide exactness **99.1347% → 99.9787%**,
+  the `rounding` discrepancy class eliminated (233 → 0), and T2-10 goes from not
+  met to met. 272 values changed; 4,510 duplicate instances collapsed.
+- `.hygiene_local` filled by the owner: the tracked tree is clean against it and
+  the T2-12 skip is gone (547 passed, 0 skipped).
+
 ### Known at this gate
-- T2-10's "≥ 99.5% exact" is **not met** corpus-wide (99.13%). The entire
-  shortfall is 233 values in filings that tag one concept twice, rounded in
-  prose and exact in a table; they agree within the filer's declared precision
-  and none is a registry concept.
+- Nothing outstanding against the Phase 2 exit criteria.
 - P2-00(e) core-ticker indexing **completed**: all eight evaluation-core
   tickers, 24 collections, 13,520 points, 10,848 chunks in 1.6 h at
   1.86 chunks/s. BLK FY2023 is the one gap — its 10-K is under BlackRock's old

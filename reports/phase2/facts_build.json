@@ -1,26 +1,519 @@
 {
-  "built_at_utc": "2026-10-02T15:54:24.165103+00:00",
+  "built_at_utc": "2026-10-02T19:37:43.048007+00:00",
   "filings_per_ticker": 5,
-  "offline": false,
-  "rebuild": false,
+  "offline": true,
+  "rebuild": true,
   "counts": {
-    "unchanged": 5,
-    "built": 1
+    "built": 94
   },
   "facts_db": "/Users/dhamo_85/Downloads/Financial_RAG-main/data/derived/facts.sqlite",
   "store_stats": {
-    "facts": 26041,
-    "tickers": 13,
-    "concepts": 3040,
-    "accessions": 65,
-    "submissions": 66
+    "facts": 29002,
+    "tickers": 18,
+    "concepts": 3492,
+    "accessions": 90,
+    "submissions": 94
   },
-  "content_hash": "a713a6d7d0275aa5a5b18d9fb4b563650ea4eedcf8f0f202a97d5a22c57d7995",
+  "content_hash": "7f8c1db9f13e96f05eac0c853713b4244abc35af73a401b2bf6a2049368f4358",
   "edgar": {
-    "requests_made": 2,
-    "bytes_fetched": 121317
+    "requests_made": 0,
+    "bytes_fetched": 0
   },
   "rows": [
+    {
+      "accession": "0000320193-25-000079",
+      "ticker": "AAPL",
+      "form_type": "10-K",
+      "period_end": "2025-09-27",
+      "fiscal_label": 2025,
+      "documents": [
+        "aapl-20250927.htm"
+      ],
+      "facts_stored": 209,
+      "facts_total": 1131,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000320193-24-000123",
+      "ticker": "AAPL",
+      "form_type": "10-K",
+      "period_end": "2024-09-28",
+      "fiscal_label": 2024,
+      "documents": [
+        "aapl-20240928.htm"
+      ],
+      "facts_stored": 211,
+      "facts_total": 1127,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000320193-23-000106",
+      "ticker": "AAPL",
+      "form_type": "10-K",
+      "period_end": "2023-09-30",
+      "fiscal_label": 2023,
+      "documents": [
+        "aapl-20230930.htm"
+      ],
+      "facts_stored": 225,
+      "facts_total": 1164,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000320193-22-000108",
+      "ticker": "AAPL",
+      "form_type": "10-K",
+      "period_end": "2022-09-24",
+      "fiscal_label": 2022,
+      "documents": [
+        "aapl-20220924.htm",
+        "a10-kexhibit21109242022.htm",
+        "a10-kexhibit23109242022.htm",
+        "a10-kexhibit31109242022.htm",
+        "a10-kexhibit31209242022.htm",
+        "a10-kexhibit32109242022.htm",
+        "a10-kexhibit4109242022.htm"
+      ],
+      "facts_stored": 224,
+      "facts_total": 1174,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000320193-21-000105",
+      "ticker": "AAPL",
+      "form_type": "10-K",
+      "period_end": "2021-09-25",
+      "fiscal_label": 2021,
+      "documents": [
+        "aapl-20210925.htm",
+        "a10-kexhibit2119252021.htm",
+        "a10-kexhibit2319252021.htm",
+        "a10-kexhibit3119252021.htm",
+        "a10-kexhibit3129252021.htm",
+        "a10-kexhibit3219252021.htm",
+        "a10-kexhibit419252021.htm"
+      ],
+      "facts_stored": 231,
+      "facts_total": 1191,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001018724-26-000004",
+      "ticker": "AMZN",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "amzn-20251231.htm"
+      ],
+      "facts_stored": 320,
+      "facts_total": 1637,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001018724-25-000004",
+      "ticker": "AMZN",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "amzn-20241231.htm"
+      ],
+      "facts_stored": 284,
+      "facts_total": 1499,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001018724-24-000008",
+      "ticker": "AMZN",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "amzn-20231231.htm"
+      ],
+      "facts_stored": 298,
+      "facts_total": 1502,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001018724-23-000004",
+      "ticker": "AMZN",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "amzn-20221231.htm",
+        "amzn-20221231xex211.htm",
+        "amzn-20221231xex231.htm",
+        "amzn-20221231xex311.htm",
+        "amzn-20221231xex312.htm",
+        "amzn-20221231xex321.htm",
+        "amzn-20221231xex322.htm"
+      ],
+      "facts_stored": 298,
+      "facts_total": 1457,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001018724-22-000005",
+      "ticker": "AMZN",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "amzn-20211231.htm",
+        "amzn-20211231xex107.htm",
+        "amzn-20211231xex108.htm",
+        "amzn-20211231xex211.htm",
+        "amzn-20211231xex231.htm",
+        "amzn-20211231xex311.htm",
+        "amzn-20211231xex312.htm",
+        "amzn-20211231xex321.htm"
+      ],
+      "facts_stored": 292,
+      "facts_total": 1394,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000070858-26-000157",
+      "ticker": "BAC",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "bac-20251231.htm"
+      ],
+      "facts_stored": 477,
+      "facts_total": 8262,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000070858-25-000139",
+      "ticker": "BAC",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "bac-20241231.htm"
+      ],
+      "facts_stored": 463,
+      "facts_total": 8233,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000070858-24-000122",
+      "ticker": "BAC",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "bac-20231231.htm"
+      ],
+      "facts_stored": 452,
+      "facts_total": 8199,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000070858-23-000092",
+      "ticker": "BAC",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "bac-20221231.htm",
+        "bac-1231202210xkex1062.htm",
+        "bac-1231202210xkex21.htm",
+        "bac-1231202210xkex22.htm",
+        "bac-1231202210xkex23.htm",
+        "bac-1231202210xkex24.htm",
+        "bac-1231202210xkex311.htm",
+        "bac-1231202210xkex312.htm"
+      ],
+      "facts_stored": 451,
+      "facts_total": 8071,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000070858-22-000062",
+      "ticker": "BAC",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "bac-20211231.htm",
+        "bac-1231202110xkex1032.htm",
+        "bac-1231202110xkex1033.htm",
+        "bac-1231202110xkex1034.htm",
+        "bac-1231202110xkex1035.htm",
+        "bac-1231202110xkex21.htm",
+        "bac-1231202110xkex23.htm",
+        "bac-1231202110xkex24.htm"
+      ],
+      "facts_stored": 455,
+      "facts_total": 7973,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001193125-26-071966",
+      "ticker": "BLK",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "blk-20251231.htm"
+      ],
+      "facts_stored": 335,
+      "facts_total": 3048,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-25-026584",
+      "ticker": "BLK",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "blk-20241231.htm"
+      ],
+      "facts_stored": 318,
+      "facts_total": 2786,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-24-019271",
+      "ticker": "BLK",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "blk-20231231.htm"
+      ],
+      "facts_stored": 291,
+      "facts_total": 2505,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-23-004343",
+      "ticker": "BLK",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "blk-20221231.htm",
+        "blk-ex21_1.htm",
+        "blk-ex23_1.htm",
+        "blk-ex31_1.htm",
+        "blk-ex31_2.htm",
+        "blk-ex32_1.htm"
+      ],
+      "facts_stored": 282,
+      "facts_total": 2441,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001564590-22-007117",
+      "ticker": "BLK",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "blk-10k_20211231.htm",
+        "blk-ex211_11.htm",
+        "blk-ex231_10.htm",
+        "blk-ex311_8.htm",
+        "blk-ex312_7.htm",
+        "blk-ex321_6.htm",
+        "blk-ex412_9.htm"
+      ],
+      "facts_stored": 283,
+      "facts_total": 2123,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000909832-25-000101",
+      "ticker": "COST",
+      "form_type": "10-K",
+      "period_end": "2025-08-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "cost-20250831.htm"
+      ],
+      "facts_stored": 228,
+      "facts_total": 984,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000909832-24-000049",
+      "ticker": "COST",
+      "form_type": "10-K",
+      "period_end": "2024-09-01",
+      "fiscal_label": 2024,
+      "documents": [
+        "cost-20240901.htm"
+      ],
+      "facts_stored": 232,
+      "facts_total": 983,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000909832-23-000042",
+      "ticker": "COST",
+      "form_type": "10-K",
+      "period_end": "2023-09-03",
+      "fiscal_label": 2023,
+      "documents": [
+        "cost-20230903.htm"
+      ],
+      "facts_stored": 228,
+      "facts_total": 974,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000909832-22-000021",
+      "ticker": "COST",
+      "form_type": "10-K",
+      "period_end": "2022-08-28",
+      "fiscal_label": 2022,
+      "documents": [
+        "cost-20220828.htm",
+        "costex21110k082822.htm",
+        "costex23110k082822.htm",
+        "costex3110k082822.htm",
+        "costex31110k082822.htm",
+        "costex32110k082822.htm",
+        "costex4810k082822.htm"
+      ],
+      "facts_stored": 234,
+      "facts_total": 984,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000909832-21-000014",
+      "ticker": "COST",
+      "form_type": "10-K",
+      "period_end": "2021-08-29",
+      "fiscal_label": 2021,
+      "documents": [
+        "cost-20210829.htm",
+        "costex21110k082921.htm",
+        "costex23110k082921.htm",
+        "costex31110k082921.htm",
+        "costex32110k082921.htm"
+      ],
+      "facts_stored": 225,
+      "facts_total": 1026,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001652044-26-000018",
+      "ticker": "GOOGL",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "goog-20251231.htm"
+      ],
+      "facts_stored": 305,
+      "facts_total": 1861,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001652044-25-000014",
+      "ticker": "GOOGL",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "goog-20241231.htm"
+      ],
+      "facts_stored": 295,
+      "facts_total": 1721,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001652044-24-000022",
+      "ticker": "GOOGL",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "goog-20231231.htm"
+      ],
+      "facts_stored": 266,
+      "facts_total": 1588,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001652044-23-000016",
+      "ticker": "GOOGL",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "goog-20221231.htm",
+        "googexhibit10083q42022.htm",
+        "googexhibit1009q42022.htm",
+        "googexhibit2101q42022.htm",
+        "googexhibit2301q42022.htm",
+        "googexhibit3101q42022.htm",
+        "googexhibit3102q42022.htm",
+        "googexhibit3201q42022.htm"
+      ],
+      "facts_stored": 279,
+      "facts_total": 1608,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001652044-22-000019",
+      "ticker": "GOOGL",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "goog-20211231.htm",
+        "googexhibit10072q42021.htm",
+        "googexhibit1008q42021.htm",
+        "googexhibit2101q42021.htm",
+        "googexhibit2301q42021.htm",
+        "googexhibit3101q42021.htm",
+        "googexhibit3102q42021.htm",
+        "googexhibit3201q42021.htm"
+      ],
+      "facts_stored": 284,
+      "facts_total": 1597,
+      "status": "built",
+      "error": null
+    },
     {
       "accession": "0000886982-26-000091",
       "ticker": "GS",
@@ -30,9 +523,9 @@
       "documents": [
         "gs-20251231.htm"
       ],
-      "facts_stored": 586,
-      "facts_total": 0,
-      "status": "unchanged",
+      "facts_stored": 488,
+      "facts_total": 6003,
+      "status": "built",
       "error": null
     },
     {
@@ -44,9 +537,9 @@
       "documents": [
         "gs-20241231.htm"
       ],
-      "facts_stored": 579,
-      "facts_total": 0,
-      "status": "unchanged",
+      "facts_stored": 482,
+      "facts_total": 6438,
+      "status": "built",
       "error": null
     },
     {
@@ -58,9 +551,9 @@
       "documents": [
         "gs-20231231.htm"
       ],
-      "facts_stored": 585,
-      "facts_total": 0,
-      "status": "unchanged",
+      "facts_stored": 492,
+      "facts_total": 6498,
+      "status": "built",
       "error": null
     },
     {
@@ -79,9 +572,9 @@
         "a1042_formxofxyear-endxsho.htm",
         "a1046_formxofxfixedxallowa.htm"
       ],
-      "facts_stored": 576,
-      "facts_total": 0,
-      "status": "unchanged",
+      "facts_stored": 491,
+      "facts_total": 6555,
+      "status": "built",
       "error": null
     },
     {
@@ -100,9 +593,9 @@
         "d192225dex1043.htm",
         "d192225dex1044.htm"
       ],
-      "facts_stored": 579,
-      "facts_total": 0,
-      "status": "unchanged",
+      "facts_stored": 491,
+      "facts_total": 6393,
+      "status": "built",
       "error": null
     },
     {
@@ -116,6 +609,966 @@
       ],
       "facts_stored": 0,
       "facts_total": 64,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000914208-26-000079",
+      "ticker": "IVZ",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "ivz-20251231.htm"
+      ],
+      "facts_stored": 290,
+      "facts_total": 1544,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000914208-25-000114",
+      "ticker": "IVZ",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "ivz-20241231.htm"
+      ],
+      "facts_stored": 283,
+      "facts_total": 1506,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000914208-24-000219",
+      "ticker": "IVZ",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "ivz-20231231.htm"
+      ],
+      "facts_stored": 256,
+      "facts_total": 1548,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000914208-23-000297",
+      "ticker": "IVZ",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "ivz-20221231.htm",
+        "ex210subsidiarylisting2022.htm",
+        "ex231pwcconsentq42022.htm",
+        "ex31110k2022.htm",
+        "ex31210k2022.htm",
+        "ex32110k2022.htm",
+        "ex32210k2022.htm"
+      ],
+      "facts_stored": 256,
+      "facts_total": 1541,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000914208-22-000319",
+      "ticker": "IVZ",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "ivz-20211231.htm",
+        "ex210subsidiarylisting2021.htm",
+        "ex231pwcconsentq42021.htm",
+        "ex31110k2021.htm",
+        "ex31210k2021.htm",
+        "ex32110k2021.htm",
+        "ex32210k2021.htm"
+      ],
+      "facts_stored": 287,
+      "facts_total": 1827,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001628280-26-008131",
+      "ticker": "JPM",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "jpm-20251231.htm"
+      ],
+      "facts_stored": 554,
+      "facts_total": 8442,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000019617-25-000270",
+      "ticker": "JPM",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "jpm-20241231.htm"
+      ],
+      "facts_stored": 529,
+      "facts_total": 8283,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000019617-24-000225",
+      "ticker": "JPM",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "jpm-20231231.htm"
+      ],
+      "facts_stored": 529,
+      "facts_total": 8194,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000019617-23-000231",
+      "ticker": "JPM",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "jpm-20221231.htm",
+        "corp10k2022exhibit1018.htm",
+        "corp10k2022exhibit21.htm",
+        "corp10k2022exhibit222.htm",
+        "corp10k2022exhibit23.htm",
+        "corp10k2022exhibit311.htm",
+        "corp10k2022exhibit312.htm",
+        "corp10k2022exhibit32.htm"
+      ],
+      "facts_stored": 514,
+      "facts_total": 7911,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000019617-22-000272",
+      "ticker": "JPM",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "jpm-20211231.htm",
+        "corp10k2021exhibit1020.htm",
+        "corp10k2021exhibit1023.htm",
+        "corp10k2021exhibit21.htm",
+        "corp10k2021exhibit222.htm",
+        "corp10k2021exhibit23.htm",
+        "corp10k2021exhibit311.htm",
+        "corp10k2021exhibit312.htm"
+      ],
+      "facts_stored": 511,
+      "facts_total": 7891,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001628280-26-003942",
+      "ticker": "META",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "meta-20251231.htm"
+      ],
+      "facts_stored": 264,
+      "facts_total": 1337,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001326801-25-000017",
+      "ticker": "META",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "meta-20241231.htm"
+      ],
+      "facts_stored": 244,
+      "facts_total": 1269,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001326801-24-000012",
+      "ticker": "META",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "meta-20231231.htm"
+      ],
+      "facts_stored": 235,
+      "facts_total": 1287,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001326801-23-000013",
+      "ticker": "META",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "meta-20221231.htm",
+        "meta-12312022x10kex1012.htm",
+        "meta-12312022x10kex102a.htm",
+        "meta-12312022x10kex102b.htm",
+        "meta-12312022x10kexhibit105.htm",
+        "meta-12312022x10kexhibit108.htm",
+        "meta-12312022x10kexhibit211.htm",
+        "meta-12312022x10kexhibit231.htm"
+      ],
+      "facts_stored": 236,
+      "facts_total": 1247,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001326801-22-000018",
+      "ticker": "META",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "fb-20211231.htm",
+        "fb-12312021x10kexhibit103.htm",
+        "fb-12312021x10kexhibit211.htm",
+        "fb-12312021x10kexhibit231.htm",
+        "fb-12312021x10kexhibit311.htm",
+        "fb-12312021x10kexhibit312.htm",
+        "fb-12312021x10kexhibit321.htm",
+        "fb-12312021x10kexhibit322.htm"
+      ],
+      "facts_stored": 211,
+      "facts_total": 1071,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001193125-26-323660",
+      "ticker": "MSFT",
+      "form_type": "10-K",
+      "period_end": "2026-06-30",
+      "fiscal_label": 2026,
+      "documents": [
+        "msft-20260630.htm"
+      ],
+      "facts_stored": 286,
+      "facts_total": 1869,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-25-100235",
+      "ticker": "MSFT",
+      "form_type": "10-K",
+      "period_end": "2025-06-30",
+      "fiscal_label": 2025,
+      "documents": [
+        "msft-20250630.htm"
+      ],
+      "facts_stored": 269,
+      "facts_total": 1829,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-24-087843",
+      "ticker": "MSFT",
+      "form_type": "10-K",
+      "period_end": "2024-06-30",
+      "fiscal_label": 2024,
+      "documents": [
+        "msft-20240630.htm"
+      ],
+      "facts_stored": 267,
+      "facts_total": 1856,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-23-035122",
+      "ticker": "MSFT",
+      "form_type": "10-K",
+      "period_end": "2023-06-30",
+      "fiscal_label": 2023,
+      "documents": [
+        "msft-20230630.htm",
+        "msft-ex21.htm",
+        "msft-ex23_1.htm",
+        "msft-ex31_1.htm",
+        "msft-ex31_2.htm",
+        "msft-ex32_1.htm",
+        "msft-ex32_2.htm"
+      ],
+      "facts_stored": 266,
+      "facts_total": 1839,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001564590-22-026876",
+      "ticker": "MSFT",
+      "form_type": "10-K",
+      "period_end": "2022-06-30",
+      "fiscal_label": 2022,
+      "documents": [
+        "msft-10k_20220630.htm",
+        "msft-ex21_8.htm",
+        "msft-ex231_7.htm",
+        "msft-ex311_11.htm",
+        "msft-ex312_10.htm",
+        "msft-ex321_9.htm",
+        "msft-ex322_6.htm"
+      ],
+      "facts_stored": 264,
+      "facts_total": 1819,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001065280-26-000034",
+      "ticker": "NFLX",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "nflx-20251231.htm"
+      ],
+      "facts_stored": 252,
+      "facts_total": 1468,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001065280-25-000044",
+      "ticker": "NFLX",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "nflx-20241231.htm"
+      ],
+      "facts_stored": 244,
+      "facts_total": 1410,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001065280-24-000030",
+      "ticker": "NFLX",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "nflx-20231231.htm"
+      ],
+      "facts_stored": 236,
+      "facts_total": 1086,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001065280-23-000035",
+      "ticker": "NFLX",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "nflx-20221231.htm",
+        "ex1011-globalstockoptionag.htm",
+        "ex211-q422.htm",
+        "ex231_q422.htm",
+        "ex311_q422.htm",
+        "ex312_q422.htm",
+        "ex313_q422.htm",
+        "ex321_q422.htm"
+      ],
+      "facts_stored": 201,
+      "facts_total": 964,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001065280-22-000036",
+      "ticker": "NFLX",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "nflx-20211231.htm",
+        "ex1011-globalstockoptionag.htm",
+        "ex1012-globalstockoptionag.htm",
+        "ex211-q421.htm",
+        "ex231_q421.htm",
+        "ex311_q421.htm",
+        "ex312_q421.htm",
+        "ex313_q421.htm"
+      ],
+      "facts_stored": 200,
+      "facts_total": 969,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001045810-26-000021",
+      "ticker": "NVDA",
+      "form_type": "10-K",
+      "period_end": "2026-01-25",
+      "fiscal_label": 2026,
+      "documents": [
+        "nvda-20260125.htm"
+      ],
+      "facts_stored": 255,
+      "facts_total": 1305,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001045810-25-000023",
+      "ticker": "NVDA",
+      "form_type": "10-K",
+      "period_end": "2025-01-26",
+      "fiscal_label": 2025,
+      "documents": [
+        "nvda-20250126.htm"
+      ],
+      "facts_stored": 282,
+      "facts_total": 1417,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001045810-24-000029",
+      "ticker": "NVDA",
+      "form_type": "10-K",
+      "period_end": "2024-01-28",
+      "fiscal_label": 2024,
+      "documents": [
+        "nvda-20240128.htm"
+      ],
+      "facts_stored": 274,
+      "facts_total": 1387,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001045810-23-000017",
+      "ticker": "NVDA",
+      "form_type": "10-K",
+      "period_end": "2023-01-29",
+      "fiscal_label": 2023,
+      "documents": [
+        "nvda-20230129.htm",
+        "a2007planglobalrsuagreemen.htm",
+        "consentofindependentregist.htm",
+        "listofregistrantssubsidiar.htm",
+        "nvda-2023xex311.htm",
+        "nvda-2023xex312.htm",
+        "nvda-2023xex321.htm",
+        "nvda-2023xex322.htm"
+      ],
+      "facts_stored": 277,
+      "facts_total": 1397,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001045810-22-000036",
+      "ticker": "NVDA",
+      "form_type": "10-K",
+      "period_end": "2022-01-30",
+      "fiscal_label": 2022,
+      "documents": [
+        "nvda-20220130.htm",
+        "consentofindependentregist.htm",
+        "descriptionoftheregistrant.htm",
+        "listofregistrantssubsidiar.htm",
+        "nvda-2022xex311.htm",
+        "nvda-2022xex312.htm",
+        "nvda-2022xex321.htm",
+        "nvda-2022xex322.htm"
+      ],
+      "facts_stored": 263,
+      "facts_total": 1307,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000093751-26-000124",
+      "ticker": "STT",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "stt-20251231.htm"
+      ],
+      "facts_stored": 427,
+      "facts_total": 4351,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000093751-25-000111",
+      "ticker": "STT",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "stt-20241231.htm"
+      ],
+      "facts_stored": 427,
+      "facts_total": 4449,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000093751-24-000498",
+      "ticker": "STT",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "stt-20231231.htm"
+      ],
+      "facts_stored": 428,
+      "facts_total": 4446,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000093751-23-000489",
+      "ticker": "STT",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "stt-20221231.htm",
+        "exhibit1017-2022incentiv.htm",
+        "exhibit21-december312022.htm",
+        "exhibit23consentletterofey.htm",
+        "exhibit311-december312022.htm",
+        "exhibit312-december312022.htm",
+        "exhibit32-december312022.htm"
+      ],
+      "facts_stored": 445,
+      "facts_total": 4440,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000093751-22-000424",
+      "ticker": "STT",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "stt-20211231.htm",
+        "ex109descriptionofcompen.htm",
+        "exhibit21-december312021.htm",
+        "exhibit23consentletterofey.htm",
+        "exhibit311-december312021.htm",
+        "exhibit312-december312021.htm",
+        "exhibit32-december312021.htm",
+        "exhibit41-sttxdescriptio.htm"
+      ],
+      "facts_stored": 465,
+      "facts_total": 4466,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001628280-26-008002",
+      "ticker": "TROW",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "trow-20251231.htm"
+      ],
+      "facts_stored": 220,
+      "facts_total": 1377,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001113169-25-000007",
+      "ticker": "TROW",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "trow-20241231.htm"
+      ],
+      "facts_stored": 213,
+      "facts_total": 1372,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001113169-24-000007",
+      "ticker": "TROW",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "trow-20231231.htm"
+      ],
+      "facts_stored": 212,
+      "facts_total": 1395,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001113169-23-000007",
+      "ticker": "TROW",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "trow-20221231.htm",
+        "a202210k-exhibit21q42022.htm",
+        "a202210k-exhibit23q42022.htm",
+        "trow-ex31i1_q42022.htm",
+        "trow-ex31i2_q42022.htm",
+        "trow-ex32_q42022.htm"
+      ],
+      "facts_stored": 209,
+      "facts_total": 1560,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001113169-22-000005",
+      "ticker": "TROW",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "trow-20211231.htm",
+        "a202110k-exhibit21q42021.htm",
+        "a202110k-exhibit23q42021.htm",
+        "exh1023transactionagreemen.htm",
+        "exh1024-employmentagreemen.htm",
+        "exh10251formoflockupagreem.htm",
+        "exh10252formoflockupagreem.htm",
+        "exh1026valuecreationagreem.htm"
+      ],
+      "facts_stored": 199,
+      "facts_total": 1403,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001628280-26-003952",
+      "ticker": "TSLA",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "tsla-20251231.htm"
+      ],
+      "facts_stored": 303,
+      "facts_total": 1733,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001628280-25-003063",
+      "ticker": "TSLA",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "tsla-20241231.htm"
+      ],
+      "facts_stored": 295,
+      "facts_total": 1697,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001628280-24-002390",
+      "ticker": "TSLA",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "tsla-20231231.htm"
+      ],
+      "facts_stored": 302,
+      "facts_total": 1696,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-23-001409",
+      "ticker": "TSLA",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "tsla-20221231.htm",
+        "tsla-ex10_59.htm",
+        "tsla-ex21_1.htm",
+        "tsla-ex23_1.htm",
+        "tsla-ex31_1.htm",
+        "tsla-ex31_2.htm",
+        "tsla-ex32_1.htm"
+      ],
+      "facts_stored": 318,
+      "facts_total": 1763,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000950170-22-000796",
+      "ticker": "TSLA",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "tsla-20211231.htm",
+        "tsla-ex21_1.htm",
+        "tsla-ex23_1.htm",
+        "tsla-ex31_1.htm",
+        "tsla-ex31_2.htm",
+        "tsla-ex32_1.htm"
+      ],
+      "facts_stored": 326,
+      "facts_total": 1898,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001104659-26-053166",
+      "ticker": "TSLA",
+      "form_type": "10-K/A",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "tm2611837d1_10ka.htm"
+      ],
+      "facts_stored": 0,
+      "facts_total": 37,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001104659-25-042659",
+      "ticker": "TSLA",
+      "form_type": "10-K/A",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "tm252787d2_10ka.htm"
+      ],
+      "facts_stored": 0,
+      "facts_total": 37,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001564590-22-016871",
+      "ticker": "TSLA",
+      "form_type": "10-K/A",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "tsla-10ka_20211231.htm",
+        "tsla-ex313_6.htm",
+        "tsla-ex314_7.htm"
+      ],
+      "facts_stored": 0,
+      "facts_total": 37,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001403161-25-000089",
+      "ticker": "V",
+      "form_type": "10-K",
+      "period_end": "2025-09-30",
+      "fiscal_label": 2025,
+      "documents": [
+        "v-20250930.htm"
+      ],
+      "facts_stored": 267,
+      "facts_total": 1798,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001403161-24-000058",
+      "ticker": "V",
+      "form_type": "10-K",
+      "period_end": "2024-09-30",
+      "fiscal_label": 2024,
+      "documents": [
+        "v-20240930.htm"
+      ],
+      "facts_stored": 261,
+      "facts_total": 1752,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001403161-23-000099",
+      "ticker": "V",
+      "form_type": "10-K",
+      "period_end": "2023-09-30",
+      "fiscal_label": 2023,
+      "documents": [
+        "v-20230930.htm"
+      ],
+      "facts_stored": 268,
+      "facts_total": 1761,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001403161-22-000081",
+      "ticker": "V",
+      "form_type": "10-K",
+      "period_end": "2022-09-30",
+      "fiscal_label": 2022,
+      "documents": [
+        "v-20220930.htm",
+        "vex211093022.htm",
+        "vex231093022.htm",
+        "vex311093022.htm",
+        "vex312093022.htm",
+        "vex321093022.htm",
+        "vex423093022.htm"
+      ],
+      "facts_stored": 270,
+      "facts_total": 2087,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0001403161-21-000060",
+      "ticker": "V",
+      "form_type": "10-K",
+      "period_end": "2021-09-30",
+      "fiscal_label": 2021,
+      "documents": [
+        "v-20210930.htm",
+        "vex103493021.htm",
+        "vex104493021.htm",
+        "vex211093021.htm",
+        "vex231093021.htm",
+        "vex311093021.htm",
+        "vex312093021.htm",
+        "vex321093021.htm"
+      ],
+      "facts_stored": 263,
+      "facts_total": 2040,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000072971-26-000133",
+      "ticker": "WFC",
+      "form_type": "10-K",
+      "period_end": "2025-12-31",
+      "fiscal_label": 2025,
+      "documents": [
+        "wfc-20251231_d2.htm",
+        "wfc-20251231.htm"
+      ],
+      "facts_stored": 479,
+      "facts_total": 7598,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000072971-25-000066",
+      "ticker": "WFC",
+      "form_type": "10-K",
+      "period_end": "2024-12-31",
+      "fiscal_label": 2024,
+      "documents": [
+        "wfc-20241231.htm",
+        "wfc-20241231_d2.htm"
+      ],
+      "facts_stored": 457,
+      "facts_total": 7619,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000072971-24-000064",
+      "ticker": "WFC",
+      "form_type": "10-K",
+      "period_end": "2023-12-31",
+      "fiscal_label": 2023,
+      "documents": [
+        "wfc-20231231.htm",
+        "wfc-20231231_d2.htm"
+      ],
+      "facts_stored": 483,
+      "facts_total": 8258,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000072971-23-000071",
+      "ticker": "WFC",
+      "form_type": "10-K",
+      "period_end": "2022-12-31",
+      "fiscal_label": 2022,
+      "documents": [
+        "wfc-20221231.htm",
+        "wfc-20221231_d2.htm",
+        "wfc-1231x2022xex10a.htm",
+        "wfc-1231x2022xex10b.htm",
+        "wfc-1231x2022xex21.htm",
+        "wfc-1231x2022xex23.htm",
+        "wfc-1231x2022xex24.htm",
+        "wfc-1231x2022xex31a.htm"
+      ],
+      "facts_stored": 504,
+      "facts_total": 8369,
+      "status": "built",
+      "error": null
+    },
+    {
+      "accession": "0000072971-22-000096",
+      "ticker": "WFC",
+      "form_type": "10-K",
+      "period_end": "2021-12-31",
+      "fiscal_label": 2021,
+      "documents": [
+        "wfc-20211231.htm",
+        "wfc-20211231_d2.htm",
+        "wfc-1231x2021xex10a.htm",
+        "wfc-1231x2021xex10b.htm",
+        "wfc-1231x2021xex10m.htm",
+        "wfc-1231x2021xex21.htm",
+        "wfc-1231x2021xex23.htm",
+        "wfc-1231x2021xex24.htm"
+      ],
+      "facts_stored": 507,
+      "facts_total": 9694,
       "status": "built",
       "error": null
     }

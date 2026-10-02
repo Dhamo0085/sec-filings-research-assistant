@@ -1,23 +1,27 @@
 # Phase 2 report — Facts engine
 
-Branch `phase-2-facts-engine` · spec v1.4 · 2026-10-02
+Branch `phase-2-facts-engine` · spec v1.5 · 2026-10-02
 Protocol: `docs/PROJECT_SPEC.md` section 13.
+**Updated after P2-13 (closure).** The owner's spot-check came back 20/20 OK and
+the D22 precision fix is implemented, so §1, §4.1 and §8 now carry the
+post-closure numbers; §4.1a records the before/after.
 
 ---
 
 ## 1. Summary
 
-- **The facts engine works and is independently verified.** 33,512 facts from
+- **The facts engine works and is independently verified.** 29,002 facts from
   94 submissions across 18 companies. Against SEC `companyfacts` — the same
-  filings rendered by the SEC's own pipeline — **27,506 comparable values,
-  99.1347% bit-exact, 100.0000% exact on the 1,861 values for the 23 concepts
+  filings rendered by the SEC's own pipeline — **23,429 comparable values,
+  99.9787% bit-exact, 100.0000% exact on the 1,047 values for the 23 concepts
   the system actually uses to answer questions, 0 scale errors, 0 sign errors,
   0 unclassified mismatches.**
-- **T2-10's "≥ 99.5% exact" is NOT met on the corpus-wide figure** (99.13%) and
-  is reported as not met. The shortfall is 233 values in filings that tag the
-  same concept twice — rounded in prose, exact in a table — which agree within
-  the precision the filer declared. None of them is a registry concept. The
-  zero-scale-error and zero-sign-error thresholds pass outright.
+- **T2-10's thresholds are now all met.** They were not at the first gate
+  (99.1347%); P2-13 implemented the precision-preference fix (D22 / D2-03) and
+  the corpus-wide figure went to **99.9787%**, with the `rounding` discrepancy
+  class eliminated entirely (233 → 0). Before and after in §4.1a.
+- **The owner's spot-check came back 20 of 20 OK, zero WRONG**, so P2-13 had no
+  rows to fix. All 20 values re-resolve unchanged after the D22 rebuild.
 - **Ambiguity is enforced, not avoided.** BlackRock resolves to $20,407M (its
   income statement's "Total revenue") only through an override that cites the
   accession and the line; remove the override and it abstains, which a test
@@ -40,8 +44,11 @@ Protocol: `docs/PROJECT_SPEC.md` section 13.
   AAPL, AMZN, MSFT, JPM, GOOGL, NFLX, BLK, GS — in 24 collections holding
   13,520 points. 10,848 chunks embedded in 1.6 h at 1.86 chunks/s, peak RSS
   never above 1.37 GB (§4.3a). D21's precondition for Phase 3 is met.
-- Suite: **511 passed, 1 documented skip**, `facts/` 88.7%, `catalog/` 96.4%,
-  ruff clean, hygiene clean.
+- Suite: **547 passed, 0 skipped**, `facts/` 88.7%, `catalog/` 95.4%, ruff
+  clean, hygiene clean. The former skip is gone: `.hygiene_local` is now filled,
+  so the T2-12 tree test runs for real.
+- **Three defects in my own code were found during closure**, one of them a
+  test that was lying (§6.3).
 
 ## 2. What changed
 
@@ -93,7 +100,7 @@ Command (exactly as run):
   --junitxml=reports/phase2/tests/junit.xml
 ```
 
-**511 passed, 1 skipped, 59.9 s.** Network blocked, no `.env` present.
+**547 passed, 0 skipped, 17.7 s.** Network blocked, no `.env` present.
 
 | ID | Test | Where | Result |
 |---|---|---|---|
@@ -106,25 +113,28 @@ Command (exactly as run):
 | T2-07 | thousands/millions/billions boundaries; negatives; percent rounding | `test_facts_calc.py` | PASS |
 | T2-08 | identical rebuild (both ways) + negative control | `test_facts_build.py` | PASS |
 | T2-09 | 25 golden (ticker, metric, year) tuples, all oracle-verified | `test_facts_resolve.py` | PASS |
-| T2-10 | cross-check thresholds | `scripts/crosscheck_companyfacts.py` | **PARTIAL** — see §4 |
+| T2-10 | cross-check thresholds | `scripts/crosscheck_companyfacts.py` | **PASS** after P2-13 (§4.1a) |
 | T2-11 | streaming indexer: one collection at a time, bounded batches, resume | `test_stream_indexer.py` + `test_stream_indexer_qdrant.py` | PASS |
-| T2-12 | `.hygiene_local` pattern detected; file gitignored; tree clean | `test_repo_hygiene.py` | PASS (1 documented skip) |
+| T2-12 | `.hygiene_local` pattern detected; file gitignored; tree clean | `test_repo_hygiene.py` | PASS |
+| T2-13 | precision preference: agreeing instances collapse to the larger `decimals`; disagreements are not merged; negative control; deterministic rebuild | `test_facts_precision.py` | PASS |
 
 **Coverage** (spec section 10 requires ≥ 85% on `facts/` and `catalog/`):
 
 | Package | Statements | Missed | Coverage |
 |---|---|---|---|
-| `facts/` | 1,392 | 157 | **88.7%** |
-| `catalog/` | 306 | 11 | **96.4%** |
+| `facts/` | 1,453 | 164 | **88.7%** |
+| `catalog/` | 306 | 14 | **95.4%** |
 | `ingestion/indexer.py` | — | — | included in the run |
-| Measured total | 1,698 | 168 | 90% |
+| Measured total | 1,759 | 178 | 90% |
 
-**The one skip, stated plainly.** `test_tracked_tree_has_no_old_project_names`
-skips because the owner's `.hygiene_local` is present but **empty** (0 bytes),
-so the old project's identifiers were not scanned for. The check itself is
-proven to work: `--self-test` plants both a literal and a regex pattern and
-catches both, and a temporary planted pattern against the real tree produced 8
-hits across code, docs and `reports/bootstrap/` and exit 1. Section 7 item 3.
+**The skip is gone.** At the first gate
+`test_tracked_tree_has_no_old_project_names` skipped because `.hygiene_local`
+was present but empty, so the old project's identifiers were not scanned for.
+The owner has now filled it, the test runs, and the tracked tree is clean
+against it. That "clean" is load-bearing, so it has its own negative control:
+the supplied pattern was read from the file (never printed), planted in a
+throwaway file, and confirmed caught, with a clean file confirmed not reported.
+`--self-test` separately plants 11 violations and catches all 11.
 
 ## 4. Metrics
 
@@ -136,30 +146,70 @@ and period, so a restatement cannot look like an extraction error.
 | | |
 |---|---|
 | Companies / submissions | 18 / 94 |
-| Facts extracted | 33,512 |
-| Comparable `(accn, concept, start, end, unit)` pairs | 27,506 |
-| **Bit-exact** | **27,268 = 99.1347%** |
-| Agreeing within the filer's declared precision | 27,506 = **100%** |
-| `rounding` (same concept tagged twice at two precisions) | 233 = 0.847% |
-| `oracle_precision` (the oracle carries fewer digits than the filing) | 5 = 0.018% |
+| Facts extracted | 29,002 |
+| Comparable `(accn, concept, start, end, unit)` pairs | 23,429 |
+| **Bit-exact** | **23,424 = 99.9787%** |
+| Agreeing within the filer's declared precision | 23,429 = **100%** |
+| `rounding` (same concept tagged twice at two precisions) | **0** |
+| `oracle_precision` (the oracle carries fewer digits than the filing) | 5 = 0.021% |
 | Unclassified mismatches | **0** |
 | **Scale errors** | **0** |
 | **Sign errors** | **0** |
-| `not_in_oracle` (the oracle has no row to compare) | 6,006 |
-| **Exact on the 23 registry concepts** | **1,861 / 1,861 = 100.0000%** |
+| `not_in_oracle` (the oracle has no row to compare) | 5,573 |
+| **Exact on the 23 registry concepts** | **1,047 / 1,047 = 100.0000%** |
 
-**T2-10 verdict: thresholds partially met.** Scale errors 0 PASS · sign errors
-0 PASS · every discrepancy classified PASS · **exact ≥ 99.5% FAIL at 99.1347%.**
+**T2-10 verdict: all thresholds met.** exact ≥ 99.5% PASS at 99.9787% · scale
+errors 0 PASS · sign errors 0 PASS · every discrepancy classified PASS.
 
-The shortfall is one phenomenon. 233 values come from filings that tag a
-concept twice: rounded in narrative prose (`decimals="-8"`, e.g. Apple's
-`UnrecognizedTaxBenefits` as "$23.2 billion") and exactly in a table.
-`companyfacts` keeps the precise instance; this extractor kept the other. Both
-are real tagged values in the filing and they agree to the precision the filer
-declared. **Not one of them is a concept the metric registry uses**, so no
-answer the system can produce is affected — which is why both rates are
-reported, corpus-wide first. The fix (prefer the instance with the larger
-`decimals` when two agree within the coarser precision) is section 9 item 1.
+The 5 remaining `oracle_precision` rows are the oracle carrying *fewer* digits
+than the filing — Microsoft's par value is 0.00000625 in the document and
+0.000006 in `companyfacts`. Ours is the more precise of the two, so there is
+nothing to fix on this side.
+
+### 4.1a Before and after the precision fix (P2-13, D22 / D2-03)
+
+At the first gate this threshold was **not met**, and that is worth keeping in
+the record rather than overwriting. The shortfall was one phenomenon: a filing
+can tag the same concept, in the same context, more than once at different
+precisions. Apple's FY2024 10-K reports `UnrecognizedTaxBenefits` for context
+`c-21` as 22,000,000,000 with `decimals="-8"` (the narrative sentence) and
+22,038,000,000 with `decimals="-6"` (the tax-footnote table). The extractor kept
+whichever came first in document order.
+
+| | before (first gate) | after (P2-13) |
+|---|---|---|
+| Facts extracted | 33,512 | 29,002 |
+| Comparable pairs | 27,506 | 23,429 |
+| **Exact, corpus-wide** | **99.1347%** | **99.9787%** |
+| Exact, registry concepts | 100.0000% | 100.0000% |
+| `rounding` discrepancies | 233 | **0** |
+| `oracle_precision` | 5 | 5 |
+| Scale / sign / unclassified | 0 / 0 / 0 | 0 / 0 / 0 |
+| **T2-10 exact ≥ 99.5%** | **not met** | **met** |
+
+**The option not taken.** The quickest way to "meet" this threshold would have
+been to count agreement-within-declared-precision as exact. That moves the
+number by redefining the measurement, and a threshold that can be met by
+loosening its own definition measures nothing. The fix changes the extraction
+instead: keep the instance the filer tagged more precisely, and only when the
+two agree within the coarser declared tolerance. Values that disagree beyond it
+are **never** merged — both are kept and the resolver reports
+`ambiguous_concept`, because a filing contradicting itself is not something this
+module may paper over.
+
+The smaller denominators have the same cause: 4,510 duplicate instances
+collapsed, of which only **272 changed a value**. The rest were one number
+tagged in several places (Apple tags `NetIncomeLoss` four times in one context).
+
+Three independent corroborations that this improved the data rather than the
+bookkeeping:
+
+1. `validated` rose from 223 to 256 against the rendered statements — the
+   precise instance is the one printed in the table.
+2. **All 20 values on the owner-signed spot-check sheet re-resolve unchanged.**
+3. Coverage is identical: 634/780 = 81.3%, still zero `ambiguous_concept`.
+
+Reasoning and the agreement rule: `docs/DECISIONS.md` **D2-03**.
 
 ### 4.2 Coverage and ambiguity (P2-11)
 
@@ -287,7 +337,8 @@ Final state: 24 collections, 13,520 points.
 
 | # | Deviation | Why | Recorded |
 |---|---|---|---|
-| 1 | **Tiered candidate lists**, and "candidates that agree are not ambiguous" — a deviation from the literal text of 6.4 rule 3 | The literal rule abstained on 90 resolutions, of which 27 were a filer tagging one number twice (refusing to state a number the filing prints twice is a bug) and 63 were definitional pairs where one concept is what the question means. Tiers state that choice once, with a `preference` reason the loader **requires**, instead of 30 near-identical overrides. An ambiguity *inside* a tier still abstains. | **D2-02** |
+| 0 | ~~Tiered candidate lists were a deviation~~ — **no longer one.** Spec v1.5 rewrote 6.4 rule 3 to match D2-02, so the tiered preference list and the candidates-agree rule are now the specification | the owner adopted the reasoning below after reviewing it | **D2-02**, spec v1.5 |
+| 1 | *(historical, kept for the record)* **Tiered candidate lists**, and "candidates that agree are not ambiguous" — a deviation from the literal text of 6.4 rule 3 **as it stood at v1.4** | The literal rule abstained on 90 resolutions, of which 27 were a filer tagging one number twice (refusing to state a number the filing prints twice is a bug) and 63 were definitional pairs where one concept is what the question means. Tiers state that choice once, with a `preference` reason the loader **requires**, instead of 30 near-identical overrides. An ambiguity *inside* a tier still abstains. | **D2-02** |
 | 2 | **Kept bge-base at 512 tokens** although the tuned setting reaches 2.35 chunks/s, below P2-00(d)'s ≥ 4 bar | The bar is a proxy for "indexable overnight". 4.2 h for the full corpus and 78 min for what P2-00(e) asks is still an overnight job, and the fallbacks cost real quality (truncating 81% of chunks, or dropping the table chunks that financial questions need). No fallback taken. | **D2-00** |
 | 3 | `facts/documents.py` is not in spec section 7's module list | A submission's documents must be discovered from its own `FilingSummary.xml`, and `data/raw/` is read-only (CLAUDE.md rule 6, restated by P2-04). One new file in an existing package. | this report |
 | 4 | `config.index_batch_size` added, which is not in spec section 8 | The measured value from P2-00(d). Separate from `embedding_batch_size`, which also governs query encoding. | **D2-00** |
@@ -331,6 +382,14 @@ confidence.
 | 12 | Abstention messages printed Decimal's exponent form (`1.2794E+10 vs 2.0407E+10`) | a resolver test | a user asked to decode scientific notation to see that one is 12.8 billion and the other 20.4 |
 | 13 | The unit tests' fake store accepted non-UUID point ids that real Qdrant rejects | the integration test failed on its first run | the fake agreeing with itself; the integration test earns its keep |
 
+### 6.3 Found during closure (P2-13)
+
+| # | Defect | How it surfaced | Consequence if shipped |
+|---|---|---|---|
+| 14 | **`FactsResolver(statements=None)` meant "use the default", not "disabled".** Every fixture-based test that passed `None` was silently reading the machine's real `data/parsed/` directory | the new D23 guard test, which thought it had disabled validation and got `validated` back | a suite whose results depend on what happens to be on disk — it would have passed here and behaved differently on a clean checkout |
+| 15 | A count assertion in `test_facts_build.py` (`facts > 20`) went stale the moment D22 collapsed duplicates | the test failed after the rebuild | — ; replaced with the property that matters: each concept is stored exactly once, with the right value |
+| 16 | `make_spotcheck_sheet.py` crashed on `relative_to` when asked to write outside the repo, *after* doing the work | re-running it to a scratch path to compare against the signed sheet | a legitimate use (writing a comparison copy elsewhere) failing with a traceback |
+
 ## 7. Owner actions and questions
 
 1. **Core-ticker indexing (P2-00e) finished after the report was first
@@ -338,29 +397,31 @@ confidence.
    residual gap is **BLK FY2023**, whose 10-K sits under BlackRock's old CIK and
    has no chunk files; the facts store has it, the text index does not. Decide
    whether Phase 4's V0 subset needs it.
-2. **Spot-check sheet (P2-10) is the owner gate.**
-   `reports/phase2/owner_spotcheck.csv`, 20 rows, each with the EDGAR URL and
-   the value as the filing prints it. Mark each `verdict` OK or WRONG. The spec
-   requires every WRONG row fixed and re-checked before Phase 3.
-3. **`.hygiene_local` is empty**, so the old project's handle, repository name
-   and hostnames are still not being scanned for. The check works (proven by
-   its self-test and by a planted pattern against the real tree); it currently
-   has nothing to look for, and the T2-12 tree test skips saying so. One line
-   per pattern in that gitignored file closes it.
-4. **T2-10's exact threshold is not met** (99.13% vs 99.5%) for the reason in
-   §4.1. Decide: accept with the registry-concept figure of 100%, or implement
-   the precision-preference fix (§9 item 1) and re-measure.
+2. **Spot-check sheet: DONE, 20 of 20 OK, zero WRONG.** Nothing to fix. The
+   three rows chosen because they were most likely to be wrong — BLK's
+   prioritised revenue, Netflix's thousands, Goldman's negative operating cash
+   flow — were each confirmed against the named statement line. All 20
+   re-resolve unchanged after the D22 rebuild.
+3. **`.hygiene_local`: DONE.** Filled, gitignored, tracked tree clean against
+   it, with a negative control proving the supplied pattern is live (§3). The
+   T2-12 skip is gone.
+4. **T2-10: now met** (99.9787%, §4.1a). No decision needed.
 5. **v1's parsed statement sections are badly unreliable** (§6.1, last row).
-   This is the one finding likely to cost Phase 3 real time, since the text path
-   reads the same sections. Worth knowing now rather than at P3-05.
-6. Per CLAUDE.md rule 2, **Phase 3 must not start until you write
+   Spec v1.5 turns this into **D23**: `validation_status` is informational only
+   and must never affect an answer or its confidence wording — now guarded by
+   two tests — and **P3-00** audits section quality before the text path is
+   built on it. This remains the finding most likely to cost Phase 3 real time.
+6. **BLK FY2023 is still absent from the text index.** Spec v1.5's **D24** and
+   **P3-06** make ingestion catalog-driven across every CIK a ticker has filed
+   under, with this filing as the proof case, so no action is needed now.
+7. Per CLAUDE.md rule 2, **Phase 3 must not start until you write
    "Approved: start Phase 3"**.
 
 ## 8. Gate checklist
 
-- [x] T2-01 … T2-09, T2-11, T2-12 pass offline
-- [ ] **T2-10 cross-check thresholds met** — scale/sign/classification pass;
-      exact 99.13% vs 99.5% does not (§4.1)
+- [x] T2-01 … T2-09, T2-11, T2-12, T2-13 pass offline
+- [x] **T2-10 cross-check thresholds met** — exact 99.9787% ≥ 99.5%, 0 scale
+      errors, 0 sign errors, every discrepancy classified (§4.1, §4.1a)
 - [x] DEI fiscal-label verification reported (65/65, §4.5)
 - [x] Spot-check sheet produced (20 rows, §7 item 2)
 - [x] Coverage and ambiguity report produced (§4.2)
@@ -370,25 +431,24 @@ confidence.
       `CLAUDE.md` status table updated
 - [x] **P2-00(e) core-ticker indexing complete** — 8 tickers, 24 collections,
       13,520 points (§4.3a); BLK FY2023 absent for the dual-CIK reason
-- [ ] Owner spot-check sheet completed, every WRONG row fixed and re-checked
+- [x] Owner spot-check sheet completed — 20/20 OK, no WRONG rows to fix
+- [x] P2-13 closure: precision fix implemented, store rebuilt (T2-08 still
+      holds), cross-check re-run, before/after recorded
 - [ ] Pull request reviewed and merged by the owner
 
 ## 9. Proposals (not built)
 
-1. **Prefer the more precisely tagged instance** when a filing tags one concept
-   twice and the values agree within the coarser `decimals`. This is the entire
-   T2-10 shortfall (233 values) and the fix is local to `facts/extract.py`.
-2. **A `statement_text` quality check** over the parsed corpus, so §6.1's last
-   row becomes a number rather than a spot-check. Phase 3 needs it anyway.
+1. ~~**Prefer the more precisely tagged instance**~~ — **BUILT** in P2-13 as
+   D22 / D2-03. It was the entire T2-10 shortfall; §4.1a has the before/after.
+2. ~~**A `statement_text` quality check**~~ — **SCHEDULED** as P3-00 by spec
+   v1.5 (D23), with a negative control required.
 3. **Store the comparative prior-year columns** beside each filing's own year,
    flagged as restated-by, so a trend question can be answered from one filing
    and a restatement becomes visible rather than invisible.
 4. **A `decimals`-aware numeric scorer** for Phase 4, since "displayed
    precision" is now a measured property of this corpus and not a guess.
-5. `.cache/company_tickers.json` contains a cached SEC **error page**, not JSON.
-   Harmless today (nothing reads it; v1 uses `data/company_tickers.json`, which
-   is valid), but a cache that stores failures as if they were data is worth a
-   guard.
+5. ~~`.cache/company_tickers.json` contains a cached SEC **error page**~~ —
+   **SCHEDULED** as P3-00(b) by spec v1.5.
 
 ## 10. Appendix — commands
 
@@ -403,9 +463,10 @@ The full list with timestamps and exit codes is in `logs/phase2/commands.log`
 | 0 | `python -m facts.build --filings 5` | `facts_build.json`, 26,041 facts |
 | 0 | `python scripts/facts_coverage.py` | `facts_coverage.{json,csv}` (§4.2, bundled 13) |
 | 0 | `python scripts/facts_coverage.py --all-tickers` | `facts_coverage_all18.json` (§4.2) |
-| 1 | `python scripts/crosscheck_companyfacts.py` | `crosscheck.{csv,json}` (§4.1); exit 1 is the 99.5% threshold |
+| 0 | `python scripts/crosscheck_companyfacts.py` | `crosscheck.{csv,json}` (§4.1); exit 0 after P2-13, was exit 1 before |
+| 0 | `python -m facts.build --rebuild` | the D22 rebuild: 33,512 → 29,002 facts |
 | 0 | `python scripts/make_spotcheck_sheet.py` | `owner_spotcheck.csv` (P2-10) |
-| 0 | `pytest tests/unit tests/integration --cov` | 511 passed, 90% (§3) |
+| 0 | `pytest tests/unit tests/integration --cov` | 547 passed, 0 skipped, 90% (§3) |
 | 0 | `ruff check .` | clean |
 | 0 | `python scripts/check_repo_hygiene.py` | clean |
 | 0 | `python scripts/check_repo_hygiene.py --self-test` | 11 planted violations, all caught |

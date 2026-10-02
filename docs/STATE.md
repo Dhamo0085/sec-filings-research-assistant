@@ -1,7 +1,8 @@
 # STATE — living handoff for Claude Code sessions
 
 Seeded from `reports/phase1/REPORT.md` and the Phase 0/Step 0 reports at the end of Phase 1 (2026-10-02);
-carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure against spec v1.5.
+carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure and again at P3-00
+(2026-10-02) against spec v1.5.
 **Read this at the start of every session and after any `/compact`. Update it at every commit batch, at every gate, and *before* running `/compact`.** If this file and the code disagree, trust the code, then fix this file. Facts here that you have not re-verified are marked (seed).
 
 ## 1. Where we are
@@ -10,9 +11,10 @@ carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure a
 | Repository | private, `github.com/Dhamo0085/sec-filings-research-assistant`; branch model: `main` + one `phase-N-<slug>` branch per phase, merged by the owner via PR |
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
-| Phase 2 | COMPLETE through P2-13 closure. **PR #3 was merged mid-session with the 12 pre-closure commits** (`21566ee`); the two P2-13 commits are on `phase-2-facts-engine` and need a follow-up PR to reach `main`. All T2 tests pass and all T2-10 thresholds are met |
-| Current task | none — awaiting "Approved: start Phase 3" |
-| Tests | `make test` → **547 passed, 0 skipped**; `facts/` 88.7%, `catalog/` 95.4%; ruff and hygiene clean |
+| Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
+| Phase 3 | IN PROGRESS on `phase-3-answers` off `main`. P3-00 done (section audit, D3-00, SEC-cache guard). P3-01 to P3-12 open |
+| Current task | Phase 3 |
+| Tests | `make test` → **567 passed, 2 xfailed (documented, D3-00), 0 skipped**; ruff clean. `make test` writes to `reports/phase3/tests/` (Makefile `PHASE` bumped) |
 
 ## 1a. Phase 2 facts (measured, 2026-10-02)
 - **Facts store built**: `data/derived/facts.sqlite`, **29,002 facts**, 94 submissions, 18 tickers (13 bundled + the 5 cross-check-only filers), 3,492 distinct concepts, newest 5 originals per ticker plus amendments. `make facts` is idempotent: a second run reports all 94 `unchanged` and `--rebuild` reproduces the byte-identical content hash (T2-08) — re-verified after the D22 change.
@@ -58,10 +60,12 @@ Spec v1.5 also carries **D23** (v1's parsed statement sections are not trusted; 
 ## 7. Open items
 Closed at P2-13: P2-00(e) indexing (all 8 core tickers), T2-10's exact threshold (now met), the owner spot-check (20/20 OK), and the empty `.hygiene_local` (now filled; the T2-12 skip is gone).
 
-Carried into Phase 3:
-1. **v1's parsed statement sections are unreliable** and the text path reads the same ones: "Consolidated Statements of Operations" is 106 chars of heading for AMZN, empty for JPM in all three years, over a megabyte for GS, and GOOGL's "Balance Sheets" section holds the auditors' report. This is why 51 validations are `conflict`. **P3-00** audits it; **D23** forbids anything user-visible depending on it in the meantime.
+Closed at P3-00: the section-quality audit (item 1 below, now measured and decided as D3-00) and the SEC error-page cache (item 3).
+
+Carried into the rest of Phase 3:
+1. **v1's section boundaries are broken for the text path too, and are staying that way in Phase 3 (D3-00).** Measured by `scripts/audit_sections.py` over 39 filings: 238 of 429 (filing, audited section) pairs usable, 122 missing, 24 heading-only, 45 oversized. **Item 1A Risk Factors is missing from 17 of 39 filings**, including AMZN, GS, JPM and NFLX; Item 3 Legal is usable in 3. Three candidate parser fixes were ablated and moved the corpus by +1 of 143 pairs, so the limit is documented instead (full reasoning and the ablation table in D3-00; raw counts in `reports/phase3/section_audit_ablation.json`). The two fixable defect classes are pinned as `xfail(strict=True)` in `tests/unit/test_parser_sections.py`, so a future fix cannot land silently. **Consequence for P3-05: a narrative citation names the filing and the section title only — nothing user-visible may assert that a section slice is complete (D23).**
 2. **BLK FY2023 is absent from the text index** (its 10-K is under the old CIK 1364742 and was never chunked; the catalog and facts store both have it). **D24 / P3-06** make ingestion catalog-driven across every CIK, with this as the proof case.
-3. `.cache/company_tickers.json` holds a cached SEC **error page** rather than JSON. Nothing reads it today (v1 uses `data/company_tickers.json`, which is valid), but a cache that stores failures as data is a trap. **P3-00(b)**.
+3. `.cache/company_tickers.json` still holds the SEC error page on disk. Nothing reads it (v1 uses `data/company_tickers.json`, which is valid) and both SEC fetchers now refuse to write or trust such a page (`ingestion/sec_cache.py`), so it is inert — but the owner may delete it.
 4. Phase 0 scorer mislabels passing numeric answers `retrieval_found_llm_misread` (rewritten in P4-03).
 5. Runner instruments only the generator; P4-04 must instrument every LLM role.
 6. `llm/__init__.py` coverage 50% (shim); ignore unless it grows.

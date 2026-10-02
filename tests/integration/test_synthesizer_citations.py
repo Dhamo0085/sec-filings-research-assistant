@@ -44,7 +44,8 @@ def _drive(monkeypatch, sub1_n: int, sub2_n: int):
     monkeypatch.setattr(S, "decompose_query", lambda *a, **k: subs)
     monkeypatch.setattr(S, "decompose_temporal", lambda *a, **k: subs)
     monkeypatch.setattr(S, "retrieve", lambda *a, **k: [])
-    monkeypatch.setattr(S, "_get_client", lambda: _FakeClient())
+    fake_client = _FakeClient()
+    monkeypatch.setattr(S, "_get_client", lambda: fake_client)
 
     letters = "ABCDEFGHIJKL"
     text1 = " ".join(f"{letters[i-1]} [{i}]" for i in range(1, sub1_n + 1)) + "."
@@ -68,7 +69,7 @@ def _drive(monkeypatch, sub1_n: int, sub2_n: int):
 
 @pytest.mark.parametrize("sub1_n,sub2_n", [(1, 3), (2, 3), (3, 4), (1, 1), (5, 2)])
 def test_second_subanswer_markers_stay_distinct(monkeypatch, sub1_n, sub2_n):
-    synthesis_input, result = _drive(monkeypatch, sub1_n, sub2_n)
+    synthesis_input, _result = _drive(monkeypatch, sub1_n, sub2_n)
     block = synthesis_input.split("---")[-1]
 
     expected = [f"[{i + sub1_n}]" for i in range(1, sub2_n + 1)]

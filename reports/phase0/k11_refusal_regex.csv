@@ -1,0 +1,18 @@
+label,expected_refusal,detected_refusal,outcome,text
+refusal/does-not-mention,True,True,ok,The provided context does not mention Apple's segment revenue.
+refusal/cannot-be-found,True,True,ok,This information cannot be found in the retrieved excerpts.
+refusal/no-relevant-information,True,True,ok,No relevant information was found in the filing.
+refusal/not-explicitly-stated,True,True,ok,The figure is not explicitly stated in the documents provided.
+refusal/unable-to-answer,True,False,FALSE_NEGATIVE,I'm unable to answer that from the 10-K excerpts supplied.
+refusal/insufficient-context,True,False,FALSE_NEGATIVE,The context provided is insufficient to determine the operating margin.
+refusal/does-not-appear,True,False,FALSE_NEGATIVE,That detail does not appear anywhere in the supplied sections.
+refusal/dont-contain-contraction,True,False,FALSE_NEGATIVE,"Sorry, the excerpts don't contain the requested figure."
+refusal/not-available-in-the,True,True,ok,The answer is not available in the provided 10-K sections.
+legit/contains-does-not-mention-plus-answer,False,True,FALSE_POSITIVE,"Apple's 10-K does not mention cryptocurrency holdings, but total net sales were $391,035 million in FY2024."
+legit/word-state,False,False,ok,"The filing states that research and development expense was $29,510 million."
+legit/word-provide,False,False,ok,"Management provide guidance only on a segment basis; segment revenue was $96,169 million."
+legit/word-mention,False,False,ok,Item 1A does mention climate risk among the principal risk factors disclosed.
+legit/cannot-be-found-rhetorical,False,True,FALSE_POSITIVE,"Net income cannot be found by simply adding the segments; the consolidated figure is $93,736 million."
+legit/does-not-discuss-plus-answer,False,True,FALSE_POSITIVE,"The company does not discuss dividends in Item 7, but Item 5 reports $15.2 billion returned to shareholders."
+legit/explicitly-stated-positive,False,False,ok,"Operating income was $123,216 million, which is explicitly stated in the consolidated statements of operations."
+legit/word-provided,False,False,ok,"Total assets at year end were $364,980 million as provided in the balance sheet."

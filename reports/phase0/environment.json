@@ -1,0 +1,132 @@
+{
+  "os": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "system": "Darwin",
+    "machine": "arm64",
+    "python_running_this": "3.12.14 (main, Aug 14 2026, 15:24:41) [Clang 22.1.3 ]"
+  },
+  "note_on_versions": "The project's own dependencies are NOT installed in this checkout. `.venv-phase0` is a Phase 0-only virtualenv holding the minimum needed to run the static/unit audits (it is NOT the project runtime).",
+  "project_interpreter_packages": {
+    "qdrant_client": "installed(no __version__)",
+    "fastembed": "MISSING (ModuleNotFoundError)",
+    "groq": "1.7.0",
+    "ragas": "MISSING (ModuleNotFoundError)",
+    "pydantic": "2.13.5",
+    "pydantic_settings": "2.15.0",
+    "lxml": "6.1.3",
+    "bs4": "4.15.0",
+    "fastapi": "MISSING (ModuleNotFoundError)",
+    "uvicorn": "MISSING (ModuleNotFoundError)",
+    "nltk": "MISSING (ModuleNotFoundError)",
+    "tiktoken": "MISSING (ModuleNotFoundError)",
+    "pandas": "MISSING (ModuleNotFoundError)",
+    "numpy": "2.5.3",
+    "sec_edgar_downloader": "MISSING (ModuleNotFoundError)",
+    "loguru": "0.7.3",
+    "requests": "2.34.2",
+    "pytest": "9.1.1"
+  },
+  "phase0_venv_packages": {
+    "qdrant_client": "installed(no __version__)",
+    "fastembed": "MISSING (ModuleNotFoundError)",
+    "groq": "1.7.0",
+    "ragas": "MISSING (ModuleNotFoundError)",
+    "pydantic": "2.13.5",
+    "pydantic_settings": "2.15.0",
+    "lxml": "6.1.3",
+    "bs4": "4.15.0",
+    "fastapi": "MISSING (ModuleNotFoundError)",
+    "uvicorn": "MISSING (ModuleNotFoundError)",
+    "nltk": "MISSING (ModuleNotFoundError)",
+    "tiktoken": "MISSING (ModuleNotFoundError)",
+    "pandas": "MISSING (ModuleNotFoundError)",
+    "numpy": "2.5.3",
+    "sec_edgar_downloader": "MISSING (ModuleNotFoundError)",
+    "loguru": "0.7.3",
+    "requests": "2.34.2",
+    "pytest": "9.1.1"
+  },
+  "requirements_txt": [
+    "# Data acquisition",
+    "sec-edgar-downloader>=5.0.0",
+    "",
+    "# HTML parsing",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
+    "pandas>=2.0.0",
+    "",
+    "# Data models & config",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "",
+    "# Tokenization",
+    "nltk>=3.8.0",
+    "tiktoken>=0.7.0",
+    "",
+    "# Vector store",
+    "qdrant-client>=1.9.0",
+    "fastembed>=0.3.6   # ONNX dense/sparse embeddings AND cross-encoder reranking \u2014 no PyTorch",
+    "",
+    "# LLM \u2014 Groq free tier",
+    "groq>=0.9.0",
+    "",
+    "# API layer",
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9   # required by FastAPI's UploadFile/File() (POST /admin/restore-data)",
+    "",
+    "# Evaluation (RAGAS + judge LLM wrappers)",
+    "ragas>=0.2.0",
+    "datasets>=2.20.0",
+    "langchain-groq>=0.1.0",
+    "langchain-huggingface>=0.0.3",
+    "",
+    "# Utilities",
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.66.0",
+    "loguru>=0.7.0"
+  ],
+  "secrets_present": {
+    "groq_api": "NOT SET",
+    "edgar_email": "NOT SET",
+    "admin_token": "NOT SET",
+    "dotenv_file_exists": false
+  },
+  "git": {
+    "is_repo": false,
+    "message": "fatal: not a git repository (or any of the parent directories): .git"
+  },
+  "data_inventory": {
+    "raw": {
+      "exists": false
+    },
+    "parsed": {
+      "exists": false
+    },
+    "chunks": {
+      "exists": false
+    },
+    "qdrant": {
+      "exists": false
+    },
+    "test_sets": {
+      "exists": false
+    },
+    "pending_index": {
+      "exists": false
+    }
+  },
+  "data_root": {
+    "exists": true,
+    "file_count": 3,
+    "total_bytes": 98304
+  },
+  "import_query": {
+    "ok": false,
+    "seconds": 0.37,
+    "error": "ValidationError: 2 validation errors for Settings\ngroq_api\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nedgar_email\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing"
+  },
+  "qdrant_local_collections": {
+    "error": "ValidationError: 2 validation errors for Settings\ngroq_api\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nedgar_email\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing"
+  }
+}

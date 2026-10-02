@@ -1,0 +1,48 @@
+[
+  {
+    "offset": 1,
+    "sub2_citation_count": 3,
+    "original_sub2_text": "B [1] C [2] D [3].",
+    "remapped_sub2_block": "### MSFT FY2024\nSub-question: Q2\n\nB [4] C [4] D [4].",
+    "expected_markers": [
+      "[2]",
+      "[3]",
+      "[4]"
+    ],
+    "markers_actually_present": [
+      "[4]"
+    ],
+    "distinct_markers_present": 1,
+    "citation_indices_in_result": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "verdict": "FAIL"
+  },
+  {
+    "offset": 2,
+    "sub2_citation_count": 3,
+    "original_sub2_text": "B [1] C [2] D [3].",
+    "remapped_sub2_block": "### MSFT FY2024\nSub-question: Q2\n\nB [5] C [4] D [5].",
+    "expected_markers": [
+      "[3]",
+      "[4]",
+      "[5]"
+    ],
+    "markers_actually_present": [
+      "[4]",
+      "[5]"
+    ],
+    "distinct_markers_present": 2,
+    "citation_indices_in_result": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "verdict": "FAIL"
+  }
+]

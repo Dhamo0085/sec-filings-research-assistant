@@ -1,0 +1,1103 @@
+[
+  {
+    "ticker": "AAPL",
+    "fiscal_year": 2024,
+    "accession": "0000320193-24-000123",
+    "period_end": "2024-09-28",
+    "filing_date": "2024-11-01",
+    "file_mb": 1.5,
+    "documents": [
+      "AAPL_2024_0000320193-24-000123.htm"
+    ],
+    "ix_nonFraction_count": 963,
+    "ix_nonNumeric_count": 164,
+    "distinct_nonFraction_names": 263,
+    "context_count": 193,
+    "contexts_dimensional": 183,
+    "contexts_nondimensional": 10,
+    "top_20_concepts": [
+      [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        54
+      ],
+      [
+        "CashAndCashEquivalentsAtCarryingValue",
+        30
+      ],
+      [
+        "MarketableSecuritiesCurrent",
+        30
+      ],
+      [
+        "MarketableSecuritiesNoncurrent",
+        30
+      ],
+      [
+        "StockholdersEquity",
+        26
+      ],
+      [
+        "OperatingIncomeLoss",
+        24
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAmortizedCostBasis",
+        18
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedGainBeforeTax",
+        18
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedLossBeforeTax",
+        18
+      ],
+      [
+        "AvailableForSaleSecuritiesDebtSecurities",
+        18
+      ],
+      [
+        "NetIncomeLoss",
+        15
+      ],
+      [
+        "CostOfGoodsAndServicesSold",
+        9
+      ],
+      [
+        "IncomeTaxExpenseBenefit",
+        9
+      ],
+      [
+        "CommonStockSharesOutstanding",
+        8
+      ],
+      [
+        "PropertyPlantAndEquipmentGross",
+        8
+      ],
+      [
+        "UnrecognizedTaxBenefits",
+        8
+      ],
+      [
+        "NoncurrentAssets",
+        8
+      ],
+      [
+        "ResearchAndDevelopmentExpense",
+        6
+      ],
+      [
+        "EarningsPerShareBasic",
+        6
+      ],
+      [
+        "EarningsPerShareDiluted",
+        6
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "MSFT",
+    "fiscal_year": 2024,
+    "accession": "0000950170-24-087843",
+    "period_end": "2024-06-30",
+    "filing_date": "2024-07-30",
+    "file_mb": 6.86,
+    "documents": [
+      "MSFT_2024_0000950170-24-087843.htm"
+    ],
+    "ix_nonFraction_count": 1578,
+    "ix_nonNumeric_count": 278,
+    "distinct_nonFraction_names": 342,
+    "context_count": 465,
+    "contexts_dimensional": 445,
+    "contexts_nondimensional": 20,
+    "top_20_concepts": [
+      [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        66
+      ],
+      [
+        "StockholdersEquity",
+        44
+      ],
+      [
+        "CashAndCashEquivalentsAtCarryingValue",
+        36
+      ],
+      [
+        "ShortTermInvestments",
+        36
+      ],
+      [
+        "LongTermInvestments",
+        36
+      ],
+      [
+        "DebtInstrumentCarryingAmount",
+        29
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAmortizedCostBasis",
+        23
+      ],
+      [
+        "AvailableForSaleSecuritiesDebtSecurities",
+        23
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedGainBeforeTax",
+        22
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedLossBeforeTax",
+        22
+      ],
+      [
+        "DebtInstrumentInterestRateStatedPercentage",
+        22
+      ],
+      [
+        "DebtInstrumentInterestRateEffectivePercentage",
+        22
+      ],
+      [
+        "StockRepurchasedDuringPeriodValue",
+        21
+      ],
+      [
+        "DerivativeAssetFairValueGrossAssetIncludingNotSubjectToMasterNettingArrangement",
+        20
+      ],
+      [
+        "DerivativeLiabilityFairValueGrossLiabilityIncludingNotSubjectToMasterNettingArrangement",
+        20
+      ],
+      [
+        "StockRepurchasedDuringPeriodShares",
+        18
+      ],
+      [
+        "Goodwill",
+        17
+      ],
+      [
+        "DerivativeNotionalAmount",
+        16
+      ],
+      [
+        "OperatingIncomeLoss",
+        15
+      ],
+      [
+        "NetIncomeLoss",
+        15
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "GOOGL",
+    "fiscal_year": 2024,
+    "accession": "0001652044-25-000014",
+    "period_end": "2024-12-31",
+    "filing_date": "2025-02-05",
+    "file_mb": 2.53,
+    "documents": [
+      "GOOGL_2024_0001652044-25-000014.htm"
+    ],
+    "ix_nonFraction_count": 1526,
+    "ix_nonNumeric_count": 195,
+    "distinct_nonFraction_names": 361,
+    "context_count": 344,
+    "contexts_dimensional": 332,
+    "contexts_nondimensional": 12,
+    "top_20_concepts": [
+      [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        63
+      ],
+      [
+        "StockholdersEquity",
+        34
+      ],
+      [
+        "MarketableSecuritiesCurrent",
+        28
+      ],
+      [
+        "CashCashEquivalentsAndMarketableSecurities",
+        26
+      ],
+      [
+        "NetIncomeLoss",
+        24
+      ],
+      [
+        "CashAndCashEquivalentsFairValueDisclosure",
+        24
+      ],
+      [
+        "NetIncomeLossAvailableToCommonStockholdersBasic",
+        24
+      ],
+      [
+        "WeightedAverageNumberOfSharesOutstandingBasic",
+        24
+      ],
+      [
+        "OtherComprehensiveIncomeLossNetOfTaxPortionAttributableToParent",
+        21
+      ],
+      [
+        "OperatingIncomeLoss",
+        18
+      ],
+      [
+        "StockRepurchasedAndRetiredDuringPeriodValue",
+        18
+      ],
+      [
+        "ConcentrationRiskPercentage1",
+        18
+      ],
+      [
+        "Goodwill",
+        15
+      ],
+      [
+        "NonoperatingIncomeExpense",
+        15
+      ],
+      [
+        "EarningsPerShareBasic",
+        15
+      ],
+      [
+        "EarningsPerShareDiluted",
+        15
+      ],
+      [
+        "IncomeTaxExpenseBenefit",
+        12
+      ],
+      [
+        "CashCashEquivalentsAndAvailableForSaleDebtSecuritiesAmortizedCost",
+        12
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedGainBeforeTax",
+        12
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedLossBeforeTax",
+        12
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "GOOGL",
+    "fiscal_year": 2023,
+    "accession": "0001652044-24-000022",
+    "period_end": "2023-12-31",
+    "filing_date": "2024-01-31",
+    "file_mb": 2.41,
+    "documents": [
+      "GOOGL_2023_0001652044-24-000022.htm"
+    ],
+    "ix_nonFraction_count": 1415,
+    "ix_nonNumeric_count": 173,
+    "distinct_nonFraction_names": 334,
+    "context_count": 347,
+    "contexts_dimensional": 338,
+    "contexts_nondimensional": 9,
+    "top_20_concepts": [
+      [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        63
+      ],
+      [
+        "StockholdersEquity",
+        34
+      ],
+      [
+        "MarketableSecuritiesCurrent",
+        28
+      ],
+      [
+        "CashCashEquivalentsAndMarketableSecurities",
+        26
+      ],
+      [
+        "NetIncomeLoss",
+        25
+      ],
+      [
+        "CashAndCashEquivalentsFairValueDisclosure",
+        24
+      ],
+      [
+        "OperatingIncomeLoss",
+        18
+      ],
+      [
+        "StockRepurchasedAndRetiredDuringPeriodValue",
+        18
+      ],
+      [
+        "NetIncomeLossAvailableToCommonStockholdersBasic",
+        18
+      ],
+      [
+        "WeightedAverageNumberOfSharesOutstandingBasic",
+        18
+      ],
+      [
+        "RestructuringCharges",
+        17
+      ],
+      [
+        "ConcentrationRiskPercentage1",
+        16
+      ],
+      [
+        "NonoperatingIncomeExpense",
+        15
+      ],
+      [
+        "Goodwill",
+        14
+      ],
+      [
+        "EarningsPerShareBasic",
+        13
+      ],
+      [
+        "EarningsPerShareDiluted",
+        13
+      ],
+      [
+        "IncomeTaxExpenseBenefit",
+        12
+      ],
+      [
+        "CashCashEquivalentsAndAvailableForSaleDebtSecuritiesAmortizedCost",
+        12
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedGainBeforeTax",
+        12
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedLossBeforeTax",
+        12
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "AMZN",
+    "fiscal_year": 2023,
+    "accession": "0001018724-24-000008",
+    "period_end": "2023-12-31",
+    "filing_date": "2024-02-02",
+    "file_mb": 1.95,
+    "documents": [
+      "AMZN_2023_0001018724-24-000008.htm"
+    ],
+    "ix_nonFraction_count": 1287,
+    "ix_nonNumeric_count": 215,
+    "distinct_nonFraction_names": 386,
+    "context_count": 362,
+    "contexts_dimensional": 346,
+    "contexts_nondimensional": 16,
+    "top_20_concepts": [
+      [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        63
+      ],
+      [
+        "SegmentExpenditureAdditionToLongLivedAssets",
+        27
+      ],
+      [
+        "StockholdersEquity",
+        26
+      ],
+      [
+        "IncomeTaxExpenseBenefit",
+        24
+      ],
+      [
+        "NetIncomeLoss",
+        21
+      ],
+      [
+        "OperatingIncomeLoss",
+        19
+      ],
+      [
+        "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization",
+        19
+      ],
+      [
+        "Assets",
+        19
+      ],
+      [
+        "LongTermDebt",
+        19
+      ],
+      [
+        "AllocatedShareBasedCompensationExpense",
+        18
+      ],
+      [
+        "Goodwill",
+        16
+      ],
+      [
+        "CostsAndExpenses",
+        15
+      ],
+      [
+        "Depreciation",
+        15
+      ],
+      [
+        "DebtInstrumentInterestRateStatedPercentage",
+        14
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedGainBeforeTax",
+        12
+      ],
+      [
+        "AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedLossBeforeTax",
+        12
+      ],
+      [
+        "FiniteLivedIntangibleAssetsAccumulatedAmortization",
+        12
+      ],
+      [
+        "DebtInstrumentInterestRateEffectivePercentage",
+        12
+      ],
+      [
+        "FiniteLivedIntangibleAssetsNet",
+        11
+      ],
+      [
+        "AccountsReceivableNetCurrent",
+        10
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "JPM",
+    "fiscal_year": 2024,
+    "accession": "0000019617-25-000270",
+    "period_end": "2024-12-31",
+    "filing_date": "2025-02-14",
+    "file_mb": 12.85,
+    "documents": [
+      "JPM_2024_0000019617-25-000270.htm"
+    ],
+    "ix_nonFraction_count": 7841,
+    "ix_nonNumeric_count": 442,
+    "distinct_nonFraction_names": 902,
+    "context_count": 2203,
+    "contexts_dimensional": 2188,
+    "contexts_nondimensional": 15,
+    "top_20_concepts": [
+      [
+        "FinancingReceivableExcludingAccruedInterestBeforeAllowanceForCreditLoss",
+        297
+      ],
+      [
+        "FairValueOptionChangesInFairValueGainLoss1",
+        150
+      ],
+      [
+        "TradingSecurities",
+        132
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetValue",
+        126
+      ],
+      [
+        "DebtSecuritiesAvailableForSaleExcludingAccruedInterest",
+        125
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetTransfersIntoLevel3",
+        76
+      ],
+      [
+        "StockholdersEquity",
+        75
+      ],
+      [
+        "DerivativeAssetFairValueGrossAssetIncludingNotSubjectToMasterNettingArrangement",
+        74
+      ],
+      [
+        "DerivativeLiabilityFairValueGrossLiabilityIncludingNotSubjectToMasterNettingArrangement",
+        74
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetTransfersOutOfLevel3",
+        73
+      ],
+      [
+        "DerivativeAssets",
+        72
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestBeforeAllowanceForCreditLossesNetOfDeferredIncome",
+        66
+      ],
+      [
+        "Assets",
+        66
+      ],
+      [
+        "DerivativeAssetLiabilityNetMeasurementInput",
+        66
+      ],
+      [
+        "FairValueMeasurementwithUnobservableInputsReconciliationRecurringBasisAssetRealizedandUnrealizedGainsLosses",
+        66
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetPurchases",
+        63
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetSales",
+        63
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetSettlements",
+        63
+      ],
+      [
+        "FairValueAssetsMeasuredOnRecurringBasisChangeInUnrealizedGainLoss",
+        63
+      ],
+      [
+        "NetIncomeLoss",
+        57
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "BAC",
+    "fiscal_year": 2024,
+    "accession": "0000070858-25-000139",
+    "period_end": "2024-12-31",
+    "filing_date": "2025-02-25",
+    "file_mb": 12.9,
+    "documents": [
+      "BAC_2024_0000070858-25-000139.htm"
+    ],
+    "ix_nonFraction_count": 7892,
+    "ix_nonNumeric_count": 341,
+    "distinct_nonFraction_names": 802,
+    "context_count": 2437,
+    "contexts_dimensional": 2424,
+    "contexts_nondimensional": 13,
+    "top_20_concepts": [
+      [
+        "FinancingReceivableExcludingAccruedInterestBeforeAllowanceForCreditLoss",
+        370
+      ],
+      [
+        "DerivativeLiabilityFairValueGrossLiabilityIncludingNotSubjectToMasterNettingArrangement",
+        149
+      ],
+      [
+        "DerivativeAssetFairValueGrossAssetIncludingNotSubjectToMasterNettingArrangement",
+        135
+      ],
+      [
+        "FeesAndCommissionsMortgageBankingAndServicing",
+        126
+      ],
+      [
+        "DefinedBenefitPlanFairValueOfPlanAssets",
+        121
+      ],
+      [
+        "TradingSecurities",
+        100
+      ],
+      [
+        "TradingGainsLosses",
+        99
+      ],
+      [
+        "FairValueOptionChangesInFairValueGainLoss1",
+        99
+      ],
+      [
+        "DebtSecuritiesAvailableForSaleExcludingAccruedInterest",
+        92
+      ],
+      [
+        "InvestmentBankingRevenue",
+        84
+      ],
+      [
+        "Assets",
+        82
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetValue",
+        80
+      ],
+      [
+        "LongTermDebt",
+        78
+      ],
+      [
+        "DerivativeAssetLiabilityNetMeasurementInput",
+        76
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestRevolving",
+        74
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearOneOriginatedCurrentFiscalYear",
+        66
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearTwoOriginatedFiscalYearBeforeCurrentFiscalYear",
+        66
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearThreeOriginatedTwoYearsBeforeCurrentFiscalYear",
+        66
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearFourOriginatedThreeYearsBeforeCurrentFiscalYear",
+        66
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearFiveOriginatedFourYearsBeforeCurrentFiscalYear",
+        66
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "WFC",
+    "fiscal_year": 2024,
+    "accession": "0000072971-25-000066",
+    "period_end": "2024-12-31",
+    "filing_date": "2025-02-25",
+    "file_mb": 12.46,
+    "documents": [
+      "WFC_2024_0000072971-25-000066.htm",
+      "WFC_2024_EX13_d2.htm"
+    ],
+    "ix_nonFraction_count": 7303,
+    "ix_nonNumeric_count": 316,
+    "distinct_nonFraction_names": 875,
+    "context_count": 1892,
+    "contexts_dimensional": 1881,
+    "contexts_nondimensional": 11,
+    "top_20_concepts": [
+      [
+        "FinancingReceivableExcludingAccruedInterestBeforeAllowanceForCreditLoss",
+        154
+      ],
+      [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        117
+      ],
+      [
+        "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+        97
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearOneOriginatedCurrentFiscalYear",
+        94
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearTwoOriginatedFiscalYearBeforeCurrentFiscalYear",
+        94
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearThreeOriginatedTwoYearsBeforeCurrentFiscalYear",
+        94
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearFourOriginatedThreeYearsBeforeCurrentFiscalYear",
+        94
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestYearFiveOriginatedFourYearsBeforeCurrentFiscalYear",
+        94
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestOriginatedMoreThanFiveYearsBeforeCurrentFiscalYear",
+        94
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestRevolving",
+        94
+      ],
+      [
+        "FinancingReceivableExcludingAccruedInterestRevolvingConvertedToTermLoan",
+        94
+      ],
+      [
+        "LongTermDebt",
+        92
+      ],
+      [
+        "DebtSecuritiesAvailableForSaleExcludingAccruedInterest",
+        83
+      ],
+      [
+        "DerivativeFairValueOfDerivativeAsset",
+        80
+      ],
+      [
+        "DerivativeFairValueOfDerivativeLiability",
+        80
+      ],
+      [
+        "GainLossOnFairValueHedgesRecognizedInEarnings",
+        72
+      ],
+      [
+        "TradingSecuritiesDebt",
+        70
+      ],
+      [
+        "OtherComprehensiveIncomeLossNetOfTax",
+        63
+      ],
+      [
+        "FinancingReceivableAndNetInvestmentInLeaseExcludingAccruedInterestBeforeAllowanceForCreditLoss",
+        56
+      ],
+      [
+        "FinancingReceivableModificationsPostModificationRecordedInvestment2",
+        56
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "BLK",
+    "fiscal_year": 2024,
+    "accession": "0000950170-25-026584",
+    "period_end": "2024-12-31",
+    "filing_date": "2025-02-25",
+    "file_mb": 11.03,
+    "documents": [
+      "BLK_2024_0000950170-25-026584.htm"
+    ],
+    "ix_nonFraction_count": 2445,
+    "ix_nonNumeric_count": 341,
+    "distinct_nonFraction_names": 456,
+    "context_count": 803,
+    "contexts_dimensional": 788,
+    "contexts_nondimensional": 15,
+    "top_20_concepts": [
+      [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        165
+      ],
+      [
+        "EquityMethodInvestmentsFairValueDisclosure",
+        72
+      ],
+      [
+        "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+        44
+      ],
+      [
+        "SecuritiesHeldAsCollateralAtFairValue",
+        36
+      ],
+      [
+        "DebtInstrumentFaceAmount",
+        35
+      ],
+      [
+        "TradingSecuritiesDebt",
+        30
+      ],
+      [
+        "DividendsCash",
+        27
+      ],
+      [
+        "TreasuryStockValueAcquiredCostMethod",
+        25
+      ],
+      [
+        "ProfitLossExcludingRedeemableNoncontrollingInterests",
+        24
+      ],
+      [
+        "AdjustmentsToAdditionalPaidInCapitalSharebasedCompensationRequisiteServicePeriodRecognitionValue",
+        24
+      ],
+      [
+        "StockIssuedDuringPeriodValueEmployeeStockPurchasePlan",
+        24
+      ],
+      [
+        "AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation",
+        24
+      ],
+      [
+        "SubscriptionsFromRedemptionsAndDistributionsToNoncontrollingInterestHolders",
+        24
+      ],
+      [
+        "NoncontrollingInterestConsolidationDeconsolidationOfInvestment",
+        24
+      ],
+      [
+        "OtherComprehensiveIncomeLossNetOfTax",
+        24
+      ],
+      [
+        "EquitySecuritiesFvNi",
+        24
+      ],
+      [
+        "LongTermDebt",
+        21
+      ],
+      [
+        "Investments",
+        20
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetValue",
+        20
+      ],
+      [
+        "RevenueRemainingPerformanceObligation",
+        20
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "GS",
+    "fiscal_year": 2024,
+    "accession": "0000886982-25-000005",
+    "period_end": "2024-12-31",
+    "filing_date": "2025-02-27",
+    "file_mb": 10.08,
+    "documents": [
+      "GS_2024_0000886982-25-000005.htm"
+    ],
+    "ix_nonFraction_count": 6123,
+    "ix_nonNumeric_count": 315,
+    "distinct_nonFraction_names": 772,
+    "context_count": 2169,
+    "contexts_dimensional": 2155,
+    "contexts_nondimensional": 14,
+    "top_20_concepts": [
+      [
+        "NotesReceivableGross",
+        276
+      ],
+      [
+        "ConcentrationRiskPercentage",
+        118
+      ],
+      [
+        "DerivativeAssetLiabilityNetMeasurementInput",
+        104
+      ],
+      [
+        "AssetsFairValueDisclosure",
+        96
+      ],
+      [
+        "LoansReceivableFairValueDisclosure",
+        86
+      ],
+      [
+        "StockholdersEquity",
+        85
+      ],
+      [
+        "TradingCashInstrumentsAssetsFairValueDisclosure",
+        82
+      ],
+      [
+        "LiabilitiesFairValueDisclosure",
+        76
+      ],
+      [
+        "InvestmentsFairValueDisclosure",
+        72
+      ],
+      [
+        "TradingCashInstrumentsLiabilitiesFairValueDisclosure",
+        68
+      ],
+      [
+        "DerivativeAssets",
+        68
+      ],
+      [
+        "DerivativeLiabilities",
+        68
+      ],
+      [
+        "RiskWeightedAssets",
+        68
+      ],
+      [
+        "PreferredStockDividendsPerShareDeclared",
+        61
+      ],
+      [
+        "FairValueMeasurementWithUnobservableInputsReconciliationRecurringBasisAssetValue",
+        60
+      ],
+      [
+        "DerivativeNotionalAmount",
+        60
+      ],
+      [
+        "DividendsPreferredStock",
+        57
+      ],
+      [
+        "OtherCommitment",
+        55
+      ],
+      [
+        "DerivativeFairValueOfDerivativeAsset",
+        54
+      ],
+      [
+        "DerivativeFairValueOfDerivativeLiability",
+        54
+      ]
+    ],
+    "ix_tags_absent": false
+  },
+  {
+    "ticker": "NFLX",
+    "fiscal_year": 2024,
+    "accession": "0001065280-25-000044",
+    "period_end": "2024-12-31",
+    "filing_date": "2025-01-27",
+    "file_mb": 2.03,
+    "documents": [
+      "NFLX_2024_0001065280-25-000044.htm"
+    ],
+    "ix_nonFraction_count": 1213,
+    "ix_nonNumeric_count": 197,
+    "distinct_nonFraction_names": 285,
+    "context_count": 312,
+    "contexts_dimensional": 302,
+    "contexts_nondimensional": 10,
+    "top_20_concepts": [
+      [
+        "StockholdersEquity",
+        50
+      ],
+      [
+        "DebtInstrumentFaceAmount",
+        45
+      ],
+      [
+        "DebtInstrumentInterestRateStatedPercentage",
+        43
+      ],
+      [
+        "CashCashEquivalentsAndShortTermInvestments",
+        36
+      ],
+      [
+        "LongTermDebtFairValue",
+        34
+      ],
+      [
+        "OtherComprehensiveIncomeLossNetOfTaxPortionAttributableToParent",
+        30
+      ],
+      [
+        "NetIncomeLoss",
+        27
+      ],
+      [
+        "Revenues",
+        25
+      ],
+      [
+        "OtherComprehensiveIncomeLossBeforeReclassificationsNetOfTax",
+        21
+      ],
+      [
+        "ReclassificationFromAociCurrentPeriodNetOfTaxAttributableToParent",
+        21
+      ],
+      [
+        "PropertyPlantAndEquipmentGross",
+        18
+      ],
+      [
+        "TrdArrSecuritiesAggAvailAmt",
+        16
+      ],
+      [
+        "IncomeTaxExpenseBenefit",
+        15
+      ],
+      [
+        "CostofServicesAmortizationofStreamingContentAssets",
+        15
+      ],
+      [
+        "DerivativeFairValueOfDerivativeAsset",
+        14
+      ],
+      [
+        "DerivativeFairValueOfDerivativeLiability",
+        14
+      ],
+      [
+        "NumberOfPaidMembershipAdditionsLossesDuringPeriod",
+        12
+      ],
+      [
+        "NumberOfPaidMemberships",
+        12
+      ],
+      [
+        "NonoperatingIncomeExpense",
+        10
+      ],
+      [
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+        9
+      ]
+    ],
+    "ix_tags_absent": false
+  }
+]

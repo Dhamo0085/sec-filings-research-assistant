@@ -1,0 +1,14 @@
+{
+  "mode": "qdrant local (path=...) \u2014 same construction as retrieval/vector_store.get_client() when settings.qdrant_url is unset",
+  "filtered_chunk_type_distribution": {
+    "table": 10
+  },
+  "unfiltered_chunk_type_distribution": {
+    "text": 3,
+    "table": 4,
+    "footnote": 3
+  },
+  "non_table_chunks_in_filtered_result": [],
+  "n_filtered": 10,
+  "K9": "REFUTED (filter honoured)"
+}

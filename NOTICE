@@ -1,0 +1,8 @@
+Portions of this software are derived from an earlier MIT-licensed prototype
+co-written by the author and a collaborator. This repository (v2) is a new,
+substantially reworked project maintained by Dhamodaran Selvam. The prototype
+code as imported is preserved in the git tag `v1-baseline`.
+
+Filing data comes from the U.S. Securities and Exchange Commission's EDGAR
+system (public records). This project is a research tool and does not provide
+investment advice.

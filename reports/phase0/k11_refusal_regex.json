@@ -1,0 +1,130 @@
+{
+  "total_cases": 17,
+  "genuine_refusals": 9,
+  "legitimate_answers": 8,
+  "false_positives": 3,
+  "false_negatives": 4,
+  "recall_on_refusals": 0.556,
+  "precision_note": "a false positive costs one extra retrieve+generate round trip (2 Groq calls)",
+  "cases": [
+    {
+      "label": "refusal/does-not-mention",
+      "expected_refusal": true,
+      "detected_refusal": true,
+      "outcome": "ok",
+      "text": "The provided context does not mention Apple's segment revenue."
+    },
+    {
+      "label": "refusal/cannot-be-found",
+      "expected_refusal": true,
+      "detected_refusal": true,
+      "outcome": "ok",
+      "text": "This information cannot be found in the retrieved excerpts."
+    },
+    {
+      "label": "refusal/no-relevant-information",
+      "expected_refusal": true,
+      "detected_refusal": true,
+      "outcome": "ok",
+      "text": "No relevant information was found in the filing."
+    },
+    {
+      "label": "refusal/not-explicitly-stated",
+      "expected_refusal": true,
+      "detected_refusal": true,
+      "outcome": "ok",
+      "text": "The figure is not explicitly stated in the documents provided."
+    },
+    {
+      "label": "refusal/unable-to-answer",
+      "expected_refusal": true,
+      "detected_refusal": false,
+      "outcome": "FALSE_NEGATIVE",
+      "text": "I'm unable to answer that from the 10-K excerpts supplied."
+    },
+    {
+      "label": "refusal/insufficient-context",
+      "expected_refusal": true,
+      "detected_refusal": false,
+      "outcome": "FALSE_NEGATIVE",
+      "text": "The context provided is insufficient to determine the operating margin."
+    },
+    {
+      "label": "refusal/does-not-appear",
+      "expected_refusal": true,
+      "detected_refusal": false,
+      "outcome": "FALSE_NEGATIVE",
+      "text": "That detail does not appear anywhere in the supplied sections."
+    },
+    {
+      "label": "refusal/dont-contain-contraction",
+      "expected_refusal": true,
+      "detected_refusal": false,
+      "outcome": "FALSE_NEGATIVE",
+      "text": "Sorry, the excerpts don't contain the requested figure."
+    },
+    {
+      "label": "refusal/not-available-in-the",
+      "expected_refusal": true,
+      "detected_refusal": true,
+      "outcome": "ok",
+      "text": "The answer is not available in the provided 10-K sections."
+    },
+    {
+      "label": "legit/contains-does-not-mention-plus-answer",
+      "expected_refusal": false,
+      "detected_refusal": true,
+      "outcome": "FALSE_POSITIVE",
+      "text": "Apple's 10-K does not mention cryptocurrency holdings, but total net sales were $391,035 million in FY2024."
+    },
+    {
+      "label": "legit/word-state",
+      "expected_refusal": false,
+      "detected_refusal": false,
+      "outcome": "ok",
+      "text": "The filing states that research and development expense was $29,510 million."
+    },
+    {
+      "label": "legit/word-provide",
+      "expected_refusal": false,
+      "detected_refusal": false,
+      "outcome": "ok",
+      "text": "Management provide guidance only on a segment basis; segment revenue was $96,169 million."
+    },
+    {
+      "label": "legit/word-mention",
+      "expected_refusal": false,
+      "detected_refusal": false,
+      "outcome": "ok",
+      "text": "Item 1A does mention climate risk among the principal risk factors disclosed."
+    },
+    {
+      "label": "legit/cannot-be-found-rhetorical",
+      "expected_refusal": false,
+      "detected_refusal": true,
+      "outcome": "FALSE_POSITIVE",
+      "text": "Net income cannot be found by simply adding the segments; the consolidated figure is $93,736 million."
+    },
+    {
+      "label": "legit/does-not-discuss-plus-answer",
+      "expected_refusal": false,
+      "detected_refusal": true,
+      "outcome": "FALSE_POSITIVE",
+      "text": "The company does not discuss dividends in Item 7, but Item 5 reports $15.2 billion returned to shareholders."
+    },
+    {
+      "label": "legit/explicitly-stated-positive",
+      "expected_refusal": false,
+      "detected_refusal": false,
+      "outcome": "ok",
+      "text": "Operating income was $123,216 million, which is explicitly stated in the consolidated statements of operations."
+    },
+    {
+      "label": "legit/word-provided",
+      "expected_refusal": false,
+      "detected_refusal": false,
+      "outcome": "ok",
+      "text": "Total assets at year end were $364,980 million as provided in the balance sheet."
+    }
+  ]
+}

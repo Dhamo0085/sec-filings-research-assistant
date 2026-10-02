@@ -1,0 +1,208 @@
+{
+  "total_routes": 20,
+  "routes_checking_admin_token": 8,
+  "routes_without_any_token_check": 12,
+  "sensitive_routes_without_token_check": [],
+  "routes": [
+    {
+      "file": "api/app.py",
+      "method": "GET",
+      "router": "app",
+      "path": "/",
+      "handler": "ui",
+      "line": 119,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/app.py",
+      "method": "DELETE",
+      "router": "app",
+      "path": "/admin/collection/{name}",
+      "handler": "delete_collection_endpoint",
+      "line": 516,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "DELETE",
+      "router": "app",
+      "path": "/admin/data-path",
+      "handler": "delete_data_path",
+      "line": 465,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "GET",
+      "router": "app",
+      "path": "/admin/disk-usage",
+      "handler": "disk_usage",
+      "line": 161,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "POST",
+      "router": "app",
+      "path": "/admin/evict-stale-companies",
+      "handler": "evict_stale_companies_endpoint",
+      "line": 602,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "POST",
+      "router": "app",
+      "path": "/admin/migrate-to-remote",
+      "handler": "migrate_to_remote",
+      "line": 548,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "GET",
+      "router": "app",
+      "path": "/admin/migrate-to-remote/status",
+      "handler": "migrate_to_remote_status",
+      "line": 595,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "POST",
+      "router": "app",
+      "path": "/admin/restore-data",
+      "handler": "restore_data",
+      "line": 386,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "GET",
+      "router": "app",
+      "path": "/collections",
+      "handler": "collections",
+      "line": 156,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/app.py",
+      "method": "GET",
+      "router": "app",
+      "path": "/favicon.svg",
+      "handler": "favicon",
+      "line": 124,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/app.py",
+      "method": "GET",
+      "router": "app",
+      "path": "/health",
+      "handler": "health",
+      "line": 129,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/app.py",
+      "method": "POST",
+      "router": "app",
+      "path": "/ingest",
+      "handler": "ingest",
+      "line": 625,
+      "checks_admin_token": true,
+      "check_mechanism": "direct"
+    },
+    {
+      "file": "api/app.py",
+      "method": "GET",
+      "router": "app",
+      "path": "/ingest/status",
+      "handler": "ingest_status",
+      "line": 342,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/app.py",
+      "method": "POST",
+      "router": "app",
+      "path": "/query",
+      "handler": "query",
+      "line": 652,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/chat.py",
+      "method": "POST",
+      "router": "router",
+      "path": "",
+      "handler": "chat",
+      "line": 149,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/chat.py",
+      "method": "GET",
+      "router": "router",
+      "path": "/review",
+      "handler": "review_all",
+      "line": 289,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/chat.py",
+      "method": "GET",
+      "router": "router",
+      "path": "/sessions",
+      "handler": "list_sessions",
+      "line": 235,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/chat.py",
+      "method": "GET",
+      "router": "router",
+      "path": "/sessions/{sid}",
+      "handler": "get_session",
+      "line": 249,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/chat.py",
+      "method": "DELETE",
+      "router": "router",
+      "path": "/sessions/{sid}",
+      "handler": "delete_session",
+      "line": 267,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    },
+    {
+      "file": "api/chat.py",
+      "method": "PATCH",
+      "router": "router",
+      "path": "/sessions/{sid}/turns/{tid}",
+      "handler": "review_turn",
+      "line": 274,
+      "checks_admin_token": false,
+      "check_mechanism": "none"
+    }
+  ]
+}

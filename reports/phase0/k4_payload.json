@@ -1,0 +1,59 @@
+{
+  "stored_payload_source": "retrieval/vector_store.py:272  payload=chunk.model_dump(exclude={'chunk_id'})",
+  "stored_point_payload_keys": [
+    "chunk_type",
+    "company",
+    "doc_id",
+    "filing_type",
+    "fiscal_year",
+    "parent_id",
+    "position",
+    "section_name",
+    "text",
+    "ticker",
+    "token_count"
+  ],
+  "chunk_model_fields": [
+    "chunk_id",
+    "chunk_type",
+    "company",
+    "doc_id",
+    "filing_type",
+    "fiscal_year",
+    "parent_id",
+    "position",
+    "section_name",
+    "text",
+    "ticker",
+    "token_count"
+  ],
+  "parsed_document_fields": [
+    "accession_number",
+    "company",
+    "doc_id",
+    "filing_date",
+    "filing_type",
+    "fiscal_year",
+    "parsed_at",
+    "sections",
+    "source_path",
+    "ticker"
+  ],
+  "collection_naming": "{TICKER}_{fiscal_year}  (retrieval/vector_store.py)",
+  "presence_in_stored_payload": {
+    "filing_date": {
+      "in_chunk_payload": false,
+      "in_parsed_document": true
+    },
+    "period_end": {
+      "in_chunk_payload": false,
+      "in_parsed_document": false
+    },
+    "accession_number": {
+      "in_chunk_payload": false,
+      "in_parsed_document": true
+    }
+  },
+  "verdict": "K4 CONFIRMED \u2014 none of filing_date / period_end / accession_number reach a stored point. filing_date and accession_number EXIST on ParsedDocument but are dropped at chunk construction; period_end does not exist anywhere in the data model. A retrieved chunk therefore cannot be dated, so as_of filtering is impossible at retrieval time (supports decision D2).",
+  "note_no_live_point": "data/qdrant is absent in this checkout, so no stored point was read; the result follows from the model_dump above."
+}

@@ -1,0 +1,35 @@
+{
+  "db_path": "data/chat_history.db",
+  "exists": true,
+  "git_available": false,
+  "git_probe_output": "fatal: not a git repository (or any of the parent directories): .git",
+  "note": "This checkout is NOT a git repository (no .git directory) \u2014 it is an unpacked source archive. Tracking status cannot be determined here; the file's presence in the distributed archive is itself the finding.",
+  "size_bytes": 65536,
+  "tables": {
+    "sessions": {
+      "row_count": 5,
+      "columns": [
+        "id",
+        "title",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "turns": {
+      "row_count": 19,
+      "columns": [
+        "id",
+        "session_id",
+        "question",
+        "answer",
+        "query_type",
+        "citations",
+        "is_correct",
+        "created_at"
+      ]
+    }
+  },
+  "turns_is_correct_distribution": {
+    "None": 19
+  }
+}

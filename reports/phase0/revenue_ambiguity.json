@@ -1,0 +1,149 @@
+[
+  {
+    "ticker": "AAPL",
+    "fiscal_year": 2024,
+    "candidates": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": [
+        391035000000.0
+      ]
+    },
+    "n_distinct_concepts": 1,
+    "ambiguous": false
+  },
+  {
+    "ticker": "MSFT",
+    "fiscal_year": 2024,
+    "candidates": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": [
+        245122000000.0
+      ]
+    },
+    "n_distinct_concepts": 1,
+    "ambiguous": false
+  },
+  {
+    "ticker": "GOOGL",
+    "fiscal_year": 2024,
+    "candidates": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": [
+        350018000000.0
+      ]
+    },
+    "n_distinct_concepts": 1,
+    "ambiguous": false
+  },
+  {
+    "ticker": "GOOGL",
+    "fiscal_year": 2023,
+    "candidates": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": [
+        307394000000.0
+      ]
+    },
+    "n_distinct_concepts": 1,
+    "ambiguous": false
+  },
+  {
+    "ticker": "AMZN",
+    "fiscal_year": 2023,
+    "candidates": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": [
+        574785000000.0
+      ]
+    },
+    "n_distinct_concepts": 1,
+    "ambiguous": false
+  },
+  {
+    "ticker": "JPM",
+    "fiscal_year": 2024,
+    "candidates": {
+      "NoninterestIncome": [
+        84973000000.0
+      ],
+      "InterestIncomeExpenseNet": [
+        92583000000.0
+      ],
+      "RevenuesNetOfInterestExpense": [
+        177556000000.0
+      ],
+      "Revenues": [
+        177556000000.0
+      ]
+    },
+    "n_distinct_concepts": 4,
+    "ambiguous": true
+  },
+  {
+    "ticker": "BAC",
+    "fiscal_year": 2024,
+    "candidates": {
+      "InterestAndDividendIncomeOperating": [
+        146607000000.0
+      ],
+      "InterestIncomeExpenseNet": [
+        56060000000.0
+      ],
+      "NoninterestIncome": [
+        45827000000.0
+      ],
+      "Revenues": [
+        101887000000.0
+      ]
+    },
+    "n_distinct_concepts": 4,
+    "ambiguous": true
+  },
+  {
+    "ticker": "WFC",
+    "fiscal_year": 2024,
+    "candidates": {},
+    "n_distinct_concepts": 0,
+    "ambiguous": false
+  },
+  {
+    "ticker": "BLK",
+    "fiscal_year": 2024,
+    "candidates": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": [
+        20407000000.0
+      ],
+      "Revenues": [
+        12794000000.0
+      ]
+    },
+    "n_distinct_concepts": 2,
+    "ambiguous": true
+  },
+  {
+    "ticker": "GS",
+    "fiscal_year": 2024,
+    "candidates": {
+      "NoninterestIncome": [
+        45456000000.0
+      ],
+      "InterestAndDividendIncomeOperating": [
+        81397000000.0
+      ],
+      "InterestIncomeExpenseNet": [
+        8056000000.0
+      ],
+      "RevenuesNetOfInterestExpense": [
+        53512000000.0
+      ]
+    },
+    "n_distinct_concepts": 4,
+    "ambiguous": true
+  },
+  {
+    "ticker": "NFLX",
+    "fiscal_year": 2024,
+    "candidates": {
+      "Revenues": [
+        39000966000.0
+      ]
+    },
+    "n_distinct_concepts": 1,
+    "ambiguous": false
+  }
+]

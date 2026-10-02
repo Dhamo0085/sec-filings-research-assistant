@@ -1,0 +1,189 @@
+"""
+Synthesizer — handles multi_doc and temporal queries.
+
+Flow:
+  1. Decompose query into atomic sub-questions
+  2. Retrieve for every sub-question sequentially (Qdrant SQLite lock
+     prevents concurrent access)
+  3. Generate sub-answers in parallel via a thread pool — Groq HTTP calls
+     release the GIL so threads genuinely overlap, saving 6-15 s per query
+  4. Combine all sub-answers with a final synthesis call
+  5. Return a single QueryResult with merged citations
+"""
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Dict
+
+from groq import Groq
+from loguru import logger
+
+from config import settings
+from models import QueryResult, RetrievedChunk
+from routing.decomposer import decompose_query, decompose_temporal
+from retrieval.retriever import retrieve
+from generation.generator import generate_answer, _get_client
+
+SYNTHESIS_SYSTEM = """\
+You are a financial analyst synthesizing multiple research findings into a single answer.
+
+You will receive:
+- The ORIGINAL QUESTION from the user
+- A set of sub-answers extracted from SEC 10-K filings, each with citation numbers [N]
+
+Your task:
+1. Answer the ORIGINAL QUESTION directly and completely, using the sub-answers as evidence.
+2. When the original question is a general comparison ("how is X different from Y?",
+   "compare X and Y"), lead with the high-level business differences (industry, business model,
+   revenue sources, products/services), then add financial highlights.
+3. Preserve all citation references [N] exactly as they appear in the sub-answers.
+4. Use markdown — bullet points for lists, tables for side-by-side comparisons.
+5. Do not add any facts not present in the sub-answers.
+6. End with a concise "Key differences" summary bullet list."""
+
+
+def synthesize(
+    query:      str,
+    tickers:    List[str],
+    years:      List[int],
+    query_type: str = "multi_doc",
+    top_k:      int = settings.rerank_top_k,
+    focus:      str = "other",
+) -> QueryResult:
+    """
+    Multi-document synthesis pipeline.
+
+    Retrieval is sequential (Qdrant SQLite lock).
+    Generation is parallel (thread pool — Groq I/O releases the GIL).
+    """
+    # temporal is defined as one company across multiple years — decompose
+    # it deterministically (one sub-question per year, built from the
+    # classifier's own `focus`) instead of asking the LLM decomposer,
+    # which is meant for multi-company comparisons and has been observed
+    # misapplying its "describe the business" special case to single-
+    # company metric questions, and can under-deliver sub-questions for
+    # the requested year span. Falls back to the LLM path if the shape
+    # doesn't match (no ticker, or more than one — shouldn't happen for a
+    # real temporal query, but this isn't the place to enforce that).
+    if query_type == "temporal" and len(tickers) == 1 and years:
+        sub_questions = decompose_temporal(tickers[0], years, focus)
+    else:
+        sub_questions = decompose_query(query, tickers, years)
+    logger.info(f"Synthesizing {len(sub_questions)} sub-questions for: '{query[:60]}'")
+
+    # ── Phase 1: sequential retrieval ────────────────────────────────────────
+    retrieval_data: List[tuple[Dict, list]] = []
+    for sub in sub_questions:
+        try:
+            retrieved = retrieve(
+                query=sub["question"],
+                tickers=[sub["ticker"]],
+                years=[sub["year"]],
+                top_k=top_k,
+                focus=focus,
+            )
+            retrieval_data.append((sub, retrieved))
+        except Exception as exc:
+            logger.error(f"  ✗ Retrieval failed ({sub['ticker']} FY{sub['year']}): {exc}")
+
+    if not retrieval_data:
+        return QueryResult(
+            query=query,
+            answer="Could not retrieve information for this query.",
+            citations=[], chunks_used=[], query_type=query_type,
+        )
+
+    # ── Phase 2: parallel generation ─────────────────────────────────────────
+    def _generate(item: tuple[Dict, list]) -> tuple[Dict, QueryResult]:
+        sub, retrieved = item
+        result = generate_answer(
+            query=sub["question"],
+            retrieved=retrieved,
+            query_type="sub_question",
+        )
+        return sub, result
+
+    sub_results: List[tuple[Dict, QueryResult]] = []
+    with ThreadPoolExecutor(max_workers=len(retrieval_data)) as pool:
+        futures = {pool.submit(_generate, item): item[0] for item in retrieval_data}
+        for future in as_completed(futures):
+            sub = futures[future]
+            try:
+                result = future.result()
+                sub_results.append(result)
+                logger.debug(f"  ✓ {sub['ticker']} FY{sub['year']}: {sub['question'][:50]}")
+            except Exception as exc:
+                logger.error(f"  ✗ Generation failed ({sub['ticker']} FY{sub['year']}): {exc}")
+
+    # Build the synthesis input
+    combined_parts = []
+    all_citations:  List[dict] = []
+    all_chunks:     List[RetrievedChunk] = []
+    citation_offset = 0
+
+    for sub, result in sub_results:
+        if result.answer.startswith("No relevant information was found"):
+            continue
+
+        remapped_answer = result.answer
+        renumbered_cits = []
+        for cit in result.citations:
+            new_idx = cit["index"] + citation_offset
+            remapped_answer = remapped_answer.replace(
+                f"[{cit['index']}]", f"[{new_idx}]"
+            )
+            renumbered_cits.append({**cit, "index": new_idx})
+
+        citation_offset += len(result.citations)
+
+        combined_parts.append(
+            f"### {sub['ticker']} FY{sub['year']}\n"
+            f"Sub-question: {sub['question']}\n\n"
+            f"{remapped_answer}"
+        )
+        all_citations.extend(renumbered_cits)
+        all_chunks.extend(result.chunks_used)
+
+    if not combined_parts:
+        return QueryResult(
+            query=query,
+            answer="Could not find relevant information for this query across the available documents.",
+            citations=[],
+            chunks_used=[],
+            query_type=query_type,
+        )
+
+    synthesis_input = (
+        f"ORIGINAL QUESTION: {query}\n\n"
+        + "\n\n---\n\n".join(combined_parts)
+    )
+
+    logger.debug(f"Running synthesis call for {len(sub_results)} sub-answers")
+
+    try:
+        synthesis_response = _get_client().chat.completions.create(
+            model=settings.generation_model,
+            messages=[
+                {"role": "system", "content": SYNTHESIS_SYSTEM},
+                {"role": "user",   "content": synthesis_input},
+            ],
+            temperature=0.1,
+            # Same truncation problem as generator.py's MAX_RESPONSE_TOKS,
+            # for the same reason (a multi-company comparison table plus a
+            # trailing "Key differences" summary has more to say than 768
+            # tokens allows) — input here is bounded by construction
+            # (already-generated sub-answers, not raw chunks), so there's
+            # comfortable TPM headroom to raise it.
+            max_tokens=1024,
+        )
+        answer = synthesis_response.choices[0].message.content.strip()
+    except Exception as exc:
+        logger.error(f"Synthesis call failed: {exc}")
+        answer = "\n\n".join(combined_parts)   # fall back to concatenated sub-answers
+
+    return QueryResult(
+        query=query,
+        answer=answer,
+        citations=all_citations,
+        chunks_used=all_chunks,
+        query_type=query_type,
+    )

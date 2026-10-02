@@ -16,7 +16,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
 |---|---|---|
 | Step 0 | Bootstrap: new private GitHub repo via `gh`, root cleanup (`docs/BOOTSTRAP.md`) | COMPLETE (PR #1 merged; report in `reports/bootstrap/REPORT.md`) |
 | 0 | Audit and baseline | COMPLETE (report in `reports/phase0/REPORT.md`) |
-| 1 | Foundation, hardening, catalog, true baseline | NOT STARTED, awaiting owner: "Start Phase 1" |
+| 1 | Foundation, hardening, catalog, true baseline | COMPLETE (report in `reports/phase1/REPORT.md`; baseline partial: 9 of 25, see its section 4.2) |
 | 2 | Facts engine (extract, store, resolve, calculate) | NOT STARTED |
 | 3 | Routing, answers, `as_of`, abstention, UI | NOT STARTED |
 | 4 | Evaluation, ablations, documentation | NOT STARTED |

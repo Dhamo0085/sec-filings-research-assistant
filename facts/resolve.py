@@ -432,17 +432,12 @@ class FactsResolver:
                 f"{ticker} {period.describe()} was not public on {as_of}; the "
                 f"earliest matching filing was filed {earliest}")
 
-        if period.kind == "latest":
-            period_end = max(f.period_end for f in eligible)
-            eligible = [f for f in eligible if f.period_end == period_end]
-        else:
-            period_end = eligible[0].period_end
-            # A fiscal label or calendar year can in principle match more than
-            # one period end (a transition year); keep only the newest so the
-            # answer is about one period.
-            period_end = max(f.period_end for f in eligible)
-            eligible = [f for f in eligible if f.period_end == period_end]
-
+        # Narrow to ONE period end, whichever selector was used. `latest` needs
+        # it by definition; a fiscal label or calendar year needs it because a
+        # transition year can put two period ends under one label, and an
+        # answer about two periods at once is not an answer.
+        period_end = max(f.period_end for f in eligible)
+        eligible = [f for f in eligible if f.period_end == period_end]
         return period_end, eligible
 
     def _no_such_period(self, ticker: str, filings: Sequence[Filing],
@@ -508,7 +503,6 @@ class FactsResolver:
         # concept in the earlier ones is absent, so a definitional preference
         # never competes with the concept it is a fallback for.
         tiers = spec.tiers_for(self.registry.sector_for(filing.ticker))
-        last: Optional[Abstain] = None
         for index, tier in enumerate(tiers):
             present = {c: by_concept[c] for c in tier if c in by_concept}
             if not present:
@@ -523,7 +517,8 @@ class FactsResolver:
             # which is exactly the silent pick rule 3 forbids.
             return outcome
 
-        return last or Abstain(
+        # Every tier was empty: the filing reports none of the candidates.
+        return Abstain(
             REASON_METRIC_NOT_IN_FILING,
             f"{filing.accession} reports none of the {metric} candidates",
             candidates=tuple(candidates))

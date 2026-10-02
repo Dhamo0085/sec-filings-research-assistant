@@ -184,6 +184,16 @@ inspected: 27 were candidates reporting the *identical* value and 63 were pairs
 of concepts with different definitions. Neither is the tie the rule was written
 for. Details in `docs/DECISIONS.md` D2-02.
 
+**Corroboration from the untuned filers.** The table above is scoped to the
+bundled 13, which is the project's corpus and the figure quoted throughout this
+report. Including the five cross-check-only filers — which have no sector entry,
+no override and no fixture — gives **902 of 1,080 = 83.5% resolved, still with
+zero `ambiguous_concept`** (`facts_coverage_all18.json`). That the untuned
+filers resolve slightly *better* than the tuned ones, and introduce no new
+ambiguity, is the strongest available evidence that the registry's candidate
+lists generalise rather than having been fitted to the thirteen companies they
+were written against.
+
 ### 4.3 Indexing throughput (P2-00d)
 
 `reports/phase2/throughput_profile.json` — 200 real chunks stratified by
@@ -356,7 +366,8 @@ The full list with timestamps and exit codes is in `logs/phase2/commands.log`
 | 0 | `python scripts/make_ixbrl_fixtures.py` | 8 fixtures, 3–28 KB (P2-01) |
 | 0 | `python scripts/verify_dei_labels.py --filings 5` | `dei_labels.json` (§4.5) |
 | 0 | `python -m facts.build --filings 5` | `facts_build.json`, 26,041 facts |
-| 0 | `python scripts/facts_coverage.py` | `facts_coverage.{json,csv}` (§4.2) |
+| 0 | `python scripts/facts_coverage.py` | `facts_coverage.{json,csv}` (§4.2, bundled 13) |
+| 0 | `python scripts/facts_coverage.py --all-tickers` | `facts_coverage_all18.json` (§4.2) |
 | 1 | `python scripts/crosscheck_companyfacts.py` | `crosscheck.{csv,json}` (§4.1); exit 1 is the 99.5% threshold |
 | 0 | `python scripts/make_spotcheck_sheet.py` | `owner_spotcheck.csv` (P2-10) |
 | 0 | `pytest tests/unit tests/integration --cov` | 511 passed, 90% (§3) |

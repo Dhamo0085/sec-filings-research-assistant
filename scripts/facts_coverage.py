@@ -47,6 +47,13 @@ from facts.store import FactsStore  # noqa: E402
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--ticker", action="append", dest="tickers")
+    ap.add_argument("--all-tickers", action="store_true",
+                    help="include the cross-check-only filers (P2-09: NVDA, "
+                         "TSLA, V, COST, META). Excluded by default because "
+                         "they are deliberately outside the project's corpus "
+                         "(not in config.COMPANIES, no sector entry, no "
+                         "overrides), so mixing them in moves the headline "
+                         "coverage number for the bundled set.")
     ap.add_argument("--metric", action="append", dest="metrics")
     ap.add_argument("--out", default="reports/phase2/facts_coverage.json")
     ap.add_argument("--csv", default="reports/phase2/facts_coverage.csv")
@@ -64,6 +71,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     pairs = sorted({(s["ticker"], s["fiscal_label"]) for s in built
                     if s["fiscal_label"]})
     tickers = {t.upper() for t in (args.tickers or [])}
+    if not tickers and not args.all_tickers:
+        from config import COMPANIES
+        tickers = {c["ticker"].upper() for c in COMPANIES} | {"NFLX"}
     if tickers:
         pairs = [p for p in pairs if p[0] in tickers]
     metrics = args.metrics or registry.metric_names()

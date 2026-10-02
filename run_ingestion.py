@@ -46,7 +46,7 @@ def main(skip_download: bool = False, skip_index: bool = False) -> None:
 
     def _file_sink(message: str) -> None:
         # Loguru's built-in file sink uses seek() for rotation which can raise
-        # OSError 107 (ENOTCONN) on some Colab/FUSE-backed filesystems. Writing
+        # OSError 107 (ENOTCONN) on some FUSE-backed filesystems. Writing
         # through a plain append-open avoids that and silently skips on I/O errors.
         try:
             with _log_path.open("a", encoding="utf-8") as fh:

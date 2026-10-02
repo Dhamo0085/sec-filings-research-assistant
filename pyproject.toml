@@ -70,6 +70,9 @@ ignore = [
 "models.py" = ["DTZ005"]
 
 [tool.pytest.ini_options]
+# The project is run from its root, not installed, so the root must be
+# importable for `import config`, `import query`, etc.
+pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "unit: pure functions, no network, no LLM",

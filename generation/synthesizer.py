@@ -17,6 +17,7 @@ from typing import Dict, List
 from loguru import logger
 
 from config import settings
+from generation.citations import remap_citations
 from generation.generator import _get_client, generate_answer
 from models import QueryResult, RetrievedChunk
 from retrieval.retriever import retrieve
@@ -123,15 +124,12 @@ def synthesize(
         if result.answer.startswith("No relevant information was found"):
             continue
 
-        remapped_answer = result.answer
-        renumbered_cits = []
-        for cit in result.citations:
-            new_idx = cit["index"] + citation_offset
-            remapped_answer = remapped_answer.replace(
-                f"[{cit['index']}]", f"[{new_idx}]"
-            )
-            renumbered_cits.append({**cit, "index": new_idx})
-
+        # Single-pass remap (generation/citations.py). The previous
+        # per-citation str.replace() loop could rewrite the same marker twice
+        # — see K1 and that module's docstring.
+        remapped_answer, renumbered_cits = remap_citations(
+            result.answer, result.citations, citation_offset
+        )
         citation_offset += len(result.citations)
 
         combined_parts.append(

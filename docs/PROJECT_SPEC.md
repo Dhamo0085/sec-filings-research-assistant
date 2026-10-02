@@ -1,0 +1,543 @@
+# Financial_RAG v2 — Project Specification
+
+Version 1.2 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
+
+---
+
+## 0. How to use this document
+
+- `CLAUDE.md` holds the standing rules; this file holds the design, contracts, tests, and phase tasks.
+- Every task has an ID (`P2-05`), every test an ID (`T2-05`). Reports reference these IDs.
+- Status words: **MUST** (required for the gate), **SHOULD** (do unless blocked; explain if skipped), **OPTIONAL** (only with owner approval).
+
+---
+
+## 1. Product definition
+
+**One line:** a research assistant over SEC 10-K filings whose numbers are traceable to filing facts, whose answers respect "what was public on date X", and which says "I can't answer that" (with a reason) instead of guessing.
+
+**Primary use case:** retail-trading research questions: "What was X's net income in FY2024?", "How did X's operating margin change 2022→2024?", "Compare X and Y R&D spend", "What risks does X disclose?", "As of March 1, 2024, what was X's latest annual revenue?"
+
+### 1.1 Guarantees (each is tested)
+- **G1 Traceable numbers.** Every number in a `status=answered` response comes from a stored Fact or the Calculator, and cites filing, period, concept.
+- **G2 No look-ahead.** With `as_of=D`, no cited filing has `filing_date > D`.
+- **G3 Abstain, don't guess.** Missing evidence, ambiguity, or unsupported scope produces `status=abstained` with a reason code.
+- **G4 Errors are visible.** Dependency failures (LLM, DB) produce `status=error`, never a misleading "clarification" or empty answer.
+- **G5 Reproducible evaluation.** Every reported metric traces to a file under `reports/` produced by a command in the repo.
+
+### 1.2 Scope
+- Annual reports (10-K, and 10-K/A amendments) of US SEC filers, USD reporting.
+- Bundled tickers: AAPL, MSFT, GOOGL, AMZN, JPM, WFC, BAC, GS, BLK, STT, TROW, IVZ, NFLX. Other filers via on-demand ingestion (text path always; facts path when extraction succeeds; ambiguity means abstain).
+- **Delivery:** local-first, free services only (D17, D18).
+- **Non-goals:** investment advice, forecasts, prices, real-time data, trade execution, quarterly filings (10-Q). A quarterly or non-annual period request abstains with `unsupported_period_type`.
+
+---
+
+## 2. Engineering principles
+1. Correctness before coverage. 2. Deterministic where possible; LLM only where language understanding is needed.
+3. Everything testable offline; the live LLM is an integration concern, not a unit-test dependency.
+4. Fail closed (auth) and fail loud (errors). 5. Small modules with typed interfaces. 6. Every claim in a README is backed by a log file.
+
+---
+
+## 3. Current state (from Phase 0; evidence in `reports/phase0/REPORT.md`)
+
+**Provenance.** The code started from an earlier MIT-licensed prototype and now lives in this new repository with fresh history (D17). The original hosted deployment belongs to a third party: it was probed read-only in Phase 0 and is out of scope (not measured further, not touched, not linked).
+
+Existing, working: EDGAR download, iXBRL-aware HTML parser with section detection and EX-13 merge, chunker, ONNX embeddings (dense bge-base + BM25), Qdrant (one collection per `{TICKER}_{fiscal_year}`), RRF fusion, cross-encoder rerank, per-focus boosts, parent-section context, LLM classifier + decomposer + synthesizer (Groq only), FastAPI + chat UI, Dockerfile, on-demand ingestion, chat history.
+
+Measured defects: see section 17.2. Highlights: classifier swallows all exceptions (fail-open); admin guard is fail-open (the original third-party deployment ran with no token); citation renumbering collides; years hard-coded to 2023–2025; "assume millions" prompt breaks thousands-reporting filers; iXBRL facts are discarded at parse time; `filing_date` is not available at query time; the refusal regex has recall 0.556.
+
+Validated for reuse: iXBRL extraction matched SEC `companyfacts` on 105/105 (filing, concept) pairs; concept **selection** (not extraction) is the risk; Wells Fargo's contexts and facts are split across the 10-K wrapper and the EX-13 exhibit and must be pooled.
+
+---
+
+## 4. Decisions register (see `docs/DECISIONS.md` for rationale; IDs are stable)
+
+| ID | Decision | Status |
+|---|---|---|
+| D1 | Facts come from iXBRL in locally stored filings, pooled per submission. SEC `companyfacts` is an offline validation oracle only. | DECIDED |
+| D2 | `as_of` is applied at filing-selection time via the catalog (no re-indexing, no Qdrant payload change). | DECIDED |
+| D3 | Keep the v1 text path; its components are ablated in Phase 4, not rewritten. | DECIDED |
+| D4 | Gold numeric answers come from an oracle independent of the code under test; the owner hand-verifies a stratified sample; verification level is recorded per item. | DECIDED |
+| D5 | "Revenue" returns the filer's own headline total net revenue (e.g. JPM total net revenue; BAC total revenue, net of interest expense; GS total net revenues), always naming the definition used, with alternative definitions available on request. Per-filer overrides are curated and validated. | DECIDED (owner may override) |
+| D6 | Fiscal labeling uses the company's own label (`dei:DocumentFiscalYearFocus`, verified on the corpus; fallback `period_end.year`) and always shows the period-end date. A calendar-year phrasing is mapped via `period_end`. | DECIDED (owner may override) |
+| D7 | Dependency failures are typed errors (`status=error`, HTTP 503). No fallback masks them. | DECIDED |
+| D8 | Facts-path answers are produced by deterministic templates. LLM paraphrase is optional and off by default. | DECIDED |
+| D9 | Status taxonomy: `answered` (verified facts), `answered_text` (text-path answer, not fact-verified), `abstained`, `clarification_needed`, `error`. | DECIDED |
+| D10 | Annual filings only in v2. | DECIDED |
+| D11 | LLM access uses **free tiers only** (no paid keys): an OpenAI-compatible, multi-provider client with ordered failover, per-role model choice, and a capability registry. Embeddings and reranking stay local (ONNX). Provider and model are pinned per evaluation run and recorded. | DECIDED |
+| D12 | SQLite for catalog and facts; Qdrant for text (local and remote supported). | DECIDED |
+| D13 | Admin auth: `X-Admin-Token` header, constant-time compare, fail-closed (unset token disables admin routes). | DECIDED |
+| D14 | Restatements: for a requested period, use the most recent filing eligible at `as_of` that contains it; flag `restated=true` when it differs from the original filing's value. | DECIDED |
+| D15 | Facts coverage ≥ text coverage: facts for up to 5 most recent 10-Ks per bundled ticker (`FACTS_FILINGS_PER_COMPANY`), text index per existing `filings_per_company`. | DECIDED |
+| D16 | Chat history is runtime data: untracked by git, per-session secret, retention limit. | DECIDED |
+| D17 | Provenance: v2 is a **new, personal portfolio repository** with fresh history, created by Step 0 (`docs/BOOTSTRAP.md`) through the GitHub CLI. The code started from an earlier MIT-licensed prototype; `LICENSE` and a one-paragraph `NOTICE` acknowledge that. No data, deployments, secrets, or links from the old project are carried over. | DECIDED |
+| D18 | **No paid services.** Delivery is local-first (`make up`, Docker Compose) plus a recorded demo. A hosted demo is optional and only on a verified-free platform (O2). | DECIDED |
+| O1 | Free-tier keys: **created** (Groq, Gemini). Gemini limits are recorded in Appendix A. Groq free-plan limits are measured in P1-04 (response headers) and may be added to `llm/limits.local.yaml`. | PARTIALLY RESOLVED |
+| O2 | Whether and where to host a free public demo (verify current free terms at signup), and how derived DBs and Qdrant data reach it. | OPEN (decide at P5-02) |
+
+---
+
+## 5. Target architecture
+
+```
+Client (UI / API)  ──  POST /query {question, as_of?}
+        │
+  API layer (api/app.py): rate limit · size cap · request id · error mapping · CORS allow-list
+        │
+  ask()  (query.py)
+        │
+  [1] ENTITY & PERIOD RESOLUTION   deterministic: tickers (SEC registry + aliases), fiscal periods, as_of, catalog lookups
+        │
+  [2] ROUTER   rules first → LLM only when needed → strict JSON schema validation → typed failure
+        │ intent
+        ├── numeric_fact | computed | compare | trend ──► FACTS PATH
+        │       facts.resolve(ticker, metric, period, as_of) → Fact → calc → deterministic template
+        ├── narrative ───────────────────────────────────► TEXT PATH
+        │       catalog-eligible collections → hybrid retrieve → rerank → generate (structured {found, answer})
+        └── unsupported / unanswerable ──────────────────► ABSTAIN
+        │
+  [3] ABSTENTION GATE   single module; reason enum; user-facing message templates
+        │
+  [4] Outcome(status, answer, citations[fact|text], definition_note, as_of, trace)
+```
+
+**Stores:** Qdrant (text chunks) · `data/derived/catalog.sqlite` · `data/derived/facts.sqlite` · chat DB (runtime, untracked) · LLM cache (`.cache/llm_cache.sqlite`).
+
+**Degradation rule (P5):** if the LLM is unavailable, numeric questions that the deterministic router can parse still answer from facts; narrative questions return `status=error`/`llm_unavailable`.
+
+---
+
+## 6. Data contracts
+
+### 6.1 Filing (catalog row)
+`accession` (PK) · `ticker` · `cik` · `entity_name` · `form_type` (`10-K`|`10-K/A`) · `period_end` (date) · `fiscal_label` (int) · `fiscal_label_source` (`dei`|`period_end`) · `filing_date` (date) · `primary_doc` · `exhibit_docs` (json list) · `collection_name` (nullable) · `facts_built_at` (nullable) · `amends` (accession, nullable)
+Rules: a ticker may map to several CIKs (BlackRock: `BlackRock Finance, Inc.` CIK 1364742 → `BlackRock, Inc.` CIK 2012383); the mapping lives in `catalog/cik_overrides.yaml`.
+
+### 6.2 Fact (facts.sqlite)
+`id` · `accession` (FK) · `ticker` · `concept` (`us-gaap:Revenues`) · `value` (decimal string, fully scaled and signed) · `value_num` (REAL, for sorting only) · `unit` (`USD`, `USD/shares`, `shares`, `pure`) · `decimals` · `scale_raw` · `sign_raw` · `period_type` (`duration`|`instant`) · `start_date` · `end_date` · `context_id` · `source_doc` · `element_id`
+Rules: only **non-dimensional** (consolidated) facts are stored in v2. Calculations use `Decimal`. Never infer scale; read `scale`, `sign`, `format`, `xsi:nil`.
+
+### 6.3 Metric registry (`facts/concepts.yaml`)
+```yaml
+revenue:
+  label: "Total net revenue"
+  statement: income
+  period_type: duration
+  candidates:                # ordered per sector; the order is a hint, NOT the policy (see 6.4)
+    default: [us-gaap:Revenues, us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax, us-gaap:SalesRevenueNet]
+    bank:    [us-gaap:Revenues, us-gaap:RevenuesNetOfInterestExpense]
+  aliases: [revenue, revenues, sales, net sales, top line, total revenue]
+  overrides:                 # per ticker (and optionally per fiscal range), each with provenance
+    BLK: {concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax, evidence: "accession …, income statement line 'Total revenue'"}
+```
+Initial metrics: `revenue`, `net_income`, `operating_income`, `gross_profit`, `rd_expense`, `total_assets`, `total_liabilities`, `stockholders_equity`, `cash_and_equivalents`, `operating_cash_flow`, `capex`, `eps_diluted`.
+
+### 6.4 Resolution policy (from the Phase 0 findings; MUST)
+1. Pool **all documents of a submission** (wrapper + exhibits, or the complete instance XML) before resolving contexts.
+2. Duration facts: annual means 350–380 days (52/53-week years). Instant facts: at `period_end`. Exclude dimensional contexts.
+3. Candidate selection per (filer, metric): override if present; else if exactly one candidate has a value, use it; else return **`ambiguous`** with all candidates. Never silently pick.
+4. Validation: the chosen value should appear as the matching line in the rendered income statement (parsed section `fs_income_stmt`). Record `validation_status` ∈ `validated|unvalidated|conflict`. Conflicts are listed in the phase report.
+5. Restatements (D14) and `as_of` (D2) are applied after candidate selection.
+
+### 6.5 Outcome (API response)
+```json
+{
+  "status": "answered | answered_text | abstained | clarification_needed | error",
+  "answer": "string",
+  "abstain_reason": null,
+  "error_code": null,
+  "query_type": "numeric_fact | computed | compare | trend | narrative | unsupported",
+  "as_of": "YYYY-MM-DD or null",
+  "definition_note": "e.g. 'Revenue = total net revenue (us-gaap:Revenues), fiscal year ended 2024-09-28'",
+  "citations": [
+    {"kind": "fact", "index": 1, "ticker": "AAPL", "metric": "revenue", "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+     "period_end": "2024-09-28", "fiscal_label": 2024, "value": "391035000000", "unit": "USD",
+     "accession": "…", "filing_date": "2024-11-01", "restated": false},
+    {"kind": "text", "index": 2, "ticker": "JPM", "fiscal_label": 2024, "section": "Item 1A: Risk Factors", "accession": "…", "filing_date": "…"}
+  ],
+  "trace": null
+}
+```
+`abstain_reason` enum: `company_not_found`, `no_filing_for_company`, `period_not_covered`, `period_not_filed_as_of`, `future_period`, `metric_not_supported`, `metric_not_found_in_filing`, `ambiguous_concept`, `unsupported_period_type`, `out_of_scope`, `insufficient_evidence`.
+`error_code` enum: `llm_auth`, `llm_rate_limited`, `llm_unavailable`, `llm_bad_output`, `data_unavailable`, `internal`.
+`trace` is returned only to an admin (`X-Admin-Token`) with `?debug=1`.
+
+### 6.6 Gold item (`eval/gold/gold_v1.jsonl`)
+```json
+{"id": "N-AAPL-REV-2024", "category": "numeric", "question": "What were Apple's total net sales in fiscal 2024?", "as_of": null,
+ "expected": {"type": "numeric", "ticker": "AAPL", "metric": "revenue", "period_end": "2024-09-28", "value": "391035000000", "unit": "USD", "tolerance_rel": 0.0},
+ "source": {"accession": "…", "concept": "us-gaap:…", "oracle": "sec_companyfacts"},
+ "verified_by": "owner | companyfacts | auto", "notes": ""}
+```
+Other `expected.type` values: `computed` (value + tolerance_abs), `multi` (list of numeric), `abstain` (`abstain_reason`), `text` (`expected_sections`, optional `must_contain_numbers`).
+
+---
+
+## 7. Module layout (target; deviations need a DECISIONS entry)
+
+```
+api/            app.py (routes, middleware), chat.py, auth.py (new), ratelimit.py (new)
+catalog/        build.py, store.py, cik_overrides.yaml            (new)
+facts/          extract.py, concepts.yaml, concepts.py, store.py, resolve.py, calc.py, format.py   (new)
+llm/            client.py, errors.py, fake.py, providers.yaml, prompts/ (versioned prompt files)                    (new)
+routing/        entities.py (new), periods.py (new), router.py (new; classifier.py kept until replaced), decomposer.py, resolver.py
+answering/      outcome.py, abstain.py, facts_answer.py, text_answer.py                              (new)
+generation/     generator.py, synthesizer.py, citations.py (new)
+retrieval/      (existing; modes behind config flags for ablation)
+ingestion/      (existing; extended to build catalog + facts on ingest)
+evaluation/     ragas_eval.py (kept, optional)
+eval/           gold/, scorers.py, runner.py, ablations.py, variants.yaml, phase0/ (kept as history)
+scripts/        smoke.py, build_all.sh, crosscheck_companyfacts.py, check_qdrant_filter.py
+tests/          unit/, integration/, regression/, fixtures/, phase0/ (kept)
+docs/           PROJECT_SPEC.md, DECISIONS.md, CHANGELOG.md, EVAL.md, LIMITATIONS.md, DEMO.md, RUNBOOK.md, PRIVACY.md, explainers/
+reports/        phase0/ … phase5/, final/
+logs/           phase1/ … phase5/
+LICENSE, NOTICE (MIT; provenance, see D17)
+```
+
+---
+
+## 8. Configuration (env vars; lazy-loaded, no import-time failure)
+
+| Var | Purpose | Default |
+|---|---|---|
+| `GEMINI_API_KEY`, `GROQ_API_KEY` (alias `groq_api`), optional third-provider key | free-tier provider keys (owner-created) | required at runtime for LLM features, not at import |
+| `edgar_email` | SEC User-Agent contact | required at runtime, not at import |
+| `ADMIN_TOKEN` | admin auth; unset means admin routes are disabled | unset |
+| `LLM_PROVIDERS` | default ordered failover list of `provider:model` entries, e.g. `gemini:gemini-3.5-flash-lite,gemini:gemini-3.1-flash-lite,groq:openai/gpt-oss-120b` | set by the P1-04 bake-off |
+| `ROUTER_PROVIDERS`, `GENERATOR_PROVIDERS`, `JUDGE_PROVIDERS` | per-role ordered `provider:model` lists (override `LLM_PROVIDERS`); legacy `GENERATION_MODEL`/`ROUTING_MODEL` accepted on the Groq path | from the bake-off |
+| `CORS_ORIGINS` | comma-separated allow-list | empty (same-origin only) |
+| `RATE_LIMIT_PER_MIN`, `MAX_QUESTION_CHARS` | `/query` limits | 20, 500 |
+| `LLM_CACHE_PATH`, `LLM_DAILY_TOKEN_BUDGET` | cache location, hard stop | `.cache/llm_cache.sqlite`, limits from `llm/limits.local.yaml` (owner-entered, O1) |
+| `QDRANT_URL`, `QDRANT_API_KEY` | optional remote Qdrant (not needed for local-first delivery) | unset (local mode) |
+| `FACTS_DB_PATH`, `CATALOG_PATH` | derived DBs | `data/derived/…` |
+| `FACTS_FILINGS_PER_COMPANY` | facts coverage (D15) | 5 |
+| `ENABLE_FACTS`, `ENABLE_ASOF`, `ENABLE_ABSTAIN_GATE` | ablation switches | all `true` |
+| `RETRIEVAL_MODE` (`hybrid`,`dense`,`bm25`), `ENABLE_FOCUS_BOOST`, `ENABLE_RERANK` | retrieval ablations | `hybrid`, `true`, `true` |
+| `FACTS_LLM_PHRASING` | optional paraphrase (D8) | `false` |
+
+---
+
+## 9. LLM policy
+1. One client (`llm/client.py`); no other module imports a provider SDK. It speaks the OpenAI-compatible chat API against configurable `base_url`s, so providers are configuration (`llm/providers.yaml`: base URL, key env var, models per role, supported features such as JSON output).
+2. Disk cache keyed by hash of (model, messages, temperature, prompt_version). Cache hits cost zero tokens.
+3. Typed errors: `LLMAuthError`, `LLMRateLimited(retry_after)`, `LLMUnavailable`, `LLMBadOutput`. Respect `Retry-After`; max 3 attempts; never loop.
+4. Budgets are tracked per (provider, model): requests per minute/day and tokens per minute (and per day where a limit exists), seeded from Appendix A and `llm/limits.local.yaml`, and corrected at runtime from rate-limit response headers when a provider sends them (for example `x-ratelimit-*`) and from `Retry-After`. Failover walks the ordered `provider:model` list for the role; when all entries are exhausted raise `LLMRateLimited`; runners mark remaining items `not_run`.
+5. Structured outputs are validated against a pydantic schema; an invalid output raises `LLMBadOutput` (one repair retry allowed).
+6. Router temperature 0. Prompts live in `llm/prompts/` with a version id that is logged in traces.
+7. Filing text is untrusted data: prompts must instruct the model to treat context as data, not instructions.
+8. A `FakeLLM` (deterministic, fixture-driven) is used by all offline tests.
+9. Never log secrets or full prompts at INFO; log token counts, provider, model, latency, cache hit.
+10. Failover is for the app. **Evaluation runs pin one provider/model** (no failover) and record provider, model, and date in every result row. A judge, if used, comes from a different provider than the generator.
+11. Free tiers change without notice. Never hard-code limits or model names in code; read them from config and record the values used in each report.
+12. Free tiers may use submitted content to improve provider models. This project sends only public SEC text and user questions; private data (for example emails) must never be sent to a free-tier provider.
+
+---
+
+## 10. Testing strategy
+
+| Layer | What | Network/LLM | Marker |
+|---|---|---|---|
+| Unit | pure functions: calc, scale/sign, concept resolution, period parsing, eligibility, citation remap, scorers | none | `unit` |
+| Integration | pipeline with fixture filings/facts + `FakeLLM`; API contract tests; fixture Qdrant (tiny) | none | `integration` |
+| Regression | gold-set subsets on the real stack | LLM and/or network | `live`, `slow` |
+| Property | calculator and `as_of` invariants (Hypothesis) | none | `unit` |
+
+- `make test` runs `unit` + `integration` with sockets blocked (`pytest-socket`); it MUST pass with no `.env` present.
+- Coverage targets: ≥ 85% on `facts/`, `catalog/`, `llm/`, `answering/`, `routing/entities.py`, `routing/periods.py`; ≥ 70% on all new code. Coverage XML is saved per phase.
+- Fixtures: small trimmed real iXBRL excerpts in `tests/fixtures/ixbrl/` (AAPL, NFLX thousands, BLK dual revenue, BAC, WFC split wrapper/EX-13, a 52/53-week filer, a 10-K/A, a negative-value case), each ≤ 200 KB.
+- A phase gate requires: all phase tests green, `make lint` clean (ruff), no skipped test without a documented reason, and the phase report.
+
+---
+
+## 11. Evaluation specification (built in Phase 4; scorers evolve from Phase 0's)
+
+**Gold set v1 (target 80):** numeric 25 · computed 12 · compare/trend 10 · narrative 15 · `as_of`/look-ahead 8 · abstain 10. Cover all four sectors and at least one thousands-reporting filer, one split-document filer, one multi-concept filer.
+**Oracle (D4):** numeric values come from SEC `companyfacts` (independent of our extractor); `verified_by` ∈ `owner` > `companyfacts` > `auto`. Headline metrics use `owner` + `companyfacts` items; `auto` items are reported separately.
+**Metrics:** numeric accuracy · computed accuracy · abstention precision/recall (overall and per reason) · false-abstain rate · look-ahead violation count (target 0) · citation validity · scale errors · wrong-period errors · narrative section hit@k and MRR · latency p50/p95 · tokens/query · cost/query. Report counts as n/N with 95% Wilson intervals. No significance claims unless a test was computed.
+**Variants:** V0 `v1-baseline` tag (same gold; `as_of` passed in question text) · V1 v2 with `ENABLE_FACTS=false` · V2 `ENABLE_FACTS=true`, `ENABLE_ASOF=false`, `ENABLE_ABSTAIN_GATE=false` · V3 full v2. Each run pins one provider/model (section 9); identical prompts across variants are served from the LLM cache, so ablations cost few new tokens.
+**Retrieval ablations (no generation tokens):** BM25-only, dense-only, hybrid, hybrid+rerank, hybrid+rerank+focus-boost, plus parent-context on/off; metrics: section hit@k, MRR, expected-number-in-context rate.
+
+---
+
+## 12. Phases
+
+Each phase ends with the report protocol in section 13. Owner gates are listed per phase.
+
+### Phase 1 — Foundation, hardening, catalog, true baseline
+
+**Goal:** a trustworthy, testable base; hardened code that runs locally; a real "before" measurement exists.
+
+| ID | Task | Level |
+|---|---|---|
+| P1-00 | **Baseline first, on unmodified v1 code.** Create a git worktree of tag `v1-baseline`; share one local data directory with `v2-dev` (symlink or env). Set up a venv and run `run_ingestion.py` for the bundled 12 + NFLX. The v1 code only speaks to Groq with the owner's Groq key. First list the models available to the key (`GET https://api.groq.com/openai/v1/models`): the Groq models page marks `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` (v1's defaults) as Enterprise, which may explain the old deployment's failures (unverified). Use the nearest available models via env (`GENERATION_MODEL`/`ROUTING_MODEL`: configuration, not code) and record exactly what was used. If no available model works with v1's unmodified prompts and parsing, apply the smallest possible compatibility patch (model names and response parsing only) on a branch `v1-baseline-compat`, report the diff, and label the baseline "v1 + compat patch". Run the Phase 0 runner on the 25 questions (cache on, resumable; stop cleanly at the free-tier limit and continue the next day). Score with the Phase 0 scorer. Save `reports/phase1/baseline_v1_local/` with provider, model names, dates, and `not_run` counts. Record ingestion time, sizes, and failures. | MUST |
+| P1-01 | Verify the Step 0 result (`reports/bootstrap/REPORT.md`): repository exists and is private; tags and branches present; ignore rules active; README stub and `.env.example` in place. Remove `test_setup.py` once `make test` exists. Resolve any REVIEW items with the owner. No repository creation work here. | MUST |
+| P1-02 | Dependencies and tooling: split `requirements.txt` (serving), `requirements-dev.txt` (pytest, pytest-cov, pytest-socket, hypothesis, ruff), `requirements-eval.txt` (ragas, datasets, langchain-*); verify the pinned Python version works for fastembed/onnxruntime on macOS arm64 and align `Dockerfile`; create `Makefile` targets from CLAUDE.md. | MUST |
+| P1-03 | Lazy settings: no import-time failure without `.env`; add env vars from section 8; keep `groq_api`/`edgar_email` names. | MUST |
+| P1-04 | `llm/` package per section 9: OpenAI-compatible multi-provider client with ordered `provider:model` failover across **free-tier** entries (Appendix A), capability registry (`llm/providers.yaml`), disk cache, per-(provider, model) request/token budgets with header-based correction, typed errors; migrate classifier, decomposer, generator, synthesizer to it. Confirm each provider's OpenAI-compatible base URL from its docs and list available model IDs via the provider's models endpoint (discover the Gemma 4 IDs this way). Include a **provider bake-off** (≤ 40 calls total, cached; at most 5 calls on any 20-requests/day model): JSON-validity rate, latency, and citation-format compliance on a fixed prompt set; record in `docs/DECISIONS.md` and choose ordered lists per role (router, generator, judge) following the role guidance in Appendix A. | MUST |
+| P1-05 | Fail-loud routing: classifier/decomposer errors raise typed errors; `ask()` returns `status=error` with `error_code`; API returns 503; UI shows a clear message; `/health` reports `llm: ok|auth_error|rate_limited|unreachable` using a cached no-token probe (e.g. model listing, TTL 60 s), never one probe per request. | MUST |
+| P1-06 | Security: `api/auth.py` with D13; protect every remaining `/admin/*`, `/ingest`, and the destructive chat routes (`DELETE /sessions/{sid}`, `PATCH …/turns/{tid}`) via admin token or session secret; **remove** the admin routes that only served the old hosted deployment (`/admin/restore-data`, `/admin/migrate-to-remote*`, `/admin/data-path` delete) unless a DECISIONS entry justifies keeping them; remove wildcard CORS; `/query` rate limit and `MAX_QUESTION_CHARS`. | MUST |
+| P1-07 | Citation remap fix in `generation/citations.py` (single-pass, function replacement; handles `[10]` vs `[1]`; ignores non-citation brackets); wire into synthesizer. | MUST |
+| P1-08 | Years: remove hard-coded `VALID_YEARS`; derive from available collections (interim; the catalog replaces this in P3). Unknown year returns the existing `year_not_available` path. | MUST |
+| P1-09 | Catalog (`catalog/`): build from EDGAR submissions (seed from Phase 0's `build_manifest.py`), all 10-K and 10-K/A, with the fields in 6.1 (`fiscal_label` = `period_end.year` for now), BlackRock dual-CIK handling via overrides, 10-K/A `amends` link, mapping to local collection names. CLI `python -m catalog.build`; SEC-polite (descriptive User-Agent with `edgar_email`, ≤ 5 req/s, cached raw JSON). | MUST |
+| P1-10 | Verify Qdrant local-mode filtering against a **real** ingested collection (`scripts/check_qdrant_filter.py`) to settle the Phase 0 K9 caveat; record the pinned `qdrant-client` version. | MUST |
+| P1-11 | `scripts/smoke.py --base-url URL`: read-only check usable against a local or hosted instance (GET `/health`, `/collections`; at most 8 `POST /query`; asserts status and latency; prints a pass/fail table). | MUST |
+| P1-12 | `docs/explainers/phase1.md` (owner briefing, section 13) and the phase report including a **local release checklist** (`make up` from a clean checkout, then `smoke.py` against it). | MUST |
+
+**Tests**
+
+| ID | Test |
+|---|---|
+| T1-01 | Citation remap table tests: offsets 0–5, 1–12 citations, `[10]` vs `[1]`, text with non-citation brackets, idempotence. |
+| T1-02 | Router failure paths: fake LLM raising each typed error → `status=error` with the right `error_code`; never the "Which company…" clarification. |
+| T1-03 | Auth: enumerate all routes from `app.routes`; every admin/destructive route returns 503 when `ADMIN_TOKEN` unset, 403 with a wrong token, passes the guard with the right one. Fails if a new unguarded route appears. |
+| T1-04 | Rate limit and question-length cap. |
+| T1-05 | Importing the app with no environment variables succeeds. |
+| T1-06 | Catalog from recorded EDGAR fixtures: BlackRock dual CIK, a 10-K/A, period_end/filing_date correctness. |
+| T1-07 | A year with an existing collection (e.g. 2026) is accepted; an absent year yields `year_not_available`. |
+| T1-08 | LLM client: cache hit avoids a network call; 429 honors `Retry-After`; budget stop; error mapping; `FakeLLM` determinism. |
+| T1-09 | `/health` LLM states and no per-request probe. |
+| T1-10 | `data/chat_history.db` is untracked and gitignored. |
+| T1-11 | Provider failover: first provider 429/5xx → second provider used; an auth error on one provider is reported distinctly; evaluation-pinned runs never fail over; the capability registry rejects a provider lacking a feature required for a role. |
+| T1-12 | Repo hygiene: `LICENSE` and `NOTICE` exist; no tracked file outside `docs/BOOTSTRAP.md`, `reports/`, `eval/phase0/`, and `tests/phase0/` (historical records) references third-party deployment URLs or repository names (grep test); `.env` and the old chat DB are untracked. |
+
+**Exit criteria:** all T1 tests pass offline; ruff clean; baseline report exists with per-category results; Qdrant filter check recorded; provider bake-off recorded; local release checklist written.
+**Owner gates:** review the report; review the pull request Claude Code opens (`gh pr create`, `v2-dev` → `main`) and merge it on GitHub; run `make up` and `scripts/smoke.py --base-url http://localhost:8000`.
+
+---
+
+### Phase 2 — Facts engine
+
+**Goal:** an accurate, validated, offline facts store with a resolver and calculator.
+
+| ID | Task | Level |
+|---|---|---|
+| P2-01 | Fixtures: trimmed iXBRL excerpts listed in section 10. | MUST |
+| P2-02 | `facts/extract.py`: pooled per-submission parsing; contexts (period, dimensions), units; `ix:nonFraction` with `scale`, `sign`, `format` transforms (collect every distinct `format` value in the corpus, handle all, **fail loudly on unknown**; include zero-dash and fixed-zero styles), `xsi:nil`, nested/hidden facts (`ix:header/ix:hidden` carries the cover-page `dei:` facts). | MUST |
+| P2-03 | DEI extraction: `DocumentFiscalYearFocus`, `DocumentPeriodEndDate`, `DocumentType`, `AmendmentFlag`, `EntityRegistrantName`, `EntityCentralIndexKey`. Verify DEI fiscal labels on all 13 tickers (report mismatches vs `period_end.year`); update catalog `fiscal_label` and `fiscal_label_source`. | MUST |
+| P2-04 | `facts/store.py` (SQLite, indexes on ticker/concept/end_date/accession); `make facts` is idempotent per accession (hash of source docs); facts for up to `FACTS_FILINGS_PER_COMPANY` filings per ticker (download extra filings if needed; raw stays read-only). | MUST |
+| P2-05 | `facts/concepts.yaml` and `concepts.py` per 6.3; aliases; per-filer overrides with provenance. | MUST |
+| P2-06 | Resolution policy per 6.4, including `validation_status` against the rendered income statement. | MUST |
+| P2-07 | `facts/resolve.py`: `resolve(ticker, metric, period_selector, as_of)`; selectors: `fiscal_label`, `period_end`, `latest`, `calendar_year`; returns `Fact` + filing ref or a typed `Abstain(reason)`; applies D14 and `restated` flag. | MUST |
+| P2-08 | `facts/calc.py` (Decimal): `growth_pct`, `margin_pct`, `ratio`, `difference`, `cagr_pct`, `sum`; guards for zero/negative base, unit mismatch, period mismatch; returns value, formula string, and input facts. `facts/format.py`: money/percent formatting. | MUST |
+| P2-09 | Oracle cross-check (`scripts/crosscheck_companyfacts.py`): all catalog 10-K filings for bundled tickers plus NVDA, TSLA, V, COST, META; **compare by accession** (`accn`) so restatements do not create false mismatches; output `reports/phase2/crosscheck.csv`. | MUST |
+| P2-10 | Owner spot-check sheet `reports/phase2/owner_spotcheck.csv`: ≥ 15 rows (every sector, includes BLK, BAC, GS, WFC, NFLX), each with filing URL, statement/page hint, concept, extracted value. | MUST |
+| P2-11 | Coverage and ambiguity report; list every filer/metric returned as `ambiguous` or `conflict`. | MUST |
+| P2-12 | `docs/explainers/phase2.md` and the phase report. | MUST |
+
+**Tests**
+
+| ID | Test |
+|---|---|
+| T2-01 | Scale/sign/format transforms (thousands, millions, `sign="-"`, zero-dash, nil facts); unknown `format` fails loudly. |
+| T2-02 | Dimensional facts excluded; annual duration window incl. 52/53-week years; transition/short periods excluded; instant at `period_end`. |
+| T2-03 | Pooled submission (WFC wrapper + EX-13 fixture) resolves; each document alone does not. |
+| T2-04 | BLK and BAC fixtures: override honored; without override → `ambiguous`; never a silent pick. |
+| T2-05 | `as_of` eligibility: resolving before vs after `filing_date`; 10-K/A selection; `restated` flag (D14). |
+| T2-06 | Calculator: unit tests plus property tests (growth inverse, sign, zero base → typed error, unit/period mismatch → error). |
+| T2-07 | Formatting: thousands/millions/billions boundaries; negative values; percent rounding. |
+| T2-08 | Idempotent rebuild: running `make facts` twice yields identical DB content hashes. |
+| T2-09 | Golden values: ≥ 20 (ticker, metric, fiscal_label) tuples, owner/oracle-verified, resolved exactly. |
+| T2-10 | Cross-check thresholds (live/network): ≥ 99.5% exact on comparable pairs; 0 scale errors; 0 sign errors; every discrepancy classified. |
+
+**Exit criteria:** T2 tests pass; cross-check thresholds met; DEI fiscal-label verification reported; spot-check sheet produced.
+**Owner gate:** complete the spot-check sheet (mark each row OK/WRONG); any WRONG row must be fixed and re-checked before Phase 3.
+
+---
+
+### Phase 3 — Routing, answers, `as_of`, abstention, UI
+
+**Goal:** the user-facing system implements D5–D9 and G1–G4.
+
+| ID | Task | Level |
+|---|---|---|
+| P3-01 | `answering/outcome.py`: typed `Outcome`, `Citation` (fact|text), enums from 6.5; backward-compatible fields for the existing UI. | MUST |
+| P3-02 | `routing/entities.py`: deterministic company/ticker resolution (SEC registry cache + aliases + bundled names). `routing/periods.py`: fiscal-year phrases, "fiscal 2024", bare years, "last year", "latest", ranges ("2022 to 2024"), explicit dates → `as_of`, quarterly phrases → `unsupported_period_type`; injectable clock. | MUST |
+| P3-03 | `routing/router.py`: rules first; LLM only to disambiguate intent/metric/narrative focus; schema-validated; metric aliases from the registry; unknown metric → `metric_not_supported` or text path with `answered_text` (document the rule). Replace `classifier.py` usage. | MUST |
+| P3-04 | `answering/facts_answer.py`: deterministic templates for numeric/computed/compare/trend, including period end, definition note (D5), source filing link, `restated` note. | MUST |
+| P3-05 | Text path integration: eligible collections from the catalog with `as_of` (D2); generator returns structured `{found, answer}` (replaces the refusal regex, K11); citations become typed with `accession` and `filing_date`; result status `answered_text`. | MUST |
+| P3-06 | On-demand ingestion builds catalog + facts for the new filer; on facts failure → text path only, flagged. | MUST |
+| P3-07 | `answering/abstain.py`: single mapping from conditions to reasons and message templates. | MUST |
+| P3-08 | API: `/query` accepts `as_of` (ISO date) and returns 6.5; request IDs; admin-only `?debug=1` trace. | MUST |
+| P3-09 | UI: `as_of` date input; status badges; fact citation chips linking to the EDGAR filing; "definition used" line; abstain-reason and error states. | MUST |
+| P3-10 | Mixed numeric + narrative questions: answer both parts in labeled sections (one of each). | OPTIONAL |
+| P3-11 | Smoke evaluation: 30 gold-style questions with the real LLM; transcripts saved. | MUST |
+| P3-12 | `docs/explainers/phase3.md` and the phase report. | MUST |
+
+**Tests**
+
+| ID | Test |
+|---|---|
+| T3-01 | Entity and period parsing: ≥ 60 phrase cases (fiscal vs calendar, ranges, "last year" with injected clock, quarterly → unsupported). |
+| T3-02 | Router with `FakeLLM` fixtures; deterministic-only cases never call the LLM; invalid LLM output → `llm_bad_output` error. |
+| T3-03 | **`as_of` invariant (property test):** random dates × tickers × intents; no cited filing has `filing_date > as_of` (facts and text citations). |
+| T3-04 | Every abstain reason is reachable and returns the right message and no numeric claim. |
+| T3-05 | Template golden tests for numeric/computed/compare/trend answers (stable string output). |
+| T3-06 | K11 regression: the 17 Phase 0 refusal cases become structured outputs; `found:false` abstains with `insufficient_evidence`; false-positive phrases no longer trigger a retry. |
+| T3-07 | API contract/snapshot tests for `/query` request and response schemas. |
+| T3-08 | Offline end-to-end: fixture facts DB + `FakeLLM` + tiny Qdrant fixture; one case per intent. |
+| T3-09 | Netflix thousands case end-to-end → correct magnitude and wording. |
+
+**Exit criteria:** T3 tests pass; smoke eval completes with no crashes; transcripts show correct statuses; owner UI walkthrough done.
+**Owner gate:** try the 10 sample questions in the UI (listed in the report) and report anything surprising.
+
+---
+
+### Phase 4 — Evaluation, ablations, documentation
+
+**Goal:** a defensible, reproducible results table.
+
+| ID | Task | Level |
+|---|---|---|
+| P4-01 | Build `eval/gold/gold_v1.jsonl` (section 11): a generator script for oracle-sourced numeric/computed/multi items; `as_of` items from catalog filing dates; hand-drafted narrative and abstain items (owner approves). Schema validator. | MUST |
+| P4-02 | Owner verification sheet `reports/phase4/gold_verification.csv` (≥ 25 numeric/computed items, stratified by sector and category). Headline metrics are published only after the gate. | MUST |
+| P4-03 | `eval/scorers.py` (successor to Phase 0's): numeric (displayed-precision-aware), computed, multi-value attribution, abstention (by reason), look-ahead, citation validity, scale/period errors, narrative section hit@k. | MUST |
+| P4-04 | `eval/runner.py` + `eval/variants.yaml`: resumable, cached, token/latency/cost accounting; outputs JSONL, CSV summary, Markdown table. | MUST |
+| P4-05 | Run V0–V3 on the gold set (LLM budget per O1; resumable across days). | MUST |
+| P4-06 | Retrieval ablations (flags in `retrieval/`, defaults unchanged); no generation tokens. | MUST |
+| P4-07 | Failure analysis: categorize every failure (router, retrieval, reading, resolution, abstention, scoring); at most one fix-and-rerun cycle for high-impact bugs. | MUST |
+| P4-08 | CI (`.github/workflows/ci.yml`): lint + offline tests + offline mini-eval (facts-path gold subset on committed fixtures with recorded LLM cache); thresholds: numeric subset 100%, look-ahead violations 0. | MUST |
+| P4-09 | Docs: README rewrite (what/why, architecture, results table linked to logs, reproduction commands, honest limitations), `docs/EVAL.md`, `docs/LIMITATIONS.md`. | MUST |
+| P4-10 | `docs/explainers/phase4.md` and the phase report. | MUST |
+
+**Tests**
+
+| ID | Test |
+|---|---|
+| T4-01 | Scorer adversarial cases: swapped company values, scale error, wrong fiscal year, negatives, abstention containing numbers, percent vs fraction. |
+| T4-02 | Gold schema validator: every item has `source` and `verified_by`; no duplicate IDs; `as_of` items consistent with catalog dates; abstain items name a reason. |
+| T4-03 | Runner determinism with `FakeLLM`; resume after interruption yields identical results. |
+| T4-04 | CI workflow executes locally (script mirror) and enforces thresholds. |
+| T4-05 | Table renderer: every number in `reports/phase4/results.md` is regenerable from raw JSONL by one command. |
+
+**Exit criteria:** results table with n/N and Wilson intervals; ablation tables; failure analysis; CI green; docs written.
+**Owner gate:** verify ≥ 25 gold items; rate ≥ 15 sampled narrative answers (rating sheet generated); approve the published results.
+
+---
+
+### Phase 5 — Productization and release
+
+**Goal:** a documented, secure, one-command-runnable `v2.0.0` (optionally hosted for free).
+
+| ID | Task | Level |
+|---|---|---|
+| P5-01 | Slim, non-root image (serving deps only; no ragas/langchain); `docker-compose.yml`; `make up` for a one-command local run from a clean clone (verify in a fresh directory); document memory and disk needs. | MUST |
+| P5-02 | Hosting decision (O2): research and report the current free options with the owner (eligibility, RAM/disk, sleep behavior; a 512 MB instance is too small for the ONNX models plus local Qdrant). If the owner picks one, implement delivery of derived DBs and Qdrant data (measured sizes; bake into the image vs download at start); otherwise skip hosting. `scripts/build_all.sh` (ingest → catalog → facts) is required either way. | MUST |
+| P5-03 | Production hardening: structured JSON logs with request IDs, response cache for repeated queries, LLM-down degradation rule (section 5), graceful shutdown. | MUST |
+| P5-04 | Privacy: per-session secret for chat history, retention purge (default 30 days), log redaction; `docs/PRIVACY.md`. | MUST |
+| P5-05 | Security review: `pip-audit`, secret scan of the repo and history (report only), CORS/headers, input limits, admin disabled by default, SSRF/path-traversal review of on-demand ingestion and any remaining upload/restore code. | MUST |
+| P5-06 | Demo kit `docs/DEMO.md`: 8 scripted queries (numeric, computed, compare, trend, narrative, `as_of` look-ahead, abstention, ambiguity), expected outputs, a 3-minute walkthrough, honest limitations talking points, a screen-recording script for a demo video the owner records, and README screenshots. | MUST |
+| P5-07 | `docs/RUNBOOK.md`: env vars, run/deploy steps, key rotation, data rebuild, failure modes mapped to `/health` states. | MUST |
+| P5-08 | Final regression: full tests, full gold eval frozen into `reports/final/`, `scripts/smoke.py` against the local stack (and the hosted instance, if any), tag `v2.0.0`. | MUST |
+| P5-09 | `docs/explainers/phase5.md` (interview Q&A pack: design choices, failures found, results, limits) and the final report. | MUST |
+| — | Stretch (owner approval required, not part of Definition of Done): portfolio/trade-review demo on synthetic data; 10-Q support; segment facts; price data tool. | OPTIONAL |
+
+**Tests**
+
+| ID | Test |
+|---|---|
+| T5-01 | `docker build` succeeds; container starts with fixture data; `/health` healthy. |
+| T5-02 | LLM-down degradation: fake LLM raising `LLMUnavailable` → parseable numeric question still answers; narrative → `error`/`llm_unavailable`. |
+| T5-03 | Chat privacy: session A cannot read or delete session B; retention purge works. |
+| T5-04 | Response cache correctness (key includes `as_of`); cache never returns across different `as_of`. |
+| T5-05 | `pip-audit` clean or exceptions documented; no secrets detected. |
+| T5-06 | Compose e2e: `make up`, ten demo queries, expected statuses. |
+| T5-07 | Smoke: `scripts/smoke.py --base-url` passes against the local stack (and the hosted demo, if one exists). |
+
+**Exit criteria:** all tests green; image builds; runs from a clean clone; smoke-tested; documents complete; `v2.0.0` tagged.
+**Owner gates:** choose O2 (host or not); if hosting, deploy per the runbook; rotate keys; record the demo video; run the demo end to end once.
+
+---
+
+## 13. Logging and reporting protocol (every phase)
+
+Files Claude Code MUST produce at each phase end:
+- `reports/phaseN/REPORT.md` — sections: **1** Summary (≤ 10 bullets) · **2** What changed (modules, commit hashes) · **3** Tests (table: ID, name, result; coverage %; runtime; exact command) · **4** Metrics (phase-specific) · **5** Deviations from spec and decisions (link to DECISIONS entries) · **6** Defects found/fixed/open · **7** Owner actions and questions · **8** Gate checklist (checked/unchecked) · **9** Proposals (out-of-scope ideas) · **10** Appendix (commands with exit codes).
+- `reports/phaseN/tests/junit.xml` and `coverage.xml`.
+- `logs/phaseN/commands.log` — every non-trivial command, timestamp, exit code; plus raw logs for long runs.
+- `docs/explainers/phaseN.md` — a plain-language one-pager for the owner: what was built, why, how data flows, 5 likely interview questions with answers, 3 known weaknesses.
+- Updates to `docs/DECISIONS.md`, `docs/CHANGELOG.md`, and the phase status table in `CLAUDE.md`.
+- Final terminal output: report path, ≤ 12-line summary, then `PHASE N COMPLETE — awaiting owner approval`.
+
+Failure handling: if a test fails after two fix iterations, stop, record it as an open defect, and ask in the report. Never weaken a test to pass it.
+
+---
+
+## 14. Git and change management
+- Branches: `main` (stable) · `v2-dev` (integration) · `phase-N-<slug>` (work). Tag `v1-baseline` (the initial import commit, placed during Step 0) and `phaseN-complete` at each gate.
+- One concern per commit; conventional prefixes (`fix:`, `feat:`, `test:`, `docs:`, `chore:`). Phase branch merges into `v2-dev` only after the gate. Merging to `main` is an owner action.
+- Claude Code pushes `v2-dev` and phase branches and opens pull requests with `gh`; merging into `main` is the owner's action on GitHub. Forbidden: force-push, repository deletion or rename, visibility or settings changes, any remote other than `origin`.
+- Never rewrite published history. If a secret is ever committed, stop and tell the owner.
+
+## 15. Security and privacy checklist (verified in Phase 5, enforced from Phase 1)
+Admin fail-closed (T1-03) · no wildcard CORS · rate limit and size cap · constant-time token compare · tokens only in headers · no secrets in logs/repo · filings treated as untrusted prompt data · on-demand ingestion resolves companies only through the SEC registry (no arbitrary URL fetch) · upload/restore routes removed (path-traversal-guarded if any are kept) · chat history untracked, per-session secret, retention limit · dependency audit.
+
+## 16. Definition of Done (project)
+1. All tests green offline (`make test`); live regression passes; CI green.
+2. Gold results table published with n/N, intervals, and links to raw logs; owner-verified sample documented.
+3. G1–G5 each demonstrated by a named test or report section.
+4. `v2.0.0` runs from a clean clone with one command (`make up`); admin routes are disabled by default; no paid service is required; if a hosted demo exists, `smoke.py` passes against it; no known high-severity issues.
+5. README, EVAL, LIMITATIONS, DEMO, RUNBOOK, PRIVACY, DECISIONS, and phase explainers exist and match the code.
+
+## 17. Registers
+
+### 17.1 Open questions (owner)
+O1 Groq free-plan limits (measured in P1-04). O2 whether and where to host a free demo.
+
+### 17.2 Known-issues register (from Phase 0) → resolving phase
+| ID | Issue | Phase |
+|---|---|---|
+| F1 | Classifier swallows all exceptions; outage looks like "Which company?" | P1 |
+| K1 | Citation remap collisions | P1 |
+| K2 | "Assume millions" prompt; LLM reads noisy tables | P2/P3 |
+| K3 | iXBRL facts discarded at parse | P2 |
+| K4 | No `filing_date`/`period_end` at query time | P1 (catalog) / P3 |
+| K5 | Hard-coded `VALID_YEARS`; MSFT FY2026 unreachable; `NVDA_2026` unreachable | P1 interim / P3 final |
+| K6 | Hand-tuned focus boosts | P4 (ablation) |
+| K7 | Admin routes open when token unset (original deployment) | P1 |
+| K8 | Chat DB committed | P1 |
+| K9 | Local-mode filter behavior (refuted in synthetic test; verify on real collection) | P1 |
+| K10 | Weak evaluation (8 questions, same-family judge) | P4 |
+| K11 | Refusal regex (recall 0.556; 3 false positives) | P3 |
+| N1 | BlackRock dual CIK | P1/P2 |
+| N2 | Python 3.10 in Docker vs 3.12 locally | P1 |
+| N3 | Heavy eval dependencies in production image | P1 split / P5 slim |
+| N4 | Import-time `Settings()` breaks import without `.env` | P1 |
+| N5 | `api/chat.py` destructive routes unauthenticated | P1 |
+| N6 | iXBRL `format` transforms (zero-dash etc.) unhandled | P2 |
+| N7 | 52/53-week fiscal years | P2 |
+
+### 17.3 Changelog
+- v1.0 — initial specification after Phase 0.
+- v1.1 — new repository (D17); free-tier-only multi-provider LLM client (D11); no paid services, local-first delivery (D18); hosted-platform dependency removed.
+- v1.2 — personal portfolio framing; Step 0 bootstrap through `gh` (D17); declared Gemini free-tier limits recorded (Appendix A); P1-00/P1-01/P1-04 updated.
+
+
+---
+
+## 18. Appendix A — declared free-tier limits (read from the owner's consoles on 2026-10-02)
+
+Limits change without notice (section 9, rule 11). Treat these as seeds; the client corrects them at runtime. Quotas are per model, so each `provider:model` entry has its own budget and failover can walk across models of the same provider.
+
+**Gemini API (AI Studio, free tier).**
+
+| Model | RPM | TPM | RPD | Planned use |
+|---|---|---|---|---|
+| Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`) | 15 | 250K | 500 | primary generator and router |
+| Gemini 3.1 Flash-Lite (`gemini-3.1-flash-lite`) | 15 | 250K | 500 | failover generator/router (separate quota) |
+| Gemma 4 26B / 31B (discover IDs via the models endpoint) | 30 | 16K | 14.4K | router, decomposer, judge (short prompts only: the 16K TPM cap allows about one long generation per minute) |
+| Gemini 3.8 / 3.7 / 3.6 / 3.5 Flash, Gemini 3 Flash | 5 | 250K | 20 | reserve: spot checks only (at most 20 calls per day) |
+| Gemini 2.5 Flash / Flash-Lite | 5 / 10 | 250K | 20 | not used (access limited to prior users per Google's models page) |
+| Gemini Embedding 1 / 2 | 100 | 30K | 1K | not used (embeddings stay local) |
+| Gemini 2.5 Pro, 3.1 Pro, 2.0 Flash / Flash-Lite | 0 | 0 | 0 | unavailable on the free tier |
+
+**Groq (models page supplied by the owner).** Listed chat models: `openai/gpt-oss-120b`, `openai/gpt-oss-20b` (developer-plan limits shown: 250K TPM, 1K RPM; **free-plan limits are not on that page**), `qwen/qwen3.8-27b` (preview), `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` (both marked Enterprise). Base URL: `https://api.groq.com/openai/v1`. Free-plan limits are measured from response headers in P1-04.
+Note: `openai/gpt-oss-*` are reasoning models; the client must handle their reasoning output separately from the answer text and validate JSON strictly.
+
+**Planning consequences.**
+- **Requests per day, not tokens, are the binding limit.** One evaluation pass (about 80 questions, router plus 1–5 generation calls each, variants sharing cached prompts) is roughly 300–400 requests, so it fits in one or two days across the two Flash-Lite entries.
+- Rules-first routing and the facts path make no LLM call for most numeric questions, which also saves quota.
+- Judge and generator come from different models (and, where possible, different providers); never judge with the same model that generated.
+- No Pro-class model is available, so quality comes from deterministic components (facts, calculator, `as_of`, abstention) rather than from model size.

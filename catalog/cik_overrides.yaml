@@ -1,0 +1,39 @@
+# Ticker -> CIK overrides for the catalog (P1-09, spec 6.1).
+#
+# A ticker is not a stable key for a filer. SEC's own ticker file maps a ticker
+# to ONE CIK, but a company can reorganise into a new registrant and keep the
+# ticker, which splits its 10-K history across two CIKs.
+#
+# Phase 0 hit this with BlackRock: the FY2023 10-K is filed by
+# "BlackRock Finance, Inc." (CIK 1364742) and the FY2024/FY2025 filings by
+# "BlackRock, Inc." (CIK 2012383, created in the 2024 reorganisation). Querying
+# only the ticker's current CIK silently loses the older years; querying only
+# the old one loses the newer. Both must be fetched and merged.
+#
+# `primary` is used when one CIK must be chosen (e.g. for companyfacts).
+# `also` lists additional CIKs whose filings belong to the same ticker.
+
+tickers:
+  BLK:
+    primary: 2012383          # BlackRock, Inc. (post-2024 reorganisation)
+    also: [1364742]           # BlackRock Finance, Inc. (pre-reorganisation)
+    evidence: >-
+      Phase 0 reports/phase0/filing_manifest.json: FY2025 and FY2024 filings
+      are under CIK 2012383, FY2023 under CIK 1364742; both return
+      BlackRock entity names from data.sec.gov/submissions.
+
+  # The remaining bundled tickers map to a single CIK. Listed explicitly so
+  # catalog.build does not depend on SEC's ticker file, which returned HTTP 403
+  # to a generic User-Agent during Phase 0.
+  AAPL:  {primary: 320193}
+  MSFT:  {primary: 789019}
+  GOOGL: {primary: 1652044}
+  AMZN:  {primary: 1018724}
+  JPM:   {primary: 19617}
+  WFC:   {primary: 72971}
+  BAC:   {primary: 70858}
+  GS:    {primary: 886982}
+  STT:   {primary: 93751}
+  TROW:  {primary: 1113169}
+  IVZ:   {primary: 914208}
+  NFLX:  {primary: 1065280}

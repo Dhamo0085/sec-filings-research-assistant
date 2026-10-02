@@ -8,14 +8,23 @@ Query entry point — routes a question through the full pipeline.
 
 import re
 import sys
+
 from loguru import logger
 
 from config import settings
-from routing.resolver import classify_and_ensure
-from retrieval.retriever import retrieve
 from generation.generator import generate_answer
 from generation.synthesizer import synthesize
+from llm.errors import (
+    LLMAuthError,
+    LLMBadOutput,
+    LLMBudgetExceeded,
+    LLMError,
+    LLMRateLimited,
+    LLMUnavailable,
+)
 from models import QueryResult
+from retrieval.retriever import retrieve
+from routing.resolver import classify_and_ensure
 
 # Catches the model's own "not found" phrasing so a refused single_doc
 # answer can trigger one broadened retry instead of being accepted as final.
@@ -34,9 +43,77 @@ def _is_refusal(answer: str) -> bool:
     return bool(_REFUSAL_PATTERN.search(answer))
 
 
-def ask(query: str) -> QueryResult:
-    """Run a query through the full RAG pipeline and return a QueryResult."""
+# Spec section 6.5 error_code values, by exception type. Ordered most specific
+# first because LLMBudgetExceeded subclasses LLMRateLimited.
+_ERROR_CODES = (
+    (LLMAuthError, "llm_auth"),
+    (LLMBudgetExceeded, "llm_rate_limited"),
+    (LLMRateLimited, "llm_rate_limited"),
+    (LLMBadOutput, "llm_bad_output"),
+    (LLMUnavailable, "llm_unavailable"),
+)
 
+_ERROR_MESSAGES = {
+    "llm_auth": (
+        "I can't answer right now: the language model rejected our credentials "
+        "or the configured model isn't available to this key. This is a "
+        "configuration problem, not a problem with your question."
+    ),
+    "llm_rate_limited": (
+        "I can't answer right now: the free-tier request limit for the language "
+        "model has been reached. Please try again later."
+    ),
+    "llm_unavailable": (
+        "I can't answer right now: the language model is unreachable. "
+        "Please try again shortly."
+    ),
+    "llm_bad_output": (
+        "I can't answer right now: the language model returned a malformed "
+        "response. Please try again."
+    ),
+    "internal": (
+        "I can't answer right now because of an internal error. "
+        "The details have been logged."
+    ),
+}
+
+
+def _error_result(query: str, exc: BaseException) -> QueryResult:
+    """Build the status=error outcome for a dependency failure (D7, G4)."""
+    code = "internal"
+    for exc_type, mapped in _ERROR_CODES:
+        if isinstance(exc, exc_type):
+            code = mapped
+            break
+    logger.error(f"Pipeline dependency failure [{code}]: {type(exc).__name__}: {exc}")
+    return QueryResult(
+        query=query,
+        answer=_ERROR_MESSAGES[code],
+        citations=[],
+        chunks_used=[],
+        query_type="error",
+        status="error",
+        error_code=code,
+    )
+
+
+def ask(query: str) -> QueryResult:
+    """Run a query through the full RAG pipeline and return a QueryResult.
+
+    A dependency failure (LLM auth, rate limit, outage, malformed output)
+    returns status="error" with an error_code rather than a plausible-looking
+    answer or a request for clarification. v1 returned the clarification
+    message for every failure, which Phase 0 found live in production (F1).
+    """
+    try:
+        return _ask_inner(query)
+    except LLMError as exc:
+        return _error_result(query, exc)
+    except Exception as exc:
+        return _error_result(query, exc)
+
+
+def _ask_inner(query: str) -> QueryResult:
     # 1 — Classify (auto-ingesting any company outside the bundled 12)
     classification = classify_and_ensure(query)
     logger.info(
@@ -54,6 +131,7 @@ def ask(query: str) -> QueryResult:
             citations=[],
             chunks_used=[],
             query_type="out_of_scope",
+            status="abstained",
         )
 
     # A company was named but couldn't be resolved to any SEC filer (e.g. a
@@ -91,6 +169,7 @@ def ask(query: str) -> QueryResult:
             citations=[],
             chunks_used=[],
             query_type="unresolved_company",
+            status="abstained",
         )
 
     # A single_doc/summarization query is defined as being about ONE
@@ -105,6 +184,7 @@ def ask(query: str) -> QueryResult:
             citations=[],
             chunks_used=[],
             query_type="clarification_needed",
+            status="clarification_needed",
         )
 
     if classification.query_type in ("multi_doc", "temporal"):

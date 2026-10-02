@@ -12,16 +12,20 @@ Flow:
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict
+from typing import Dict, List
 
-from groq import Groq
 from loguru import logger
 
 from config import settings
+from generation.citations import remap_citations
+from generation.generator import generate_answer
+from llm import get_client as get_llm
 from models import QueryResult, RetrievedChunk
-from routing.decomposer import decompose_query, decompose_temporal
 from retrieval.retriever import retrieve
-from generation.generator import generate_answer, _get_client
+from routing.decomposer import decompose_query, decompose_temporal
+
+# Logged in traces so a synthesis can be tied to its prompt.
+PROMPT_VERSION = "synthesizer-v1"
 
 SYNTHESIS_SYSTEM = """\
 You are a financial analyst synthesizing multiple research findings into a single answer.
@@ -124,15 +128,12 @@ def synthesize(
         if result.answer.startswith("No relevant information was found"):
             continue
 
-        remapped_answer = result.answer
-        renumbered_cits = []
-        for cit in result.citations:
-            new_idx = cit["index"] + citation_offset
-            remapped_answer = remapped_answer.replace(
-                f"[{cit['index']}]", f"[{new_idx}]"
-            )
-            renumbered_cits.append({**cit, "index": new_idx})
-
+        # Single-pass remap (generation/citations.py). The previous
+        # per-citation str.replace() loop could rewrite the same marker twice
+        # — see K1 and that module's docstring.
+        remapped_answer, renumbered_cits = remap_citations(
+            result.answer, result.citations, citation_offset
+        )
         citation_offset += len(result.citations)
 
         combined_parts.append(
@@ -160,8 +161,8 @@ def synthesize(
     logger.debug(f"Running synthesis call for {len(sub_results)} sub-answers")
 
     try:
-        synthesis_response = _get_client().chat.completions.create(
-            model=settings.generation_model,
+        completion = get_llm().complete(
+            role="generator",
             messages=[
                 {"role": "system", "content": SYNTHESIS_SYSTEM},
                 {"role": "user",   "content": synthesis_input},
@@ -174,8 +175,9 @@ def synthesize(
             # (already-generated sub-answers, not raw chunks), so there's
             # comfortable TPM headroom to raise it.
             max_tokens=1024,
+            prompt_version=PROMPT_VERSION,
         )
-        answer = synthesis_response.choices[0].message.content.strip()
+        answer = completion.content.strip()
     except Exception as exc:
         logger.error(f"Synthesis call failed: {exc}")
         answer = "\n\n".join(combined_parts)   # fall back to concatenated sub-answers

@@ -179,8 +179,8 @@ def _build_ragas_dataset(rows: list[dict]) -> Any:
 def _configure_ragas_llm():
     """Return a RAGAS-compatible LLM wrapper using Groq."""
     try:
-        from langchain_groq import ChatGroq                    # type: ignore
-        from ragas.llms import LangchainLLMWrapper             # type: ignore
+        from langchain_groq import ChatGroq  # type: ignore
+        from ragas.llms import LangchainLLMWrapper  # type: ignore
 
         groq_key = settings.groq_api or os.environ.get("GROQ_API_KEY", "")
         llm = ChatGroq(
@@ -200,8 +200,8 @@ def _configure_ragas_llm():
 def _configure_ragas_embeddings():
     """Return a RAGAS-compatible embeddings wrapper using the local BGE model."""
     try:
-        from langchain_huggingface import HuggingFaceEmbeddings   # type: ignore
-        from ragas.embeddings import LangchainEmbeddingsWrapper    # type: ignore
+        from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore
+        from ragas.embeddings import LangchainEmbeddingsWrapper  # type: ignore
 
         hf = HuggingFaceEmbeddings(model_name="BAAI/bge-base-en-v1.5")
         return LangchainEmbeddingsWrapper(hf)
@@ -215,12 +215,12 @@ def _configure_ragas_embeddings():
 
 def _run_ragas(dataset: Any, output: Path | None) -> dict:
     """Run RAGAS evaluation and return scores."""
-    from ragas import evaluate                               # type: ignore
-    from ragas.metrics import (                              # type: ignore
-        faithfulness,
+    from ragas import evaluate  # type: ignore
+    from ragas.metrics import (  # type: ignore
         answer_relevancy,
         context_precision,
         context_recall,
+        faithfulness,
     )
 
     ragas_llm        = _configure_ragas_llm()

@@ -12,9 +12,9 @@ from typing import List
 from loguru import logger
 
 from config import TICKER_TO_COMPANY
-from routing.classifier import classify_query, ClassifiedQuery
+from ingestion.auto_ingest import YearNotAvailable, ensure_ticker_indexed
 from ingestion.registry import resolve_company
-from ingestion.auto_ingest import ensure_ticker_indexed, YearNotAvailable
+from routing.classifier import ClassifiedQuery, classify_query
 
 # classify_query() always fills in SOME year per its output schema, even
 # for questions that never named one ("What are Nike's segments?" still

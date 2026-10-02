@@ -10,19 +10,133 @@ Output types:
 
 import json
 import re
-from functools import lru_cache
-from typing import List
+import time
+from datetime import datetime, timezone
+from typing import List, Optional
 
-from groq import Groq
 from loguru import logger
 from pydantic import BaseModel
 
-from config import settings, COMPANIES
+from config import COMPANIES
+from llm import get_client as get_llm
+from llm.errors import LLMBadOutput, LLMError
 
 VALID_TICKERS = {c["ticker"] for c in COMPANIES}
-VALID_YEARS   = {2023, 2024, 2025}
+
+# ---------------------------------------------------------------------------
+# Fiscal-year discovery (P1-08, fixes K5)
+#
+# v1 pinned VALID_YEARS = {2023, 2024, 2025} here and filtered the model's
+# extracted years through it, so any other year was silently dropped and the
+# query continued as though no year had been named. Phase 0 measured the cost:
+# Microsoft's FY2026 10-K (filed 2026-07-29) was unrequestable, and the live
+# deployment held an indexed NVDA_2026 collection no year-qualified query
+# could reach.
+#
+# Two separate questions were conflated. "Is this a plausible fiscal year?"
+# is a parsing question, answered by a sanity range. "Do we actually have it?"
+# is a data question, answered downstream by routing/resolver.py, which
+# reports it as `year_not_available` (and may auto-ingest it first). Only the
+# first belongs here; the second must not silently delete the year.
+#
+# The discovered years are injected into the prompt so the model knows what is
+# covered. This is interim: the Phase 3 catalog becomes the authority.
+# ---------------------------------------------------------------------------
+
+# Collections are named "{TICKER}_{fiscal_year}" (retrieval/vector_store.py).
+_COLLECTION_RE = re.compile(r"^(?P<ticker>[A-Z][A-Z0-9.\-]*)_(?P<year>\d{4})$")
+
+# EDGAR electronic filing became general in 1993; a 10-K for next fiscal year
+# can legitimately be filed late in the current calendar year.
+_EARLIEST_FISCAL_YEAR = 1993
+_YEARS_TTL_SECONDS = 60.0
+
+_years_cache: Optional[tuple] = None
+
+
+def _list_collections() -> List[str]:
+    """Indirection so tests can patch collection listing without Qdrant.
+
+    Imported lazily: importing retrieval.vector_store at module scope would
+    pull in the Qdrant client (and fastembed) just to classify a query.
+    """
+    from retrieval.vector_store import list_collections
+    return list(list_collections())
+
+
+def _is_plausible_fiscal_year(year: int) -> bool:
+    current_year = datetime.now(timezone.utc).year
+    return _EARLIEST_FISCAL_YEAR <= year <= current_year + 1
+
+
+def reset_year_cache() -> None:
+    """Drop the cached year set (used by tests and after on-demand ingest)."""
+    global _years_cache
+    _years_cache = None
+
+
+def available_years(force_refresh: bool = False) -> frozenset:
+    """Fiscal years that currently have at least one indexed collection.
+
+    Cached for _YEARS_TTL_SECONDS because on-demand ingestion can add a year
+    mid-process, so a permanent cache would hide it, while listing collections
+    on every query is wasteful in Qdrant local mode.
+    Returns an empty set if the store cannot be listed; callers must treat
+    "unknown" as "do not filter" rather than "nothing is available".
+    """
+    global _years_cache
+    now = time.monotonic()
+    if not force_refresh and _years_cache is not None:
+        stamp, cached = _years_cache
+        if now - stamp < _YEARS_TTL_SECONDS:
+            return cached
+    try:
+        years = frozenset(
+            int(m.group("year"))
+            for name in _list_collections()
+            if (m := _COLLECTION_RE.match(name))
+        )
+    except Exception as exc:
+        logger.warning(f"Could not list collections for fiscal-year discovery: {exc}")
+        years = frozenset()
+    _years_cache = (now, years)
+    return years
 
 VALID_QUERY_TYPES = {"single_doc", "multi_doc", "temporal", "out_of_scope"}
+
+# Logged in traces so a result can be tied to the prompt that produced it
+# (spec section 9 rule 6).
+PROMPT_VERSION = "classifier-v1"
+
+# Reasoning models (Groq's gpt-oss family) bill their chain of thought against
+# max_tokens and emit it before the answer, so a budget that is merely generous
+# can still be consumed entirely by reasoning, returning empty content with
+# finish_reason="length".
+#
+# MEASURED in P1-00 against v1's unmodified classifier on gpt-oss-20b:
+#   max_tokens=200 (v1's value) -> 3 of 4 questions returned 0 chars of
+#     content, which v1's `except Exception` rendered as
+#     "Which company are you asking about?" (4 of 9 baseline questions failed
+#     this way);
+#   max_tokens=700 -> 3 of 4 fixed, but "What are Apple's reportable
+#     segments?" still consumed all 700 on reasoning.
+# Hence 1600, plus llm/client.py failing over to a non-reasoning model on
+# LLMEmptyOutput: a budget alone cannot bound an unbounded chain of thought.
+_ROUTER_MAX_TOKENS = 1600
+
+def _system_prompt() -> str:
+    """Build the classifier prompt, naming the fiscal years actually indexed."""
+    years = sorted(available_years())
+    if years:
+        years_line = "Fiscal years currently indexed: " + ", ".join(str(y) for y in years)
+    else:
+        years_line = (
+            "Fiscal years currently indexed: none yet (filings are fetched on demand)"
+        )
+    # NOTE: str.format() cannot be used here — the prompt contains a literal
+    # JSON example, and its braces would be parsed as format fields.
+    return _SYSTEM_PROMPT_TEMPLATE.replace("{years_line}", years_line)
+
 
 # What the retriever should prioritize surfacing, replacing what used to be a
 # growing pile of hand-maintained regex keyword lists in retriever.py (one
@@ -37,14 +151,14 @@ VALID_FOCUS = {
     "balance_sheet", "segment_info", "cybersecurity", "other",
 }
 
-SYSTEM_PROMPT = """\
+_SYSTEM_PROMPT_TEMPLATE = """\
 You are a query classifier for a financial document RAG system.
 
 Documents already indexed and ready: 10-K annual filings for these companies:
   Technology    : AAPL, MSFT, GOOGL, AMZN
   Banking       : JPM, WFC, BAC, GS
   Asset Mgmt    : BLK, STT, TROW, IVZ
-Fiscal years covered: 2023, 2024, 2025
+{years_line}
 
 The system is NOT limited to that list — it can fetch and index the latest
 10-K for ANY publicly traded US company on demand. So never treat a company
@@ -72,7 +186,8 @@ symbol or company name:
     indexed list above (e.g. "Netflix", "NFLX", "Tesla") — pass through
     whatever the user wrote, ticker or name, don't normalize it.
 
-Also extract fiscal years mentioned or clearly implied, from 2023-2025.
+Also extract any fiscal years mentioned or clearly implied. Use the four-digit
+year; do not restrict yourself to the indexed years listed above.
 If the user says "last year" or "recent" without a year, include all three years.
 If no specific company is mentioned, return empty lists for both company fields.
 
@@ -119,38 +234,43 @@ class ClassifiedQuery(BaseModel):
                                          # SPECIFIC fiscal year asked about
 
 
-@lru_cache(maxsize=1)
-def _get_client() -> Groq:
-    return Groq(api_key=settings.groq_api)
-
-
 def classify_query(query: str) -> ClassifiedQuery:
     """Classify a user query and extract target tickers / years."""
     try:
-        response = _get_client().chat.completions.create(
-            model=settings.routing_model,
+        # All LLM access goes through llm/client.py (spec section 9 rule 1):
+        # ordered free-tier failover, disk cache, budgets, typed errors.
+        data, completion = get_llm().complete_json(
+            role="router",
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": _system_prompt()},
                 {"role": "user",   "content": query},
             ],
             temperature=0.0,
-            max_tokens=200,
+            max_tokens=_ROUTER_MAX_TOKENS,
+            prompt_version=PROMPT_VERSION,
         )
-        raw = response.choices[0].message.content.strip()
-
-        # Strip markdown code fences if the model wraps the JSON
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if match:
-            raw = match.group(0)
-
-        data = json.loads(raw)
+        logger.debug(
+            f"classifier: {completion.provider}:{completion.model} "
+            f"tokens={completion.total_tokens} cached={completion.cached}"
+        )
 
         query_type = data.get("query_type", "single_doc")
         if query_type not in VALID_QUERY_TYPES:
             query_type = "single_doc"
 
         tickers = [t.upper() for t in data.get("tickers", []) if t.upper() in VALID_TICKERS]
-        years   = [int(y) for y in data.get("years", [])   if int(y) in VALID_YEARS]
+        years = []
+        for raw_year in data.get("years", []) or []:
+            try:
+                year = int(raw_year)
+            except (TypeError, ValueError):
+                continue
+            # Plausibility only. Whether the year is INDEXED is decided by
+            # routing/resolver.py, which can auto-ingest it or report
+            # `year_not_available` — dropping it here would make the query
+            # look like it never named a year (K5).
+            if _is_plausible_fiscal_year(year) and year not in years:
+                years.append(year)
 
         # Anything the model tagged as a ticker but that isn't in our bundled
         # list is also an unresolved mention (models sometimes put it there
@@ -177,11 +297,15 @@ def classify_query(query: str) -> ClassifiedQuery:
         )
         return result
 
-    except Exception as exc:
-        logger.warning(f"Classification failed ({exc}), defaulting to single_doc / no filters")
-        return ClassifiedQuery(
-            query_type="single_doc",
-            tickers=[],
-            years=[],
-            reasoning="classification error — using fallback",
-        )
+    except LLMError:
+        # Fail loud (P1-05, D7). v1 swallowed every exception here and returned
+        # single_doc with no tickers, which query.ask() rendered as "Which
+        # company are you asking about?" — so a provider outage was
+        # indistinguishable from a user forgetting to name a company. Phase 0
+        # found exactly that in production (F1): five live queries, all
+        # answered with that message in ~0.2 s.
+        raise
+    except json.JSONDecodeError as exc:
+        raise LLMBadOutput(
+            f"classifier reply was not valid JSON: {exc}",
+        ) from exc

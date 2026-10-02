@@ -16,10 +16,11 @@ Flags:
 """
 
 import sys
+
 from loguru import logger
 
 # config is lightweight — always safe to import at the top
-from config import settings, COMPANIES
+from config import COMPANIES, settings
 
 
 def main(skip_download: bool = False, skip_index: bool = False) -> None:
@@ -29,9 +30,9 @@ def main(skip_download: bool = False, skip_index: bool = False) -> None:
     # actually runs. This lets the downloader work even if sentence-
     # transformers / fastembed / qdrant-client aren't installed yet.
     # ------------------------------------------------------------------
+    from ingestion.chunker import chunk_all_documents
     from ingestion.downloader import download_all_filings, load_manifest
-    from ingestion.parser    import parse_all_filings
-    from ingestion.chunker   import chunk_all_documents
+    from ingestion.parser import parse_all_filings
 
     # Set up logging (must come after imports so logger is ready)
     logger.remove()
@@ -106,7 +107,7 @@ def main(skip_download: bool = False, skip_index: bool = False) -> None:
     # Summary
     # ------------------------------------------------------------------
     logger.success("=" * 52)
-    logger.success(f"Ingestion complete")
+    logger.success("Ingestion complete")
     logger.success(f"  Documents : {len(documents)}")
     logger.success(f"  Chunks    : {len(chunks)}")
     logger.success(f"  Parsed    → {settings.parsed_dir}")

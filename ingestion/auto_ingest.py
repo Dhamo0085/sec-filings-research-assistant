@@ -36,14 +36,14 @@ from typing import Dict, List, Optional, Tuple
 
 from loguru import logger
 
-from config import settings, COMPANIES, TICKER_TO_COMPANY
-from ingestion.downloader import download_all_filings
-from ingestion.parser import parse_all_filings
+from config import COMPANIES, TICKER_TO_COMPANY, settings
 from ingestion.chunker import chunk_all_documents
+from ingestion.downloader import download_all_filings
 from ingestion.embedder import index_chunks
+from ingestion.parser import parse_all_filings
 from models import Chunk
-from retrieval.vector_store import list_collections
 from retrieval.parent_store import parent_store
+from retrieval.vector_store import list_collections
 
 _locks:       Dict[str, threading.Lock] = {}
 _locks_guard = threading.Lock()

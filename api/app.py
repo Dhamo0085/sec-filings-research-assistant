@@ -11,25 +11,26 @@ Endpoints:
     POST /ingest        — trigger the bundled-12 ingestion pipeline in the background
 """
 
-import os
 import shutil
 import tarfile
 import threading
-import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, UploadFile, File
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from config import settings
-from query import ask
-from retrieval.vector_store import list_collections, delete_collection, migrate_local_to_remote
+from api.auth import ADMIN_DEPENDENCY, ADMIN_TOKEN_HEADER
 from api.chat import router as chat_router
+from api.ratelimit import check_rate_limit
+from config import settings
+from llm.health import llm_state
+from query import ask
+from retrieval.vector_store import delete_collection, list_collections
 
 _UI_FILE = Path(__file__).parent.parent / "ui" / "index.html"
 _FAVICON_FILE = Path(__file__).parent.parent / "ui" / "favicon.svg"
@@ -74,11 +75,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS is an explicit allow-list (CORS_ORIGINS). v1 used allow_origins=["*"],
+# which lets any site call this API from a user's browser; spec section 15
+# forbids it. Empty list = same-origin only, which is correct for the
+# local-first deployment (D18).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origin_list,
+    allow_methods=["GET", "POST", "DELETE", "PATCH"],
+    allow_headers=["Content-Type", ADMIN_TOKEN_HEADER],
 )
 
 app.include_router(chat_router)
@@ -109,6 +114,10 @@ class QueryResponse(BaseModel):
     query_type:  str
     citations:   List[CitationOut]
     chunks_used: int
+    # D9 status taxonomy (P1-05). The UI uses it to tell an answer from an
+    # abstention, a clarification, or a dependency failure.
+    status:      str = "answered_text"
+    error_code:  Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -133,11 +142,15 @@ def health():
     # needs to answer regardless of Qdrant's state, both for the platform's
     # own health checks and for diagnosing exactly this failure remotely.
     qdrant_mode = "remote" if settings.qdrant_url else "local"
+    # Cached, token-free LLM probe (P1-05). Never one probe per request: on a
+    # free tier that would spend the day's request quota on health checks.
+    llm_status = llm_state()
     try:
         cols = list_collections()
         return {
             "status": "ok",
             "qdrant_mode": qdrant_mode,
+            "llm": llm_status,
             "collections_loaded": len(cols),
             "collections": cols,
         }
@@ -146,6 +159,7 @@ def health():
         return {
             "status": "degraded",
             "qdrant_mode": qdrant_mode,
+            "llm": llm_status,
             "error": f"{type(exc).__name__}: {exc}",
             "collections_loaded": 0,
             "collections": [],
@@ -157,11 +171,9 @@ def collections():
     return {"collections": list_collections()}
 
 
-@app.get("/admin/disk-usage", tags=["meta"])
-def disk_usage(token: Optional[str] = Query(None)):
+@app.get("/admin/disk-usage", tags=["meta"], dependencies=[ADMIN_DEPENDENCY])
+def disk_usage():
     """Remote diagnosis for volume space issues — no CLI/dashboard file browser available."""
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
     if settings.qdrant_url:
         raise HTTPException(status_code=400, detail="Not applicable — QDRANT_URL is set (remote Qdrant mode); data/qdrant isn't used.")
 
@@ -284,10 +296,10 @@ def _run_ingestion_background() -> None:
     """
     global _ingest_running, _ingest_tail, _ingest_exit_code
     from config import COMPANIES
-    from ingestion.downloader import download_all_filings
-    from ingestion.parser import parse_all_filings
     from ingestion.chunker import chunk_all_documents
+    from ingestion.downloader import download_all_filings
     from ingestion.embedder import index_chunks
+    from ingestion.parser import parse_all_filings
 
     _ingest_tail = []
     _ingest_exit_code = None
@@ -382,138 +394,8 @@ def _safe_extract(tar: tarfile.TarFile, dest: Path) -> int:
     return count
 
 
-@app.post("/admin/restore-data", tags=["meta"])
-def restore_data(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    token: Optional[str] = Query(None),
-    restart: bool = Query(True, description="Restart after extracting. Set false when uploading in several batches — only the LAST one needs to restart, since local-mode Qdrant only reads meta.json/scans collections at process start, not on every file write."),
-):
-    """
-    Seed the volume from a pre-built local index instead of re-running
-    ingestion on a constrained shared CPU (which, at observed local
-    embedding speeds, can take hours per company — see _run_ingestion_background).
-
-    For a large index, upload in several smaller archives with
-    restart=false on all but the last (observed: restarting after every
-    batch made each round-trip take minutes with unpredictable variance —
-    restarting once at the end is both faster and more reliable, since
-    nothing needs the new files to be visible until the final restart
-    anyway).
-
-    Upload a .tar.gz containing two top-level entries, `qdrant/` and
-    `parsed/`, matching data/qdrant and data/parsed exactly (build it with
-    `tar -czf restore.tar.gz -C data qdrant parsed` locally, where data/
-    already has verified, working collections). Anything else in data/
-    (raw/, chunks/) is ingestion-only scratch space the running server
-    never reads — no need to include it.
-
-    The archive is extracted directly onto the volume, then the process
-    exits so the host's restart policy brings up a fresh instance. A clean
-    Python-level restart is required, not optional: local-mode Qdrant's
-    client caches its collection registry for the life of the process (see
-    retrieval/vector_store.get_client()), so a process that already has an
-    (empty) client open would never notice files dropped in underneath it.
-    """
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
-    if settings.qdrant_url:
-        raise HTTPException(status_code=400, detail="Not applicable — QDRANT_URL is set (remote Qdrant mode); data/qdrant isn't used.")
-
-    if not (file.filename or "").endswith((".tar.gz", ".tgz")):
-        raise HTTPException(status_code=400, detail="Expected a .tar.gz/.tgz archive")
-
-    settings.data_dir.mkdir(parents=True, exist_ok=True)
-    try:
-        with tarfile.open(fileobj=file.file, mode="r|gz") as tar:
-            n = _safe_extract(tar, settings.data_dir)
-    except (tarfile.TarError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=f"Bad archive: {exc}")
-    except Exception as exc:
-        # Deliberately broad and detailed (unlike every other endpoint's
-        # generic error message): this is admin_token-gated, remote-only
-        # diagnosis for exactly this feature — a first attempt failed with
-        # a bare "Internal Server Error" and no way to see why without
-        # host CLI/log access, so the real exception needs to reach the
-        # response body to be debuggable at all.
-        logger.exception("restore-data extraction failed")
-        raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}")
-
-    logger.success(f"Restored {n} file(s) from uploaded archive" + (" — restarting to pick them up" if restart else " (no restart requested — more batches expected)"))
-
-    if restart:
-        def _restart_soon() -> None:
-            time.sleep(1)   # let the HTTP response flush before the process dies
-            # Nonzero on purpose: platform restart policies commonly only
-            # auto-restart on a crash (nonzero exit), treating exit(0) as an
-            # intentional, successful stop that should stay stopped. Observed
-            # on one such host — the container never came back after os._exit(0)
-            # here, requiring a manual restart from the dashboard every time.
-            os._exit(1)
-
-        background_tasks.add_task(_restart_soon)
-    return {
-        "status": "extracted",
-        "members_extracted": n,
-        "restarting": restart,
-        "note": ("process is restarting now — poll GET /health in ~10-30s for the new collection count"
-                  if restart else "extracted, no restart triggered — upload the next batch, or call with restart=true to finish"),
-    }
-
-
-@app.delete("/admin/data-path", tags=["meta"])
-def delete_data_path(
-    background_tasks: BackgroundTasks,
-    path: str = Query(..., description="Path relative to data/, e.g. qdrant/collection/WFC_2023"),
-    token: Optional[str] = Query(None),
-    restart: bool = Query(True, description="Restart the process after deleting (recommended if Qdrant is wedged)"),
-):
-    """
-    Delete a specific file or directory under data/ directly on disk — no
-    QdrantClient involved. Exists for exactly one scenario: a corrupted or
-    partially-written collection (e.g. from an interrupted restore-data
-    extraction) makes get_client() hang past its timeout, which means
-    EVERY endpoint that touches Qdrant — including delete_collection() —
-    hangs too, since they all need a working client first. Operating on
-    the filesystem directly sidesteps that entirely. Defaults to
-    restarting afterward since a wedged in-memory client (if one was ever
-    successfully constructed before the timeout) won't un-wedge itself.
-    """
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
-    if settings.qdrant_url:
-        raise HTTPException(status_code=400, detail="Not applicable — QDRANT_URL is set (remote Qdrant mode); data/qdrant isn't used.")
-
-    target = (settings.data_dir / path).resolve()
-    data_dir_resolved = settings.data_dir.resolve()
-    if target != data_dir_resolved and data_dir_resolved not in target.parents:
-        raise HTTPException(status_code=400, detail="Path escapes data/ — refusing")
-
-    if not target.exists():
-        raise HTTPException(status_code=404, detail=f"No such path: {path}")
-
-    if target.is_dir():
-        shutil.rmtree(target)
-    else:
-        target.unlink()
-    logger.warning(f"Deleted data path via admin endpoint: {target}")
-
-    if restart:
-        def _restart_soon() -> None:
-            time.sleep(1)   # let the HTTP response flush before the process dies
-            # Nonzero on purpose: platform restart policies commonly only
-            # auto-restart on a crash (nonzero exit), treating exit(0) as an
-            # intentional, successful stop that should stay stopped. Observed
-            # on one such host — the container never came back after os._exit(0)
-            # here, requiring a manual restart from the dashboard every time.
-            os._exit(1)
-        background_tasks.add_task(_restart_soon)
-
-    return {"status": "deleted", "path": path, "restarting": restart}
-
-
-@app.delete("/admin/collection/{name}", tags=["meta"])
-def delete_collection_endpoint(name: str, token: Optional[str] = Query(None)):
+@app.delete("/admin/collection/{name}", tags=["meta"], dependencies=[ADMIN_DEPENDENCY])
+def delete_collection_endpoint(name: str):
     """
     Properly delete one Qdrant collection via the client's own
     delete_collection() — unlike DELETE /admin/data-path (filesystem-only,
@@ -526,8 +408,6 @@ def delete_collection_endpoint(name: str, token: Optional[str] = Query(None)):
     construction. Use this whenever a collection needs to be force-
     re-ingested with updated parsing/chunking logic.
     """
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
 
     if name not in list_collections():
         raise HTTPException(status_code=404, detail=f"No such collection: {name}")
@@ -544,65 +424,10 @@ def delete_collection_endpoint(name: str, token: Optional[str] = Query(None)):
 _migrate_state: Dict[str, object] = {"running": False, "log": [], "result": None}
 
 
-@app.post("/admin/migrate-to-remote", tags=["meta"])
-def migrate_to_remote(
-    background_tasks: BackgroundTasks,
-    qdrant_url: str = Query(..., description="Destination Qdrant Cloud/server URL"),
-    qdrant_api_key: Optional[str] = Query(None),
-    token: Optional[str] = Query(None),
-):
-    """
-    One-time copy of every collection out of local-mode storage
-    (data/qdrant) into a remote Qdrant instance, point-for-point — see
-    retrieval.vector_store.migrate_local_to_remote for why this is
-    preferred over re-running /ingest against the new store. Runs in the
-    background and reports via GET /admin/migrate-to-remote/status, since a
-    full copy of 35 collections can run past a typical ~15s edge-proxy timeout.
-
-    Only meaningful while this process is STILL in local mode (QDRANT_URL
-    not yet set): set QDRANT_URL/QDRANT_API_KEY in the host's env-var settings
-    only AFTER this completes successfully, then redeploy to cut over.
-    """
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
-    if settings.qdrant_url:
-        raise HTTPException(status_code=400, detail="Already running in remote mode (QDRANT_URL is set) — nothing local to migrate from.")
-    if _migrate_state["running"]:
-        raise HTTPException(status_code=409, detail="Migration already in progress")
-
-    _migrate_state["running"] = True
-    _migrate_state["log"] = []
-    _migrate_state["result"] = None
-
-    def _run() -> None:
-        try:
-            counts = migrate_local_to_remote(
-                qdrant_url, qdrant_api_key, on_progress=_migrate_state["log"].append
-            )
-            _migrate_state["result"] = counts
-            logger.success(f"Migration to remote Qdrant complete: {counts}")
-        except Exception as exc:
-            logger.exception("Migration to remote Qdrant failed")
-            _migrate_state["log"].append(f"[error] {type(exc).__name__}: {exc}")
-        finally:
-            _migrate_state["running"] = False
-
-    background_tasks.add_task(_run)
-    return {"status": "started", "poll": "GET /admin/migrate-to-remote/status"}
-
-
-@app.get("/admin/migrate-to-remote/status", tags=["meta"])
-def migrate_to_remote_status(token: Optional[str] = Query(None)):
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
-    return _migrate_state
-
-
-@app.post("/admin/evict-stale-companies", tags=["meta"])
+@app.post("/admin/evict-stale-companies", tags=["meta"], dependencies=[ADMIN_DEPENDENCY])
 def evict_stale_companies_endpoint(
     days:    int  = Query(30, ge=1, description="Remove auto-ingested companies not asked about in this many days"),
     dry_run: bool = Query(True, description="Report what would be removed without deleting anything"),
-    token:   Optional[str] = Query(None),
 ):
     """
     Auto-ingested companies (anything outside the bundled 12 — see
@@ -613,16 +438,14 @@ def evict_stale_companies_endpoint(
     touched regardless of what that log contains. Defaults to a dry run;
     pass dry_run=false to actually delete.
     """
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
 
     from ingestion.auto_ingest import evict_stale_companies
     report = evict_stale_companies(max_age_days=days, dry_run=dry_run)
     return {"dry_run": dry_run, "days": days, "evicted": report}
 
 
-@app.post("/ingest", tags=["meta"])
-def ingest(background_tasks: BackgroundTasks, token: Optional[str] = Query(None)):
+@app.post("/ingest", tags=["meta"], dependencies=[ADMIN_DEPENDENCY])
+def ingest(background_tasks: BackgroundTasks):
     """
     Trigger the bundled-12-company ingestion pipeline (download → parse →
     chunk → embed) in the background. Returns immediately — poll /health for
@@ -631,8 +454,6 @@ def ingest(background_tasks: BackgroundTasks, token: Optional[str] = Query(None)
     already-downloaded/parsed/indexed companies are skipped, so a second
     call after a partial or failed run just resumes.
     """
-    if settings.admin_token and token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Invalid or missing token")
 
     global _ingest_running
     with _ingest_lock:
@@ -649,9 +470,28 @@ def ingest(background_tasks: BackgroundTasks, token: Optional[str] = Query(None)
 
 
 @app.post("/query", response_model=QueryResponse, tags=["rag"])
-def query(req: QueryRequest):
+def query(req: QueryRequest, request: Request):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    # Size cap before any work: an oversized question costs prompt tokens on a
+    # free tier and is never a real research question (spec section 8).
+    if len(req.question) > settings.max_question_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Question is {len(req.question)} characters; the limit is "
+                f"{settings.max_question_chars}."
+            ),
+        )
+
+    allowed, retry_after = check_rate_limit(request, settings.rate_limit_per_min)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit of {settings.rate_limit_per_min} requests/minute exceeded.",
+            headers={"Retry-After": str(retry_after)},
+        )
 
     logger.info(f"Incoming query: {req.question[:80]}")
 
@@ -659,7 +499,16 @@ def query(req: QueryRequest):
         result = ask(req.question)
     except Exception as exc:
         logger.exception("Pipeline error")
-        raise HTTPException(status_code=500, detail="Something went wrong while answering your question. Please try again.")
+        raise HTTPException(status_code=500, detail="Something went wrong while answering your question. Please try again.") from exc
+
+    # A dependency failure is a 503 with its error_code, not a 200 carrying an
+    # apology (D7, G4). v1 had no way to express this: every failure became a
+    # 200 with the "Which company are you asking about?" text.
+    if result.status == "error":
+        raise HTTPException(
+            status_code=503,
+            detail={"error_code": result.error_code, "message": result.answer},
+        )
 
     citations = [
         CitationOut(
@@ -679,4 +528,6 @@ def query(req: QueryRequest):
         query_type=result.query_type,
         citations=citations,
         chunks_used=len(result.chunks_used),
+        status=result.status,
+        error_code=result.error_code,
     )

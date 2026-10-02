@@ -1,0 +1,18 @@
+{
+  "checked_at_utc": "2026-10-02T09:37:34.698775+00:00",
+  "qdrant_client_version": "1.19.1",
+  "collection": "AAPL_2024",
+  "query": "total net sales revenue",
+  "top_k": 10,
+  "unfiltered_distribution": {
+    "text": 2,
+    "table": 7,
+    "footnote": 1
+  },
+  "filtered_distribution": {
+    "table": 10
+  },
+  "non_table_types_in_filtered_result": [],
+  "verdict": "K9_REFUTED",
+  "note": "Phase 0 reached the same verdict against a synthetic collection. retrieval/vector_store.py's scroll_by_section comment claims payload filters are silently ignored in local mode; if the verdict here is K9_REFUTED that comment is stale for query_points() and should be corrected, which is why this check exists."
+}

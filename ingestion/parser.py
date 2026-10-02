@@ -1,11 +1,10 @@
-import os
-import re
 import json
+import re
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from bs4 import BeautifulSoup, Tag
@@ -194,7 +193,7 @@ def _table_to_markdown(df: pd.DataFrame) -> str:
     h_line   = "| " + " | ".join(clean_headers) + " |"
     sep_line = "| " + " | ".join("---" for _ in clean_headers)  + " |"
     d_lines  = ["| " + " | ".join(str(c) for c in row) + " |" for row in rows]
-    return "\n".join([h_line, sep_line] + d_lines)
+    return "\n".join([h_line, sep_line, *d_lines])
 
 
 def _extract_tables(soup: BeautifulSoup, start_idx: int = 0) -> Tuple[Dict[str, Tuple[str, List]], int]:
@@ -359,8 +358,8 @@ def _llm_locate_fs_headings(
     if not span or not missing:
         return []
 
-    from groq import Groq
-    client = Groq(api_key=settings.groq_api)
+    from llm import get_client as get_llm
+    client = get_llm()
 
     # 500 lines routinely hit Groq's per-request TPM limit outright (verified:
     # "Requested 14144/21038/... tokens, Limit 6000" 413 errors on real
@@ -396,15 +395,17 @@ def _llm_locate_fs_headings(
             f"\n\nTEXT:\n{page_text}"
         )
         try:
-            resp = client.chat.completions.create(
-                model=settings.routing_model,
+            # Through llm/client.py: cached, budgeted, failover-capable.
+            # The cache matters here — this runs per page per filing, which is
+            # the largest single consumer of free-tier requests in the project.
+            data, _completion = client.complete_json(
+                role="router",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
-                max_tokens=300,
+                max_tokens=900,
+                prompt_version="fs-heading-v1",
+                repair=False,
             )
-            raw = resp.choices[0].message.content.strip()
-            match = re.search(r"\{.*\}", raw, re.DOTALL)
-            data = json.loads(match.group(0)) if match else {}
         except Exception as exc:
             logger.warning(f"LLM fs-heading recovery failed on a page: {exc}")
             continue
@@ -755,7 +756,7 @@ def _annotate_fs_header_tables(soup: BeautifulSoup) -> None:
                 cell_text = cell.get_text(separator=" ", strip=True).lower()
                 if not cell_text or len(cell_text) > 120:
                     continue
-                for pattern, section_id, title in _FS_RECOVERY_PATTERNS:
+                for pattern, _section_id, title in _FS_RECOVERY_PATTERNS:
                     if re.search(pattern, cell_text):
                         sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
                         table_tag.insert_before(sentinel)
@@ -780,7 +781,7 @@ def _annotate_fs_header_tables(soup: BeautifulSoup) -> None:
             for cell_text in cell_texts:
                 if not cell_text or len(cell_text) > 120:
                     continue
-                for pattern, section_id, title in _ITEM_RECOVERY_PATTERNS:
+                for pattern, _section_id, title in _ITEM_RECOVERY_PATTERNS:
                     if re.search(pattern, cell_text):
                         sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
                         table_tag.insert_before(sentinel)
@@ -800,7 +801,7 @@ def _annotate_fs_header_tables(soup: BeautifulSoup) -> None:
             # "item 1." + "business" + "3" -> "item 1.business3" fails "$").
             joined = "".join(t for t in cell_texts if t)
             if joined and len(joined) <= 120:
-                for pattern, section_id, title in _ITEM_RECOVERY_PATTERNS:
+                for pattern, _section_id, title in _ITEM_RECOVERY_PATTERNS:
                     if re.search(pattern, joined):
                         sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
                         table_tag.insert_before(sentinel)

@@ -15,7 +15,12 @@
 # once (either `docker exec <container> python run_ingestion.py`, or let the
 # agentic auto-ingest path index companies on demand as they're asked about).
 
-FROM python:3.10-slim
+# Pinned to the same minor version used for local development and the Phase 1
+# baseline (CPython 3.12.14), where fastembed + onnxruntime were verified on
+# macOS arm64. Fixes spec issue N2: v1 pinned 3.10 here while running 3.12
+# locally. NOT yet verified inside this image — `docker build` is first
+# exercised in P5-01 (T5-01).
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -24,6 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Serving requirements only — the dev and RAGAS stacks are deliberately absent
+# from the image (spec issue N3).
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

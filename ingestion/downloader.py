@@ -2,13 +2,12 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from loguru import logger
 from sec_edgar_downloader import Downloader
 
-from config import settings, COMPANIES, TICKER_TO_COMPANY
-
+from config import COMPANIES, TICKER_TO_COMPANY, require_edgar_email, settings
 
 # ---------------------------------------------------------------------------
 # HTML extraction from full-submission.txt
@@ -273,7 +272,7 @@ def _download_ticker_worker(
     ticker = company["ticker"]
     dl = Downloader(
         company_name="FinancialRAG",
-        email_address=settings.edgar_email,
+        email_address=require_edgar_email(),
         download_folder=str(raw_dir),
     )
     try:

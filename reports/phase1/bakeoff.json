@@ -1,0 +1,627 @@
+{
+  "run_at_utc": "2026-10-02T09:29:50.970046+00:00",
+  "call_cap": 40,
+  "calls_made": 24,
+  "prompts": [
+    {
+      "id": "router-simple",
+      "role": "router",
+      "kind": "json"
+    },
+    {
+      "id": "router-compare",
+      "role": "router",
+      "kind": "json"
+    },
+    {
+      "id": "generator-cited",
+      "role": "generator",
+      "kind": "citation"
+    },
+    {
+      "id": "generator-refusal",
+      "role": "generator",
+      "kind": "refusal"
+    }
+  ],
+  "summary": [
+    {
+      "entry": "gemini:gemini-3.5-flash-lite",
+      "calls": 4,
+      "errors": 0,
+      "json_valid": 2,
+      "json_total": 2,
+      "json_fields_ok": 2,
+      "citation_compliant": 1,
+      "citation_total": 1,
+      "invented_citations": 0,
+      "cites_correctly": 1,
+      "marker_styles": [
+        "ascii"
+      ],
+      "refusal_compliant": 1,
+      "refusal_total": 1,
+      "median_latency_s": 0.01,
+      "total_tokens": 755
+    },
+    {
+      "entry": "gemini:gemini-3.1-flash-lite",
+      "calls": 4,
+      "errors": 0,
+      "json_valid": 2,
+      "json_total": 2,
+      "json_fields_ok": 2,
+      "citation_compliant": 1,
+      "citation_total": 1,
+      "invented_citations": 0,
+      "cites_correctly": 1,
+      "marker_styles": [
+        "ascii"
+      ],
+      "refusal_compliant": 1,
+      "refusal_total": 1,
+      "median_latency_s": 0.01,
+      "total_tokens": 733
+    },
+    {
+      "entry": "groq:qwen/qwen3.8-27b",
+      "calls": 4,
+      "errors": 0,
+      "json_valid": 2,
+      "json_total": 2,
+      "json_fields_ok": 2,
+      "citation_compliant": 1,
+      "citation_total": 1,
+      "invented_citations": 0,
+      "cites_correctly": 1,
+      "marker_styles": [
+        "ascii"
+      ],
+      "refusal_compliant": 1,
+      "refusal_total": 1,
+      "median_latency_s": 0.04,
+      "total_tokens": 838
+    },
+    {
+      "entry": "groq:openai/gpt-oss-20b",
+      "calls": 4,
+      "errors": 0,
+      "json_valid": 2,
+      "json_total": 2,
+      "json_fields_ok": 2,
+      "citation_compliant": 0,
+      "citation_total": 1,
+      "invented_citations": 0,
+      "cites_correctly": 1,
+      "marker_styles": [
+        "fullwidth"
+      ],
+      "refusal_compliant": 1,
+      "refusal_total": 1,
+      "median_latency_s": 0.0,
+      "total_tokens": 1372
+    },
+    {
+      "entry": "groq:openai/gpt-oss-120b",
+      "calls": 4,
+      "errors": 0,
+      "json_valid": 2,
+      "json_total": 2,
+      "json_fields_ok": 2,
+      "citation_compliant": 0,
+      "citation_total": 1,
+      "invented_citations": 0,
+      "cites_correctly": 1,
+      "marker_styles": [
+        "fullwidth"
+      ],
+      "refusal_compliant": 1,
+      "refusal_total": 1,
+      "median_latency_s": 0.0,
+      "total_tokens": 1273
+    },
+    {
+      "entry": "gemini:gemma-4-26b-a4b-it",
+      "calls": 4,
+      "errors": 0,
+      "json_valid": 0,
+      "json_total": 2,
+      "json_fields_ok": 0,
+      "citation_compliant": 1,
+      "citation_total": 1,
+      "invented_citations": 0,
+      "cites_correctly": 1,
+      "marker_styles": [
+        "ascii"
+      ],
+      "refusal_compliant": 0,
+      "refusal_total": 1,
+      "median_latency_s": 0.0,
+      "total_tokens": 732
+    }
+  ],
+  "rows": [
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "prompt_id": "router-simple",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.001,
+      "prompt_tokens": 172,
+      "completion_tokens": 142,
+      "content_chars": 87,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "AAPL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "single_doc",
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "prompt_id": "router-compare",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.0,
+      "prompt_tokens": 172,
+      "completion_tokens": 190,
+      "content_chars": 112,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "MSFT",
+        "GOOGL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "multi_doc",
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "prompt_id": "generator-cited",
+      "kind": "citation",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.003,
+      "prompt_tokens": 255,
+      "completion_tokens": 83,
+      "content_chars": 128,
+      "cited": [
+        1,
+        2
+      ],
+      "marker_style": "fullwidth",
+      "cites_required": true,
+      "invented_citations": [],
+      "contains_expected_value": true,
+      "cites_correctly": true,
+      "compliant": false
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "prompt_id": "generator-refusal",
+      "kind": "refusal",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.001,
+      "prompt_tokens": 252,
+      "completion_tokens": 106,
+      "content_chars": 71,
+      "refused": true,
+      "numbers_in_refusal": [],
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "prompt_id": "router-simple",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.001,
+      "prompt_tokens": 172,
+      "completion_tokens": 100,
+      "content_chars": 87,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "AAPL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "single_doc",
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "prompt_id": "router-compare",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.003,
+      "prompt_tokens": 172,
+      "completion_tokens": 133,
+      "content_chars": 112,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "MSFT",
+        "GOOGL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "multi_doc",
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "prompt_id": "generator-cited",
+      "kind": "citation",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.008,
+      "prompt_tokens": 255,
+      "completion_tokens": 87,
+      "content_chars": 143,
+      "cited": [
+        1,
+        2
+      ],
+      "marker_style": "fullwidth",
+      "cites_required": true,
+      "invented_citations": [],
+      "contains_expected_value": true,
+      "cites_correctly": true,
+      "compliant": false
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "prompt_id": "generator-refusal",
+      "kind": "refusal",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.002,
+      "prompt_tokens": 252,
+      "completion_tokens": 102,
+      "content_chars": 97,
+      "refused": true,
+      "numbers_in_refusal": [],
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "prompt_id": "router-simple",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.002,
+      "prompt_tokens": 90,
+      "completion_tokens": 56,
+      "content_chars": 120,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "AAPL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "single_doc",
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "prompt_id": "router-compare",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.004,
+      "prompt_tokens": 90,
+      "completion_tokens": 64,
+      "content_chars": 150,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "MSFT",
+        "GOOGL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "multi_doc",
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "prompt_id": "generator-cited",
+      "kind": "citation",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.073,
+      "prompt_tokens": 227,
+      "completion_tokens": 43,
+      "content_chars": 116,
+      "cited": [
+        1,
+        2
+      ],
+      "marker_style": "ascii",
+      "cites_required": true,
+      "invented_citations": [],
+      "contains_expected_value": true,
+      "cites_correctly": true,
+      "compliant": true
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "prompt_id": "generator-refusal",
+      "kind": "refusal",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.113,
+      "prompt_tokens": 224,
+      "completion_tokens": 44,
+      "content_chars": 195,
+      "refused": true,
+      "numbers_in_refusal": [],
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "prompt_id": "router-simple",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.012,
+      "prompt_tokens": 79,
+      "completion_tokens": 54,
+      "content_chars": 120,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "AAPL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "single_doc",
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "prompt_id": "router-compare",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.007,
+      "prompt_tokens": 79,
+      "completion_tokens": 64,
+      "content_chars": 161,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "MSFT",
+        "GOOGL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "multi_doc",
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "prompt_id": "generator-cited",
+      "kind": "citation",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.005,
+      "prompt_tokens": 208,
+      "completion_tokens": 44,
+      "content_chars": 116,
+      "cited": [
+        1,
+        2
+      ],
+      "marker_style": "ascii",
+      "cites_required": true,
+      "invented_citations": [],
+      "contains_expected_value": true,
+      "cites_correctly": true,
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "prompt_id": "generator-refusal",
+      "kind": "refusal",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.004,
+      "prompt_tokens": 205,
+      "completion_tokens": 22,
+      "content_chars": 100,
+      "refused": true,
+      "numbers_in_refusal": [],
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.1-flash-lite",
+      "prompt_id": "router-simple",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.062,
+      "prompt_tokens": 79,
+      "completion_tokens": 44,
+      "content_chars": 104,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "AAPL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "single_doc",
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.1-flash-lite",
+      "prompt_id": "router-compare",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.01,
+      "prompt_tokens": 79,
+      "completion_tokens": 52,
+      "content_chars": 141,
+      "json_valid": true,
+      "fields_ok": true,
+      "tickers": [
+        "MSFT",
+        "GOOGL"
+      ],
+      "years": [
+        2024
+      ],
+      "query_type": "multi_doc",
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.1-flash-lite",
+      "prompt_id": "generator-cited",
+      "kind": "citation",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.002,
+      "prompt_tokens": 208,
+      "completion_tokens": 44,
+      "content_chars": 116,
+      "cited": [
+        1,
+        2
+      ],
+      "marker_style": "ascii",
+      "cites_required": true,
+      "invented_citations": [],
+      "contains_expected_value": true,
+      "cites_correctly": true,
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.1-flash-lite",
+      "prompt_id": "generator-refusal",
+      "kind": "refusal",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.002,
+      "prompt_tokens": 205,
+      "completion_tokens": 22,
+      "content_chars": 100,
+      "refused": true,
+      "numbers_in_refusal": [],
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemma-4-26b-a4b-it",
+      "prompt_id": "router-simple",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.003,
+      "prompt_tokens": 79,
+      "completion_tokens": 44,
+      "content_chars": 1437,
+      "json_valid": false,
+      "fields_ok": false,
+      "compliant": false
+    },
+    {
+      "provider": "gemini",
+      "model": "gemma-4-26b-a4b-it",
+      "prompt_id": "router-compare",
+      "kind": "json",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.003,
+      "prompt_tokens": 79,
+      "completion_tokens": 51,
+      "content_chars": 1499,
+      "json_valid": false,
+      "fields_ok": false,
+      "compliant": false
+    },
+    {
+      "provider": "gemini",
+      "model": "gemma-4-26b-a4b-it",
+      "prompt_id": "generator-cited",
+      "kind": "citation",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.002,
+      "prompt_tokens": 208,
+      "completion_tokens": 44,
+      "content_chars": 772,
+      "cited": [
+        1,
+        2,
+        3
+      ],
+      "marker_style": "ascii",
+      "cites_required": true,
+      "invented_citations": [],
+      "contains_expected_value": true,
+      "cites_correctly": true,
+      "compliant": true
+    },
+    {
+      "provider": "gemini",
+      "model": "gemma-4-26b-a4b-it",
+      "prompt_id": "generator-refusal",
+      "kind": "refusal",
+      "ok": true,
+      "cached": true,
+      "latency_s": 0.002,
+      "prompt_tokens": 205,
+      "completion_tokens": 22,
+      "content_chars": 772,
+      "refused": true,
+      "numbers_in_refusal": [
+        "391,035",
+        "123,216"
+      ],
+      "compliant": false
+    }
+  ],
+  "budget_snapshot": {}
+}

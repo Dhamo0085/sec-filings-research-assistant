@@ -14,7 +14,8 @@ from typing import Dict, List, Optional
 import requests
 from loguru import logger
 
-from config import settings, TICKER_TO_COMPANY
+from config import TICKER_TO_COMPANY, require_edgar_email, settings
+
 
 def _normalize(s: str) -> str:
     """Strip punctuation/casing so 'Coca-Cola' matches SEC's 'COCA COLA CO'
@@ -36,7 +37,7 @@ _loaded = False
 
 def _headers() -> dict:
     # SEC fair-use policy requires an identifying User-Agent on every request.
-    return {"User-Agent": f"FinancialRAG {settings.edgar_email}"}
+    return {"User-Agent": f"FinancialRAG {require_edgar_email()}"}
 
 
 def _load_registry() -> None:
@@ -61,10 +62,7 @@ def _load_registry() -> None:
             logger.info(f"Fetched SEC company registry ({len(data)} filers)")
         except Exception as exc:
             logger.warning(f"Could not fetch SEC company registry ({exc})")
-            if _CACHE_PATH.exists():
-                data = json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
-            else:
-                data = {}
+            data = json.loads(_CACHE_PATH.read_text(encoding="utf-8")) if _CACHE_PATH.exists() else {}
 
     for entry in data.values():
         ticker = str(entry.get("ticker", "")).upper()

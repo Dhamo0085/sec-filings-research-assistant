@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import List, Optional, Tuple
 
 import numpy as np
-from fastembed import TextEmbedding, SparseTextEmbedding
+from fastembed import SparseTextEmbedding, TextEmbedding
 from loguru import logger
 
 from config import settings
@@ -82,10 +82,7 @@ def encode_dense(
     batch_size: int  = settings.embedding_batch_size,
 ) -> np.ndarray:
     model = _get_dense()
-    if is_query:
-        vecs = list(model.query_embed(texts))
-    else:
-        vecs = list(model.embed(texts, batch_size=batch_size))
+    vecs = list(model.query_embed(texts)) if is_query else list(model.embed(texts, batch_size=batch_size))
     return np.array(vecs, dtype=np.float32)
 
 

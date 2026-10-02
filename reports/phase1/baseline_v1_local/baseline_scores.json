@@ -1,0 +1,237 @@
+[
+  {
+    "id": "N1",
+    "category": "numeric",
+    "status": "ok",
+    "query_type": "single_doc",
+    "latency_s": 13.454,
+    "answer_excerpt": "Apple\u2019s total net sales for fiscal year\u202f2024 were **$391,035\u202fmillion**, i.e., about **$391.0\u202fbillion**\u30101\u3011.",
+    "verdict": "PASS",
+    "expected": 391035.0,
+    "found": [
+      2024.0,
+      391035.0,
+      391000.0,
+      1.0
+    ],
+    "retrieval_diagnostic": {
+      "applicable": true,
+      "expected_forms": [
+        "391,035",
+        "391.0",
+        "391035"
+      ],
+      "found_in_retrieved_chunks": true,
+      "first_hit_rank": 2,
+      "n_chunks_examined": 3,
+      "hits": [
+        {
+          "rank": 2,
+          "ticker": "AAPL",
+          "fiscal_year": 2024,
+          "section": "Notes to Financial Statements",
+          "form_matched": "391035"
+        },
+        {
+          "rank": 3,
+          "ticker": "AAPL",
+          "fiscal_year": 2024,
+          "section": "Notes to Financial Statements",
+          "form_matched": "391035"
+        }
+      ],
+      "diagnosis": "retrieval_found_llm_misread"
+    }
+  },
+  {
+    "id": "C1",
+    "category": "computed",
+    "status": "ok",
+    "query_type": "clarification_needed",
+    "latency_s": 0.678,
+    "answer_excerpt": "Which company are you asking about? I can only answer from indexed SEC 10-K filings for a specific, named company.",
+    "verdict": "FAIL",
+    "failure_stage": "no_number_in_answer",
+    "expected": 31.51,
+    "found": [],
+    "retrieval_diagnostic": {
+      "applicable": false
+    }
+  },
+  {
+    "id": "U1",
+    "category": "unanswerable",
+    "status": "ok",
+    "query_type": "clarification_needed",
+    "latency_s": 0.527,
+    "answer_excerpt": "Which company are you asking about? I can only answer from indexed SEC 10-K filings for a specific, named company.",
+    "verdict": "FAIL",
+    "failure_stage": "no_abstention_marker",
+    "abstention_marker": null,
+    "numeric_claims": [],
+    "manual_review": true,
+    "retrieval_diagnostic": {
+      "applicable": false
+    }
+  },
+  {
+    "id": "U3",
+    "category": "unanswerable",
+    "status": "ok",
+    "query_type": "unresolved_company",
+    "latency_s": 1.06,
+    "answer_excerpt": "I couldn't find any SEC filings for Acme Quantum Holdings \u2014 it doesn't appear to be a public company that files with the SEC, or its filings aren't available here.",
+    "verdict": "PASS",
+    "failure_stage": null,
+    "abstention_marker": "doesn't appear",
+    "numeric_claims": [],
+    "manual_review": true,
+    "retrieval_diagnostic": {
+      "applicable": false
+    }
+  },
+  {
+    "id": "M2",
+    "category": "trend",
+    "status": "ok",
+    "query_type": "temporal",
+    "latency_s": 44.416,
+    "answer_excerpt": "**Amazon operating\u2011income trend (FY\u202f2023\u202f\u2192\u202fFY\u202f2025)**  \n\n| Fiscal year | Operating income (millions\u202fUSD) |\n|-------------|---------------------------------|\n| 2023 | $36,852\u202f[2] |\n| 2024 | $68,593\u202f[2] |\n| 2025 | $79,975\u202f[2] |\n\n**Trend description**\n\n- **Rapid growth:** Operating income more than dou",
+    "verdict": "FAIL",
+    "failure_stage": "attribution_unclear",
+    "per_key": {
+      "2023": {
+        "expected": 36852.0,
+        "present_anywhere": true,
+        "attributed": false,
+        "aliases_tried": [
+          "2023"
+        ]
+      },
+      "2024": {
+        "expected": 68593.0,
+        "present_anywhere": true,
+        "attributed": false,
+        "aliases_tried": [
+          "2024"
+        ]
+      },
+      "2025": {
+        "expected": 79975.0,
+        "present_anywhere": true,
+        "attributed": false,
+        "aliases_tried": [
+          "2025"
+        ]
+      }
+    },
+    "manual_review": true,
+    "retrieval_diagnostic": {
+      "applicable": false
+    }
+  },
+  {
+    "id": "N5",
+    "category": "numeric",
+    "status": "ok",
+    "query_type": "single_doc",
+    "latency_s": 24.318,
+    "answer_excerpt": "Amazon\u2019s consolidated operating income for fiscal year\u202f2023 was **$36.9\u202fbillion** (approximately $36,852\u202fmillion)\u30101\u2020L31-L34\u3011. This figure is also restated in the narrative section, which notes that operating income was $36.9\u202fbillion for 2023\u30102\u2020L1-L3\u3011.",
+    "verdict": "PASS",
+    "expected": 36852.0,
+    "found": [
+      2023.0,
+      36900.0,
+      36852.0,
+      1.0,
+      31.0,
+      34.0,
+      36900.0,
+      2023.0
+    ],
+    "retrieval_diagnostic": {
+      "applicable": true,
+      "expected_forms": [
+        "36,852",
+        "36.9",
+        "36852"
+      ],
+      "found_in_retrieved_chunks": true,
+      "first_hit_rank": 1,
+      "n_chunks_examined": 3,
+      "hits": [
+        {
+          "rank": 1,
+          "ticker": "AMZN",
+          "fiscal_year": 2023,
+          "section": "Consolidated Statements of Cash Flows",
+          "form_matched": "36852"
+        },
+        {
+          "rank": 2,
+          "ticker": "AMZN",
+          "fiscal_year": 2023,
+          "section": "Consolidated Statements of Cash Flows",
+          "form_matched": "36852"
+        },
+        {
+          "rank": 3,
+          "ticker": "AMZN",
+          "fiscal_year": 2023,
+          "section": "Item 8: Financial Statements",
+          "form_matched": "36.9"
+        }
+      ],
+      "diagnosis": "retrieval_found_llm_misread"
+    }
+  },
+  {
+    "id": "R3",
+    "category": "narrative",
+    "status": "ok",
+    "query_type": "clarification_needed",
+    "latency_s": 0.411,
+    "answer_excerpt": "Which company are you asking about? I can only answer from indexed SEC 10-K filings for a specific, named company.",
+    "verdict": "MANUAL",
+    "cited_sections": [],
+    "expected_section_ids": [
+      "item_1_business",
+      "item_7_mda",
+      "item_8_financials"
+    ],
+    "any_expected_section_cited": false,
+    "retrieval_diagnostic": {
+      "applicable": false
+    }
+  },
+  {
+    "id": "T2",
+    "category": "ambiguity",
+    "status": "ok",
+    "query_type": "clarification_needed",
+    "latency_s": 0.371,
+    "answer_excerpt": "Which company are you asking about? I can only answer from indexed SEC 10-K filings for a specific, named company.",
+    "verdict": "MANUAL",
+    "fiscal_years_cited": [],
+    "answer_names_the_year": false,
+    "retrieval_diagnostic": {
+      "applicable": false
+    }
+  },
+  {
+    "id": "U2",
+    "category": "unanswerable",
+    "status": "ok",
+    "query_type": "single_doc",
+    "latency_s": 268.4,
+    "answer_excerpt": "I\u2019m sorry, but the provided filing excerpts do not contain Tesla\u2019s closing stock price for yesterday, so I cannot answer that question from the available information.",
+    "verdict": "PASS",
+    "failure_stage": null,
+    "abstention_marker": "cannot",
+    "numeric_claims": [],
+    "manual_review": true,
+    "retrieval_diagnostic": {
+      "applicable": false
+    }
+  }
+]

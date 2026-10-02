@@ -1,6 +1,6 @@
 # Financial_RAG v2 — Project Specification
 
-Version 1.2 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
+Version 1.3 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
 
 ---
 
@@ -74,6 +74,7 @@ Validated for reuse: iXBRL extraction matched SEC `companyfacts` on 105/105 (fil
 | D16 | Chat history is runtime data: untracked by git, per-session secret, retention limit. | DECIDED |
 | D17 | Provenance: v2 is a **new, personal portfolio repository** with fresh history, created by Step 0 (`docs/BOOTSTRAP.md`) through the GitHub CLI. The code started from an earlier MIT-licensed prototype; `LICENSE` and a one-paragraph `NOTICE` acknowledge that. No data, deployments, secrets, or links from the old project are carried over. | DECIDED |
 | D18 | **No paid services.** Delivery is local-first (`make up`, Docker Compose) plus a recorded demo. A hosted demo is optional and only on a verified-free platform (O2). | DECIDED |
+| D19 | Commits made by Claude Code carry a `Co-Authored-By: Claude` trailer: the repository states openly that development is AI-assisted and owner-supervised, and the owner reviews and merges every phase PR. | DECIDED |
 | O1 | Free-tier keys: **created** (Groq, Gemini). Gemini limits are recorded in Appendix A. Groq free-plan limits are measured in P1-04 (response headers) and may be added to `llm/limits.local.yaml`. | PARTIALLY RESOLVED |
 | O2 | Whether and where to host a free public demo (verify current free terms at signup), and how derived DBs and Qdrant data reach it. | OPEN (decide at P5-02) |
 
@@ -272,8 +273,8 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 
 | ID | Task | Level |
 |---|---|---|
-| P1-00 | **Baseline first, on unmodified v1 code.** Create a git worktree of tag `v1-baseline`; share one local data directory with `v2-dev` (symlink or env). Set up a venv and run `run_ingestion.py` for the bundled 12 + NFLX. The v1 code only speaks to Groq with the owner's Groq key. First list the models available to the key (`GET https://api.groq.com/openai/v1/models`): the Groq models page marks `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` (v1's defaults) as Enterprise, which may explain the old deployment's failures (unverified). Use the nearest available models via env (`GENERATION_MODEL`/`ROUTING_MODEL`: configuration, not code) and record exactly what was used. If no available model works with v1's unmodified prompts and parsing, apply the smallest possible compatibility patch (model names and response parsing only) on a branch `v1-baseline-compat`, report the diff, and label the baseline "v1 + compat patch". Run the Phase 0 runner on the 25 questions (cache on, resumable; stop cleanly at the free-tier limit and continue the next day). Score with the Phase 0 scorer. Save `reports/phase1/baseline_v1_local/` with provider, model names, dates, and `not_run` counts. Record ingestion time, sizes, and failures. | MUST |
-| P1-01 | Verify the Step 0 result (`reports/bootstrap/REPORT.md`): repository exists and is private; tags and branches present; ignore rules active; README stub and `.env.example` in place. Remove `test_setup.py` once `make test` exists. Resolve any REVIEW items with the owner. No repository creation work here. | MUST |
+| P1-00 | **Baseline first, on unmodified v1 code.** Create a git worktree of tag `v1-baseline`; share one local data directory with the main checkout (symlink or env). Set up a venv and run `run_ingestion.py` for the bundled 12 + NFLX. The v1 code only speaks to Groq with the owner's Groq key. First list the models available to the key (`GET https://api.groq.com/openai/v1/models`): the Groq models page marks `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` (v1's defaults) as Enterprise, which may explain the old deployment's failures (unverified). Use the nearest available models via env (`GENERATION_MODEL`/`ROUTING_MODEL`: configuration, not code) and record exactly what was used. If no available model works with v1's unmodified prompts and parsing, apply the smallest possible compatibility patch (model names and response parsing only) on a branch `v1-baseline-compat`, report the diff, and label the baseline "v1 + compat patch". Run the Phase 0 runner on the 25 questions (cache on, resumable; stop cleanly at the free-tier limit and continue the next day). Score with the Phase 0 scorer. Save `reports/phase1/baseline_v1_local/` with provider, model names, dates, and `not_run` counts. Record ingestion time, sizes, and failures. Reuse valid SEC responses already in `.cache/` (EDGAR submissions, `companyfacts`, 11 primary documents) before fetching again; the cache is never committed. | MUST |
+| P1-01 | Verify the Step 0 result (`reports/bootstrap/REPORT.md`): repository exists and is private; tags present; ignore rules active; README stub and `.env.example` in place. Close the Step 0 items: move `PHASE0_INSTRUCTIONS.md` to `reports/phase0/`; change the ignore rule to `data/chat_history.db*`; remove `test_setup.py` once `make test` exists; switch to `main`, fast-forward, and delete the stale local `v2-dev` branch; create `phase-1-foundation` for the phase work. No repository creation work here. | MUST |
 | P1-02 | Dependencies and tooling: split `requirements.txt` (serving), `requirements-dev.txt` (pytest, pytest-cov, pytest-socket, hypothesis, ruff), `requirements-eval.txt` (ragas, datasets, langchain-*); verify the pinned Python version works for fastembed/onnxruntime on macOS arm64 and align `Dockerfile`; create `Makefile` targets from CLAUDE.md. | MUST |
 | P1-03 | Lazy settings: no import-time failure without `.env`; add env vars from section 8; keep `groq_api`/`edgar_email` names. | MUST |
 | P1-04 | `llm/` package per section 9: OpenAI-compatible multi-provider client with ordered `provider:model` failover across **free-tier** entries (Appendix A), capability registry (`llm/providers.yaml`), disk cache, per-(provider, model) request/token budgets with header-based correction, typed errors; migrate classifier, decomposer, generator, synthesizer to it. Confirm each provider's OpenAI-compatible base URL from its docs and list available model IDs via the provider's models endpoint (discover the Gemma 4 IDs this way). Include a **provider bake-off** (≤ 40 calls total, cached; at most 5 calls on any 20-requests/day model): JSON-validity rate, latency, and citation-format compliance on a fixed prompt set; record in `docs/DECISIONS.md` and choose ordered lists per role (router, generator, judge) following the role guidance in Appendix A. | MUST |
@@ -285,6 +286,7 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | P1-10 | Verify Qdrant local-mode filtering against a **real** ingested collection (`scripts/check_qdrant_filter.py`) to settle the Phase 0 K9 caveat; record the pinned `qdrant-client` version. | MUST |
 | P1-11 | `scripts/smoke.py --base-url URL`: read-only check usable against a local or hosted instance (GET `/health`, `/collections`; at most 8 `POST /query`; asserts status and latency; prints a pass/fail table). | MUST |
 | P1-12 | `docs/explainers/phase1.md` (owner briefing, section 13) and the phase report including a **local release checklist** (`make up` from a clean checkout, then `smoke.py` against it). | MUST |
+| P1-13 | `scripts/check_repo_hygiene.py` (+ `make hygiene`): one reliable command for the key-pattern scan (file:line only), the > 5 MB check, and the T1-12 reference grep. Each check must include a **negative control** (a planted match it must catch) so a silent "no matches" cannot be a false pass. Reusable by CI (P4-08). | SHOULD |
 
 **Tests**
 
@@ -301,10 +303,11 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | T1-09 | `/health` LLM states and no per-request probe. |
 | T1-10 | `data/chat_history.db` is untracked and gitignored. |
 | T1-11 | Provider failover: first provider 429/5xx → second provider used; an auth error on one provider is reported distinctly; evaluation-pinned runs never fail over; the capability registry rejects a provider lacking a feature required for a role. |
+| T1-13 | Hygiene script: planted key-like string, planted large file, and planted third-party URL are each detected; a clean tree passes. |
 | T1-12 | Repo hygiene: `LICENSE` and `NOTICE` exist; no tracked file outside `docs/BOOTSTRAP.md`, `reports/`, `eval/phase0/`, and `tests/phase0/` (historical records) references third-party deployment URLs or repository names (grep test); `.env` and the old chat DB are untracked. |
 
 **Exit criteria:** all T1 tests pass offline; ruff clean; baseline report exists with per-category results; Qdrant filter check recorded; provider bake-off recorded; local release checklist written.
-**Owner gates:** review the report; review the pull request Claude Code opens (`gh pr create`, `v2-dev` → `main`) and merge it on GitHub; run `make up` and `scripts/smoke.py --base-url http://localhost:8000`.
+**Owner gates:** review the report; review the pull request Claude Code opens (`gh pr create`, `phase-1-foundation` → `main`) and merge it on GitHub; run `make up` and `scripts/smoke.py --base-url http://localhost:8000`.
 
 ---
 
@@ -466,9 +469,9 @@ Failure handling: if a test fails after two fix iterations, stop, record it as a
 ---
 
 ## 14. Git and change management
-- Branches: `main` (stable) · `v2-dev` (integration) · `phase-N-<slug>` (work). Tag `v1-baseline` (the initial import commit, placed during Step 0) and `phaseN-complete` at each gate.
-- One concern per commit; conventional prefixes (`fix:`, `feat:`, `test:`, `docs:`, `chore:`). Phase branch merges into `v2-dev` only after the gate. Merging to `main` is an owner action.
-- Claude Code pushes `v2-dev` and phase branches and opens pull requests with `gh`; merging into `main` is the owner's action on GitHub. Forbidden: force-push, repository deletion or rename, visibility or settings changes, any remote other than `origin`.
+- Branches: `main` (stable, integration) · `phase-N-<slug>` (one per phase). Each phase gate is **one pull request** `phase-N-<slug>` → `main`, opened by Claude Code with `gh pr create` and merged by the owner on GitHub. Tags: `v1-baseline` (the initial import commit, placed during Step 0) and `phaseN-complete` on `main` after each merge. The earlier `v2-dev` branch was merged in Step 0 and is retired; delete the stale local copy.
+- One concern per commit; conventional prefixes (`fix:`, `feat:`, `test:`, `docs:`, `chore:`). Commits made by Claude Code carry a `Co-Authored-By: Claude` trailer (D19). Direct commits to `main` are not allowed.
+- Claude Code pushes phase branches and opens pull requests with `gh`; merging into `main` is the owner's action on GitHub. Forbidden: force-push, repository deletion or rename, visibility or settings changes, any remote other than `origin`.
 - Never rewrite published history. If a secret is ever committed, stop and tell the owner.
 
 ## 15. Security and privacy checklist (verified in Phase 5, enforced from Phase 1)
@@ -512,6 +515,7 @@ O1 Groq free-plan limits (measured in P1-04). O2 whether and where to host a fre
 ### 17.3 Changelog
 - v1.0 — initial specification after Phase 0.
 - v1.1 — new repository (D17); free-tier-only multi-provider LLM client (D11); no paid services, local-first delivery (D18); hosted-platform dependency removed.
+- v1.3 — Step 0 closed; `v2-dev` retired, one PR per phase into `main` (section 14); D19 commit trailer; P1-01 closes the Step 0 items; P1-13 hygiene script; `.cache/` reuse.
 - v1.2 — personal portfolio framing; Step 0 bootstrap through `gh` (D17); declared Gemini free-tier limits recorded (Appendix A); P1-00/P1-01/P1-04 updated.
 
 

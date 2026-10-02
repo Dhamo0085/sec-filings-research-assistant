@@ -12,14 +12,14 @@ import json
 import re
 import time
 from datetime import datetime, timezone
-from functools import lru_cache
 from typing import List, Optional
 
-from groq import Groq
 from loguru import logger
 from pydantic import BaseModel
 
-from config import COMPANIES, require_groq_api, settings
+from config import COMPANIES
+from llm import get_client as get_llm
+from llm.errors import LLMBadOutput, LLMError
 
 VALID_TICKERS = {c["ticker"] for c in COMPANIES}
 
@@ -103,6 +103,16 @@ def available_years(force_refresh: bool = False) -> frozenset:
     return years
 
 VALID_QUERY_TYPES = {"single_doc", "multi_doc", "temporal", "out_of_scope"}
+
+# Logged in traces so a result can be tied to the prompt that produced it
+# (spec section 9 rule 6).
+PROMPT_VERSION = "classifier-v1"
+
+# Reasoning models (Groq's gpt-oss family) spend completion tokens on the
+# chain of thought before emitting the answer, so v1's max_tokens=200 can be
+# consumed entirely by reasoning and return empty content. P1-00 measured 124
+# and 158 completion tokens for the two gpt-oss models on this prompt.
+_ROUTER_MAX_TOKENS = 700
 
 def _system_prompt() -> str:
     """Build the classifier prompt, naming the fiscal years actually indexed."""
@@ -214,31 +224,25 @@ class ClassifiedQuery(BaseModel):
                                          # SPECIFIC fiscal year asked about
 
 
-@lru_cache(maxsize=1)
-def _get_client() -> Groq:
-    return Groq(api_key=require_groq_api())
-
-
 def classify_query(query: str) -> ClassifiedQuery:
     """Classify a user query and extract target tickers / years."""
     try:
-        response = _get_client().chat.completions.create(
-            model=settings.routing_model,
+        # All LLM access goes through llm/client.py (spec section 9 rule 1):
+        # ordered free-tier failover, disk cache, budgets, typed errors.
+        data, completion = get_llm().complete_json(
+            role="router",
             messages=[
                 {"role": "system", "content": _system_prompt()},
                 {"role": "user",   "content": query},
             ],
             temperature=0.0,
-            max_tokens=200,
+            max_tokens=_ROUTER_MAX_TOKENS,
+            prompt_version=PROMPT_VERSION,
         )
-        raw = response.choices[0].message.content.strip()
-
-        # Strip markdown code fences if the model wraps the JSON
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if match:
-            raw = match.group(0)
-
-        data = json.loads(raw)
+        logger.debug(
+            f"classifier: {completion.provider}:{completion.model} "
+            f"tokens={completion.total_tokens} cached={completion.cached}"
+        )
 
         query_type = data.get("query_type", "single_doc")
         if query_type not in VALID_QUERY_TYPES:
@@ -283,11 +287,15 @@ def classify_query(query: str) -> ClassifiedQuery:
         )
         return result
 
-    except Exception as exc:
-        logger.warning(f"Classification failed ({exc}), defaulting to single_doc / no filters")
-        return ClassifiedQuery(
-            query_type="single_doc",
-            tickers=[],
-            years=[],
-            reasoning="classification error — using fallback",
-        )
+    except LLMError:
+        # Fail loud (P1-05, D7). v1 swallowed every exception here and returned
+        # single_doc with no tickers, which query.ask() rendered as "Which
+        # company are you asking about?" — so a provider outage was
+        # indistinguishable from a user forgetting to name a company. Phase 0
+        # found exactly that in production (F1): five live queries, all
+        # answered with that message in ~0.2 s.
+        raise
+    except json.JSONDecodeError as exc:
+        raise LLMBadOutput(
+            f"classifier reply was not valid JSON: {exc}",
+        ) from exc

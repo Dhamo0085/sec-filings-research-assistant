@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 import pytest
 
 import routing.classifier as C
+from llm.fake import FakeLLM
 
 pytestmark = pytest.mark.unit
 
@@ -81,29 +82,17 @@ def test_hardcoded_valid_years_constant_is_gone():
 
 # ── classify_query year extraction ──────────────────────────────────────────
 
-class _FakeCompletions:
-    def __init__(self, payload):
-        self._payload = payload
-        self.seen_messages = None
-
-    def create(self, **kwargs):
-        self.seen_messages = kwargs["messages"]
-        msg = type("M", (), {"content": json.dumps(self._payload)})()
-        return type("R", (), {"choices": [type("Ch", (), {"message": msg})()]})()
-
-
-class _FakeClient:
-    def __init__(self, payload):
-        self.completions = _FakeCompletions(payload)
-        self.chat = type("Chat", (), {"completions": self.completions})()
-
-
 def _run(monkeypatch, payload, collections=("AAPL_2024", "MSFT_2026")):
+    """Drive classify_query with a FakeLLM (no network, no provider)."""
     _patch_collections(monkeypatch, collections)
-    fake = _FakeClient(payload)
-    monkeypatch.setattr(C, "_get_client", lambda: fake)
+    fake = FakeLLM(default=json.dumps(payload))
+    monkeypatch.setattr(C, "get_llm", lambda: fake)
     result = C.classify_query("irrelevant, the model reply is faked")
     return result, fake
+
+
+def _system_message(fake):
+    return fake.calls[0]["messages"][0]["content"]
 
 
 @pytest.mark.parametrize("year", [2026, 2023, 2019, 2024])
@@ -152,7 +141,7 @@ def test_prompt_states_the_years_actually_indexed(monkeypatch):
         "query_type": "single_doc", "tickers": ["MSFT"], "years": [2026],
         "focus": "revenue", "reasoning": "x",
     }, collections=("AAPL_2024", "MSFT_2025", "MSFT_2026"))
-    system = fake.completions.seen_messages[0]["content"]
+    system = _system_message(fake)
     assert "2024" in system and "2026" in system
     assert "2023, 2024, 2025" not in system, "the static year line must be gone"
 
@@ -162,7 +151,7 @@ def test_prompt_degrades_gracefully_with_no_collections(monkeypatch):
         "query_type": "single_doc", "tickers": ["AAPL"], "years": [2024],
         "focus": "revenue", "reasoning": "x",
     }, collections=())
-    system = fake.completions.seen_messages[0]["content"]
+    system = _system_message(fake)
     assert isinstance(system, str) and len(system) > 100
 
 

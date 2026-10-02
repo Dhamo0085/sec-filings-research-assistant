@@ -18,10 +18,14 @@ from loguru import logger
 
 from config import settings
 from generation.citations import remap_citations
-from generation.generator import _get_client, generate_answer
+from generation.generator import generate_answer
+from llm import get_client as get_llm
 from models import QueryResult, RetrievedChunk
 from retrieval.retriever import retrieve
 from routing.decomposer import decompose_query, decompose_temporal
+
+# Logged in traces so a synthesis can be tied to its prompt.
+PROMPT_VERSION = "synthesizer-v1"
 
 SYNTHESIS_SYSTEM = """\
 You are a financial analyst synthesizing multiple research findings into a single answer.
@@ -157,8 +161,8 @@ def synthesize(
     logger.debug(f"Running synthesis call for {len(sub_results)} sub-answers")
 
     try:
-        synthesis_response = _get_client().chat.completions.create(
-            model=settings.generation_model,
+        completion = get_llm().complete(
+            role="generator",
             messages=[
                 {"role": "system", "content": SYNTHESIS_SYSTEM},
                 {"role": "user",   "content": synthesis_input},
@@ -171,8 +175,9 @@ def synthesize(
             # (already-generated sub-answers, not raw chunks), so there's
             # comfortable TPM headroom to raise it.
             max_tokens=1024,
+            prompt_version=PROMPT_VERSION,
         )
-        answer = synthesis_response.choices[0].message.content.strip()
+        answer = completion.content.strip()
     except Exception as exc:
         logger.error(f"Synthesis call failed: {exc}")
         answer = "\n\n".join(combined_parts)   # fall back to concatenated sub-answers

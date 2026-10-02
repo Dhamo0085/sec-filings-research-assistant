@@ -541,6 +541,14 @@ async function refreshHealth() {
     const h = await fetch('/health').then(r => r.json());
     const n = h.collections_loaded ?? 0;
     const mode = h.qdrant_mode ? h.qdrant_mode : '';
+    // /health now reports llm: ok | auth_error | rate_limited | unreachable
+    // (P1-05). A healthy Qdrant with a dead model is not a healthy service.
+    if (h.llm && h.llm !== 'ok') {
+      dot.className = 'health-dot';
+      document.getElementById('health-label').textContent = 'model ' + h.llm.replace('_',' ');
+      dot.title = 'Language model: ' + h.llm;
+      return;
+    }
     if (h.status === 'ok') {
       dot.className = 'health-dot ok';
       lbl.textContent = `${n} filing${n!==1?'s':''} indexed`;
@@ -978,7 +986,24 @@ async function api(url, opts={}) {
   const r = await fetch(url, {
     headers:{'Content-Type':'application/json',...(opts.headers||{})}, ...opts,
   });
-  if (!r.ok) { const e=await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail||`HTTP ${r.status}`); }
+  if (!r.ok) {
+    const e = await r.json().catch(()=>({detail:r.statusText}));
+    // POST /query returns 503 with detail={error_code, message} for a
+    // dependency failure (P1-05). Surface the message and keep the code so the
+    // user sees "the model is rate limited", not "[object Object]".
+    const d = e.detail;
+    let msg;
+    if (d && typeof d === 'object') {
+      msg = d.message || d.detail || `HTTP ${r.status}`;
+      if (d.error_code) msg += ` (${d.error_code})`;
+    } else {
+      msg = d || `HTTP ${r.status}`;
+    }
+    const err = new Error(msg);
+    err.status = r.status;
+    err.errorCode = (d && typeof d === 'object') ? d.error_code : undefined;
+    throw err;
+  }
   return r.status===204 ? null : r.json();
 }
 
@@ -1000,13 +1025,14 @@ function fmt(iso) {
 function bc(t) {
   return {single_doc:'b-single',multi_doc:'b-multi',temporal:'b-temp',
           summarization:'b-sum',out_of_scope:'b-oos',
-          unresolved_company:'b-info',clarification_needed:'b-info',ingest_failed:'b-info'}[t]||'b-single';
+          unresolved_company:'b-info',clarification_needed:'b-info',
+          ingest_failed:'b-info',error:'b-oos'}[t]||'b-single';
 }
 function bl(t) {
   return {single_doc:'Q&A',multi_doc:'Compare',temporal:'Trend',
           summarization:'Summary',out_of_scope:'Out of scope',
           unresolved_company:'Not found',clarification_needed:'Needs detail',
-          ingest_failed:'Try again'}[t]||t;
+          ingest_failed:'Try again',error:'Service error'}[t]||t;
 }
 
 function setTitle(text) {

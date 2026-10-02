@@ -6,20 +6,17 @@ each targeting a specific (ticker, year) pair that can be answered
 from a single collection.
 """
 
-import json
-import re
-from functools import lru_cache
 from typing import Dict, List
 
-from groq import Groq
 from loguru import logger
 
-from config import TICKER_TO_COMPANY, require_groq_api, settings
+from config import TICKER_TO_COMPANY
+from llm import get_client as get_llm
+
+# Logged in traces so a result can be tied to its prompt.
+PROMPT_VERSION = "decomposer-v1"
 
 
-@lru_cache(maxsize=1)
-def _get_client() -> Groq:
-    return Groq(api_key=require_groq_api())
 
 SYSTEM_PROMPT = """\
 You decompose complex financial queries into atomic sub-questions for searching SEC 10-K filings.
@@ -77,22 +74,22 @@ def decompose_query(
     Falls back to a single entry if decomposition fails.
     """
     try:
-        response = _get_client().chat.completions.create(
-            model=settings.routing_model,
+        data, completion = get_llm().complete_json(
+            role="router",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": f"Query: {query}\nTickers: {tickers}\nYears: {years}"},
             ],
             temperature=0.0,
-            max_tokens=400,
+            # Raised from v1's 400: reasoning models spend completion tokens on
+            # the chain of thought before the answer (measured in P1-00).
+            max_tokens=900,
+            prompt_version=PROMPT_VERSION,
         )
-        raw = response.choices[0].message.content.strip()
-
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if match:
-            raw = match.group(0)
-
-        data = json.loads(raw)
+        logger.debug(
+            f"decomposer: {completion.provider}:{completion.model} "
+            f"tokens={completion.total_tokens} cached={completion.cached}"
+        )
         subs = data.get("sub_questions", [])
 
         if not subs:

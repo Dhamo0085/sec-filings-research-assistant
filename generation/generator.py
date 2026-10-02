@@ -7,15 +7,12 @@ Flow:
   3. Return answer + structured citation list
 """
 
-import time
-from functools import lru_cache
 from typing import List
 
 import tiktoken
-from groq import APIConnectionError, APIStatusError, APITimeoutError, Groq, RateLimitError
 from loguru import logger
 
-from config import require_groq_api, settings
+from llm import get_client as get_llm
 from models import QueryResult, RetrievedChunk
 from retrieval.reranker import _compress_xbrl
 
@@ -41,6 +38,9 @@ TOTAL_CTX_BUDGET = 8500
 # system prompt + context + question + this still stays comfortably under
 # Groq's observed 12,000 TPM ceiling for this tier.
 MAX_RESPONSE_TOKS = 900
+
+# Logged in traces so an answer can be tied to the prompt that produced it.
+PROMPT_VERSION = "generator-v1"
 
 SYSTEM_PROMPT = """\
 You are a financial analyst with access to official SEC 10-K filings.
@@ -163,48 +163,29 @@ def _build_context(retrieved: List[RetrievedChunk]) -> tuple[str, List[dict]]:
     return "\n\n".join(ctx_parts), citations
 
 
-@lru_cache(maxsize=1)
-def _get_client() -> Groq:
-    return Groq(api_key=require_groq_api())
+def _call_generation(user_message: str) -> str:
+    """Produce the final answer through llm/client.py.
 
-
-def _call_generation(user_message: str, retries: int = 2, backoff: float = 1.5) -> str:
+    Retries, backoff, Retry-After handling and provider failover all live in
+    the client now (spec section 9), so this function no longer reimplements
+    them. Typed errors propagate to query.ask(), which turns them into
+    status=error with an error_code (P1-05) instead of v1's silent fallback.
     """
-    Call Groq for the final answer, retrying transient errors (connection
-    blips, 5xx) a couple of times with short backoff. Rate-limit errors are
-    NOT retried — the daily/per-minute quota won't clear in seconds, so this
-    fails fast and lets the caller degrade gracefully instead of stalling.
-    """
-    last_exc: Exception = None
-    for attempt in range(retries + 1):
-        try:
-            response = _get_client().chat.completions.create(
-                model=settings.generation_model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user",   "content": user_message},
-                ],
-                temperature=0.1,
-                max_tokens=MAX_RESPONSE_TOKS,
-            )
-            return response.choices[0].message.content.strip()
-        except RateLimitError:
-            raise
-        except (APIConnectionError, APITimeoutError, APIStatusError) as exc:
-            last_exc = exc
-            # 413 (request too large for the model's TPM limit) fails
-            # identically on every retry — it's a fixed property of this
-            # specific prompt, not a transient blip — so retrying just adds
-            # latency for no chance of success.
-            if getattr(exc, "status_code", None) == 413:
-                logger.warning(f"Groq request too large (413), not retrying: {exc}")
-                raise
-            if attempt < retries:
-                logger.warning(f"Groq call failed (attempt {attempt + 1}/{retries + 1}): {exc}")
-                time.sleep(backoff * (attempt + 1))
-                continue
-            raise
-    raise last_exc
+    completion = get_llm().complete(
+        role="generator",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user",   "content": user_message},
+        ],
+        temperature=0.1,
+        max_tokens=MAX_RESPONSE_TOKS,
+        prompt_version=PROMPT_VERSION,
+    )
+    logger.debug(
+        f"generator: {completion.provider}:{completion.model} "
+        f"tokens={completion.total_tokens} cached={completion.cached}"
+    )
+    return completion.content.strip()
 
 
 def generate_answer(
@@ -232,48 +213,14 @@ def generate_answer(
         f"QUESTION: {query}"
     )
 
-    logger.debug(f"Calling Groq ({settings.generation_model}) for: '{query[:60]}'")
+    logger.debug(f"Generating answer for: '{query[:60]}'")
 
-    try:
-        answer = _call_generation(user_message)
-    except RateLimitError as exc:
-        logger.warning(f"Groq rate limit hit during generation: {exc}")
-        return QueryResult(
-            query=query,
-            answer=(
-                "I found relevant source material below, but the answer-generation "
-                "service has hit its usage limit and can't write a summary right now. "
-                "Please try again in a few minutes."
-            ),
-            citations=citations,
-            chunks_used=retrieved,
-            query_type=query_type,
-        )
-    except (APIConnectionError, APITimeoutError, APIStatusError) as exc:
-        if getattr(exc, "status_code", None) == 413:
-            logger.error(f"Groq request too large for generation: {exc}")
-            return QueryResult(
-                query=query,
-                answer=(
-                    "I found relevant source material below, but there was too much "
-                    "of it for the answer-generation model to process in one request. "
-                    "Try narrowing the question to one company/year at a time."
-                ),
-                citations=citations,
-                chunks_used=retrieved,
-                query_type=query_type,
-            )
-        logger.error(f"Groq generation call failed after retries: {exc}")
-        return QueryResult(
-            query=query,
-            answer=(
-                "I found relevant source material below, but the answer-generation "
-                "service is temporarily unavailable. Please try again shortly."
-            ),
-            citations=citations,
-            chunks_used=retrieved,
-            query_type=query_type,
-        )
+    # Typed LLM errors deliberately propagate. v1 caught them here and returned
+    # a QueryResult whose `answer` was an apology but whose status was
+    # indistinguishable from a real answer, so the caller and the API could not
+    # tell an outage from a response. query.ask() now converts them into
+    # status="error" with an error_code, and the API returns 503 (P1-05, D7, G4).
+    answer = _call_generation(user_message)
 
     logger.debug(f"Answer ({len(answer)} chars), {len(citations)} citations")
 
@@ -283,4 +230,5 @@ def generate_answer(
         citations=citations,
         chunks_used=retrieved,
         query_type=query_type,
+        status="answered_text",
     )

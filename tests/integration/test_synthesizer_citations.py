@@ -15,37 +15,22 @@ from models import QueryResult
 
 pytestmark = pytest.mark.integration
 
-CAPTURED: list[dict] = []
-
-
 def _citation(idx: int, ticker: str) -> dict:
     return {"index": idx, "company": f"{ticker} Inc.", "ticker": ticker,
             "fiscal_year": 2024, "section": f"section_{idx}"}
 
 
-class _FakeCompletions:
-    def create(self, **kwargs):
-        CAPTURED.append(kwargs)
-        msg = type("M", (), {"content": "SYNTHESIZED"})()
-        return type("R", (), {"choices": [type("C", (), {"message": msg})()]})()
-
-
-class _FakeClient:
-    def __init__(self):
-        self.chat = type("Chat", (), {"completions": _FakeCompletions()})()
-
-
 def _drive(monkeypatch, sub1_n: int, sub2_n: int):
     import generation.synthesizer as S
+    from llm.fake import FakeLLM
 
-    CAPTURED.clear()
     subs = [{"ticker": "AAPL", "year": 2024, "question": "Q1"},
             {"ticker": "MSFT", "year": 2024, "question": "Q2"}]
     monkeypatch.setattr(S, "decompose_query", lambda *a, **k: subs)
     monkeypatch.setattr(S, "decompose_temporal", lambda *a, **k: subs)
     monkeypatch.setattr(S, "retrieve", lambda *a, **k: [])
-    fake_client = _FakeClient()
-    monkeypatch.setattr(S, "_get_client", lambda: fake_client)
+    fake_client = FakeLLM(default="SYNTHESIZED")
+    monkeypatch.setattr(S, "get_llm", lambda: fake_client)
 
     letters = "ABCDEFGHIJKL"
     text1 = " ".join(f"{letters[i-1]} [{i}]" for i in range(1, sub1_n + 1)) + "."
@@ -63,8 +48,8 @@ def _drive(monkeypatch, sub1_n: int, sub2_n: int):
 
     out = S.synthesize(query="compare", tickers=["AAPL", "MSFT"], years=[2024],
                        query_type="multi_doc")
-    assert CAPTURED, "synthesis LLM call was never made"
-    return CAPTURED[0]["messages"][1]["content"], out
+    assert fake_client.calls, "synthesis LLM call was never made"
+    return fake_client.calls[0]["messages"][1]["content"], out
 
 
 @pytest.mark.parametrize("sub1_n,sub2_n", [(1, 3), (2, 3), (3, 4), (1, 1), (5, 2)])

@@ -35,8 +35,10 @@ fastembed>=0.3.6
 onnxruntime>=1.17.0         # imported directly by ingestion/embedder.py
 numpy>=1.24.0               # imported directly by ingestion/embedder.py
 
-# LLM provider SDKs
-groq>=0.9.0
+# No provider SDK is required: llm/client.py speaks the OpenAI-compatible HTTP
+# API directly (spec section 9 rule 1). The groq SDK that v1 imported in four
+# modules is no longer used by serving code; requirements-eval.txt still pulls
+# it in transitively via langchain-groq.
 
 # API layer
 fastapi>=0.111.0

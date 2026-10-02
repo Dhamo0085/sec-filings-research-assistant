@@ -28,6 +28,7 @@ from api.auth import ADMIN_DEPENDENCY, ADMIN_TOKEN_HEADER
 from api.chat import router as chat_router
 from api.ratelimit import check_rate_limit
 from config import settings
+from llm.health import llm_state
 from query import ask
 from retrieval.vector_store import delete_collection, list_collections
 
@@ -113,6 +114,10 @@ class QueryResponse(BaseModel):
     query_type:  str
     citations:   List[CitationOut]
     chunks_used: int
+    # D9 status taxonomy (P1-05). The UI uses it to tell an answer from an
+    # abstention, a clarification, or a dependency failure.
+    status:      str = "answered_text"
+    error_code:  Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -137,11 +142,15 @@ def health():
     # needs to answer regardless of Qdrant's state, both for the platform's
     # own health checks and for diagnosing exactly this failure remotely.
     qdrant_mode = "remote" if settings.qdrant_url else "local"
+    # Cached, token-free LLM probe (P1-05). Never one probe per request: on a
+    # free tier that would spend the day's request quota on health checks.
+    llm_status = llm_state()
     try:
         cols = list_collections()
         return {
             "status": "ok",
             "qdrant_mode": qdrant_mode,
+            "llm": llm_status,
             "collections_loaded": len(cols),
             "collections": cols,
         }
@@ -150,6 +159,7 @@ def health():
         return {
             "status": "degraded",
             "qdrant_mode": qdrant_mode,
+            "llm": llm_status,
             "error": f"{type(exc).__name__}: {exc}",
             "collections_loaded": 0,
             "collections": [],
@@ -491,6 +501,15 @@ def query(req: QueryRequest, request: Request):
         logger.exception("Pipeline error")
         raise HTTPException(status_code=500, detail="Something went wrong while answering your question. Please try again.") from exc
 
+    # A dependency failure is a 503 with its error_code, not a 200 carrying an
+    # apology (D7, G4). v1 had no way to express this: every failure became a
+    # 200 with the "Which company are you asking about?" text.
+    if result.status == "error":
+        raise HTTPException(
+            status_code=503,
+            detail={"error_code": result.error_code, "message": result.answer},
+        )
+
     citations = [
         CitationOut(
             index=c["index"],
@@ -509,4 +528,6 @@ def query(req: QueryRequest, request: Request):
         query_type=result.query_type,
         citations=citations,
         chunks_used=len(result.chunks_used),
+        status=result.status,
+        error_code=result.error_code,
     )

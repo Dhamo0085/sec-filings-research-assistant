@@ -10,7 +10,7 @@ import pandas as pd
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
 
-from config import require_groq_api, settings
+from config import settings
 from models import ContentBlock, ParsedDocument, ParsedSection
 
 # ---------------------------------------------------------------------------
@@ -358,8 +358,8 @@ def _llm_locate_fs_headings(
     if not span or not missing:
         return []
 
-    from groq import Groq
-    client = Groq(api_key=require_groq_api())
+    from llm import get_client as get_llm
+    client = get_llm()
 
     # 500 lines routinely hit Groq's per-request TPM limit outright (verified:
     # "Requested 14144/21038/... tokens, Limit 6000" 413 errors on real
@@ -395,15 +395,17 @@ def _llm_locate_fs_headings(
             f"\n\nTEXT:\n{page_text}"
         )
         try:
-            resp = client.chat.completions.create(
-                model=settings.routing_model,
+            # Through llm/client.py: cached, budgeted, failover-capable.
+            # The cache matters here — this runs per page per filing, which is
+            # the largest single consumer of free-tier requests in the project.
+            data, _completion = client.complete_json(
+                role="router",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
-                max_tokens=300,
+                max_tokens=900,
+                prompt_version="fs-heading-v1",
+                repair=False,
             )
-            raw = resp.choices[0].message.content.strip()
-            match = re.search(r"\{.*\}", raw, re.DOTALL)
-            data = json.loads(match.group(0)) if match else {}
         except Exception as exc:
             logger.warning(f"LLM fs-heading recovery failed on a page: {exc}")
             continue

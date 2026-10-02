@@ -66,3 +66,14 @@ class QueryResult(BaseModel):
     citations: List[dict]
     chunks_used: List[RetrievedChunk]
     query_type: str
+
+    # D9 status taxonomy, added in P1-05 so a dependency failure is
+    # distinguishable from an answer or a clarification. v1 had no status
+    # field, so an LLM outage looked exactly like "please name a company"
+    # (Phase 0 F1). Phase 3 replaces this with answering/outcome.Outcome;
+    # the default keeps every existing v1 call site valid.
+    status: Literal[
+        "answered", "answered_text", "abstained", "clarification_needed", "error"
+    ] = "answered_text"
+    # One of the spec section 6.5 error_code values when status == "error".
+    error_code: Optional[str] = None

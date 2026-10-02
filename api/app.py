@@ -266,16 +266,22 @@ def _run_ingestion_background() -> None:
     One company at a time (download → parse → chunk → embed → upsert),
     rather than the whole bundled-12 in one pass. Two independent reasons:
 
-    1. Peak memory. embedder.index_chunks() joins every chunk's text across
-       every collection into one array before calling the ONNX models —
-       fine for a handful of tickers, but WFC/BLK-style content-heavy
-       filers alone produce thousands of table chunks each; all 12
-       companies' chunks held in memory simultaneously plus the embedding
-       output arrays is a very different memory profile than one company
-       at a time. On a memory-capped host tier that's a plausible OOM
-       kill — which would explain /ingest/status staying at
+    1. Peak memory. v1's embedder.index_chunks() joined every chunk's text
+       across every collection into one array before calling the ONNX
+       models — fine for a handful of tickers, but WFC/BLK-style
+       content-heavy filers alone produce thousands of table chunks each;
+       all 12 companies' chunks held in memory simultaneously plus the
+       embedding output arrays is a very different memory profile than one
+       company at a time. On a memory-capped host tier that's a plausible
+       OOM kill — which would explain /ingest/status staying at
        exit_code=null indefinitely: a hard kill skips the except/finally
        below entirely, so nothing ever gets the chance to record failure.
+       P1-00 confirmed the diagnosis on the owner's own 8 GB machine
+       (2.4 GB RSS, swap at 9.6 of 10 GB, nothing written after 68
+       minutes), and P2-00(c) replaced that call with
+       ingestion.indexer.index_stream, which bounds what is in flight to
+       one batch. The per-company loop below is kept anyway: it also
+       bounds download and parse, which the indexer does not touch.
     2. Resumability. Each company's Qdrant collections are committed
        before moving to the next, so a kill mid-run (whatever the cause)
        loses at most the one in-flight company's work — the next
@@ -298,7 +304,7 @@ def _run_ingestion_background() -> None:
     from config import COMPANIES
     from ingestion.chunker import chunk_all_documents
     from ingestion.downloader import download_all_filings
-    from ingestion.embedder import index_chunks
+    from ingestion.indexer import index_stream
     from ingestion.parser import parse_all_filings
 
     _ingest_tail = []
@@ -323,7 +329,7 @@ def _run_ingestion_background() -> None:
             chunks = chunk_all_documents(documents=documents, chunks_dir=settings.chunks_dir)
 
             before = len(list_collections())
-            index_chunks(chunks)
+            index_stream(chunks)
             after = len(list_collections())
 
             _ingest_tail.append(

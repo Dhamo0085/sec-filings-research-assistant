@@ -9,12 +9,17 @@ PY      := $(VENV)/bin/python
 PIP     := $(VENV)/bin/pip
 PYTEST  := $(VENV)/bin/pytest
 RUFF    := $(VENV)/bin/ruff
+# The phase whose reports/ directory test artifacts are written to. Bumped at
+# each phase so a later run cannot overwrite an earlier phase's committed
+# junit.xml/coverage.xml (a Phase 1 runner overwrote a committed Phase 0
+# artifact that way; see reports/phase1/REPORT.md section 6).
+PHASE   ?= phase2
 HOST    ?= 127.0.0.1
 PORT    ?= 8000
 BASE_URL ?= http://localhost:$(PORT)
 
 .DEFAULT_GOAL := help
-.PHONY: help setup test test-live lint fmt ingest catalog facts eval-smoke eval-full up hygiene clean
+.PHONY: help setup test test-live lint fmt ingest index catalog facts eval-smoke eval-full up hygiene clean
 
 help:   ## Show the available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -41,8 +46,8 @@ setup-eval: $(VENV)/bin/python   ## Additionally install the optional RAGAS stac
 test: ## Offline unit + integration tests (network blocked; must pass with no .env)
 	$(PYTEST) tests/unit tests/integration -m "not live and not slow" \
 	  --disable-socket --allow-unix-socket \
-	  --cov=. --cov-report=term-missing --cov-report=xml:reports/phase1/tests/coverage.xml \
-	  --junitxml=reports/phase1/tests/junit.xml
+	  --cov=. --cov-report=term-missing --cov-report=xml:reports/$(PHASE)/tests/coverage.xml \
+	  --junitxml=reports/$(PHASE)/tests/junit.xml
 
 test-live: ## Tests that need the network or a real LLM
 	$(PYTEST) -m "live" --no-cov
@@ -61,6 +66,9 @@ ingest: ## Download + parse + chunk + index the bundled companies
 
 catalog: ## Build the filing catalog from SEC EDGAR submissions (P1-09)
 	$(PY) -m catalog.build
+
+index: ## Stream-index the chunk corpus one collection at a time (P2-00c)
+	$(PY) -m ingestion.indexer $(if $(ONLY),--only $(ONLY),)
 
 facts: ## Build the iXBRL facts store (Phase 2)
 	@echo "facts: not implemented until Phase 2 (facts/ package, task P2-04)." && exit 1

@@ -80,4 +80,17 @@ markers = [
     "live: needs the network and/or a real LLM provider",
     "slow: long-running",
 ]
-filterwarnings = ["ignore::DeprecationWarning"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    # pytest-socket warns when any socket is CONSTRUCTED, and urllib3 builds
+    # one at import time to probe IPv6 support:
+    #     HAS_IPV6 = _has_ipv6("::1")      urllib3/util/connection.py
+    #     sock = socket.socket(socket.AF_INET6)
+    # It never connects and urllib3 catches the block itself, so the warning is
+    # an import artifact of anything that imports requests (fastembed, and
+    # therefore qdrant_client). Traced to that line before silencing it, and
+    # narrowed to the one message: a real connection attempt still raises
+    # SocketBlockedError and fails the test, as
+    # tests/unit/test_offline_guarantee.py asserts.
+    "ignore:A test tried to use socket.socket.:UserWarning",
+]

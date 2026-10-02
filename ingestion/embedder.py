@@ -1,8 +1,18 @@
 """
-Embedder + indexer — fastembed (ONNX Runtime) only, no PyTorch.
+Embedder — fastembed (ONNX Runtime) only, no PyTorch.
 
-Dense  : BAAI/bge-large-en-v1.5  via fastembed.TextEmbedding
-Sparse : Qdrant/bm25              via fastembed.SparseTextEmbedding
+Dense  : settings.embedding_model  via fastembed.TextEmbedding
+Sparse : settings.sparse_model     via fastembed.SparseTextEmbedding
+
+The defaults are BAAI/bge-base-en-v1.5 (768-dim) and Qdrant/bm25. This
+docstring named bge-LARGE until P2-00; config.py has said bge-base since v1, so
+the comment was describing a model the code never loaded. retrieval/vector_store
+carried the same stale name in its schema comment.
+
+Indexing moved to ``ingestion/indexer.py`` in P2-00(c). ``index_chunks`` below
+is v1's one-pass version, kept only because ``eval/phase1/index_per_ticker.py``
+drives it and P2-00 says to keep that script until the streaming indexer is
+verified. No production path calls it any more.
 """
 
 from collections import defaultdict
@@ -105,6 +115,15 @@ def index_chunks(
     batch_size:    int  = settings.embedding_batch_size,
     force_reindex: bool = False,
 ) -> None:
+    """v1's one-pass indexer. SUPERSEDED by ingestion.indexer.index_stream.
+
+    Kept for ``eval/phase1/index_per_ticker.py``, the P1-00 workaround that
+    drives this function one ticker at a time; P2-00 says to keep that script
+    until the streaming indexer is verified, and it imports this name. Note
+    that ``force_reindex`` here means "upsert into an existing collection
+    anyway" and never deletes — ``index_stream``'s flag does delete, so the two
+    are not interchangeable.
+    """
     grouped: dict = defaultdict(list)
     for chunk in chunks:
         grouped[get_collection_name(chunk.ticker, chunk.fiscal_year)].append(chunk)

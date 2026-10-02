@@ -97,9 +97,11 @@ def main(skip_download: bool = False, skip_index: bool = False) -> None:
     # ------------------------------------------------------------------
     if not skip_index:
         # Import here so missing ML packages don't break steps 1-3
-        from ingestion.embedder import index_chunks
+        from ingestion.indexer import index_stream
         logger.info("Embedding and indexing into Qdrant …")
-        index_chunks(chunks)
+        run = index_stream(chunks, progress=lambda p: logger.info(p.line()))
+        for failure in run.failed:
+            logger.error(f"indexing failed for {failure.name}: {failure.error}")
     else:
         logger.info("Skipping Qdrant indexing (--skip-index)")
 

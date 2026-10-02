@@ -2,8 +2,13 @@
 Qdrant wrapper — collection management, upsert, and hybrid search.
 
 Schema per collection (one collection = one ticker + fiscal year):
-  dense vector  : 1024-dim COSINE  (BAAI/bge-large-en-v1.5)
-  sparse vector : BM25              (Qdrant/bm25 via fastembed)
+  dense vector  : settings.embedding_dim, COSINE (settings.embedding_model)
+  sparse vector : BM25                           (settings.sparse_model)
+
+Both were documented as 1024-dim bge-large until P2-00. config.py has always
+said bge-base-en-v1.5 at 768 dimensions, so the numbers here described a
+configuration that was never loaded; corrected to name the settings instead so
+the comment cannot drift from the code again.
   payload       : all Chunk fields  (filterable)
 
 Hybrid search uses Qdrant's built-in RRF fusion over prefetch results.

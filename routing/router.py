@@ -44,6 +44,7 @@ because a narrative question frequently mentions quantities in passing.
 
 from __future__ import annotations
 
+import dataclasses
 import re
 from dataclasses import dataclass, field
 from datetime import date
@@ -53,7 +54,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from answering.outcome import AbstainReason, QueryType
 from facts.concepts import Registry, load_registry
 from routing.entities import EntityResolution, RegistryLookup, resolve_entities
-from routing.periods import PeriodRequest, parse_period
+from routing.periods import PeriodKind, PeriodRequest, parse_period
 
 PROMPT_VERSION = "router-v1"
 
@@ -438,6 +439,8 @@ def route(
     registry_lookup: Optional[RegistryLookup] = None,
     today: Optional[date] = None,
     as_of_override: Optional[str] = None,
+    force_tickers: Optional[Sequence[str]] = None,
+    force_years: Optional[Sequence[int]] = None,
 ) -> Route:
     """Decide intent, path, metric, period and focus for ``question``.
 
@@ -449,6 +452,14 @@ def route(
     ``as_of_override`` is the API's ``as_of`` parameter, which wins over a date
     written in the question — the caller's explicit field is a stronger signal
     than a phrase, and P3-08 passes it.
+
+    ``force_tickers`` and ``force_years`` are the UI's filter chips. They are
+    applied here, right after entity and period parsing and **before** the
+    intent is derived, rather than patched onto a finished Route: the intent
+    depends on how many companies and periods there are, so a chip that adds
+    a second company has to be able to make the question a comparison. They
+    cannot rescue a question that is out of scope or names a quarterly
+    period, because those are refused before this point.
     """
     registry = registry or load_registry()
     question = (question or "").strip()
@@ -458,8 +469,28 @@ def route(
     if registry_lookup is not None:
         entity_kwargs["registry_lookup"] = registry_lookup
     entities = resolve_entities(question, **entity_kwargs)
+    if force_tickers:
+        upper = tuple(str(t).upper() for t in force_tickers)
+        entities = dataclasses.replace(
+            entities, tickers=upper,
+            names={t: entities.names.get(t, t) for t in upper},
+            matched=dict.fromkeys(upper, "selected by the caller"),
+            unresolved=(),
+        )
+        rationale.append(f"tickers from the caller: {', '.join(upper)}")
 
     period = parse_period(question, today=today)
+    if force_years and period.abstain_reason is None:
+        # Only when the period parse did not already refuse: a quarterly
+        # question stays refused however the years are narrowed (D10).
+        labels = tuple(sorted({int(y) for y in force_years}))
+        period = PeriodRequest(
+            kind=PeriodKind.FISCAL_LABEL, labels=labels, as_of=period.as_of,
+            bare=True, matched=period.matched,
+        )
+        rationale.append(f"years from the caller: "
+                         f"{', '.join(str(y) for y in labels)}")
+
     if as_of_override:
         period = PeriodRequest(
             kind=period.kind, labels=period.labels, period_end=period.period_end,

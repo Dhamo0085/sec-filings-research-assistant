@@ -195,3 +195,78 @@ def test_linking_then_scoping_gives_the_text_path_something_to_search(tmp_path):
     assert lookup["BLK_2023"]["cik"] == OLD_CIK, (
         "and the citation for it carries the old registrant's CIK (D24)"
     )
+
+
+# ── the CLI and the facts hand-off ───────────────────────────────────────────
+
+def test_the_cli_reports_the_filings_and_the_ciks(tmp_path, capsys, monkeypatch):
+    """`--ticker BLK` is how the owner checks the D24 case by hand."""
+    import ingestion.catalog_ingest as ci
+
+    catalog = blk_catalog(tmp_path, collections=True)
+    monkeypatch.setattr(ci, "CatalogStore", lambda _p: catalog, raising=False)
+    monkeypatch.setitem(__import__("sys").modules, "catalog.store",
+                        __import__("catalog.store", fromlist=["CatalogStore"]))
+    import catalog.store as cs
+    monkeypatch.setattr(cs, "CatalogStore", lambda _p: catalog)
+
+    assert ci.main(["--ticker", "BLK", "--limit", "3"]) == 0
+    out = capsys.readouterr().out
+    assert "BLK: 3 filing(s) across CIK(s) [1364742, 2012383]" in out
+    assert "FY2023 10-K    0000950170-24-019271 cik=1364742" in out
+
+
+def test_the_cli_link_mode_reports_and_exits_zero_when_clean(tmp_path, capsys, monkeypatch):
+    import catalog.store as cs
+    import ingestion.catalog_ingest as ci
+    import retrieval.vector_store as vs
+
+    catalog = blk_catalog(tmp_path)
+    monkeypatch.setattr(cs, "CatalogStore", lambda _p: catalog)
+    monkeypatch.setattr(vs, "list_collections", lambda: ["BLK_2024", "BLK_2025"])
+
+    assert ci.main(["--link"]) == 0
+    out = capsys.readouterr().out
+    assert "linked 2" in out and "orphan collections 0" in out
+
+
+def test_the_cli_link_mode_exits_non_zero_on_an_orphan(tmp_path, capsys, monkeypatch):
+    """A collection no filing claims means a question about that year quietly
+    finds nothing, so it has to fail a scripted run."""
+    import catalog.store as cs
+    import ingestion.catalog_ingest as ci
+    import retrieval.vector_store as vs
+
+    catalog = blk_catalog(tmp_path)
+    monkeypatch.setattr(cs, "CatalogStore", lambda _p: catalog)
+    monkeypatch.setattr(vs, "list_collections", lambda: ["BLK_2024", "ZZZZ_2024"])
+
+    assert ci.main(["--link"]) == 1
+    assert "orphan collection with no catalog filing: ZZZZ_2024" in capsys.readouterr().out
+
+
+def test_a_facts_build_failure_is_reported_not_swallowed(monkeypatch):
+    """P3-06: "on facts failure -> text path only, flagged". The flag is the
+    return value; a partial build that looks complete is what must not happen."""
+    import facts.build as fb
+    import ingestion.catalog_ingest as ci
+
+    def boom(**_kwargs):
+        raise RuntimeError("facts.sqlite is locked")
+
+    monkeypatch.setattr(fb, "build", boom)
+    result = ci.facts_for_ticker("BLK")
+    assert result["ok"] is False
+    assert "facts.sqlite is locked" in result["error"]
+    assert result["ticker"] == "BLK"
+
+
+def test_a_facts_build_success_reports_its_counts(monkeypatch):
+    import facts.build as fb
+    import ingestion.catalog_ingest as ci
+
+    monkeypatch.setattr(fb, "build", lambda **_k: {"counts": {"built": 3},
+                                                   "facts_db": "derived/facts.sqlite"})
+    result = ci.facts_for_ticker("BLK")
+    assert result == {"ok": True, "counts": {"built": 3},
+                      "facts_path": "derived/facts.sqlite"}

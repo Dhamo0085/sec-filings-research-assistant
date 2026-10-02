@@ -1,0 +1,38 @@
+{
+  "cik": 19617,
+  "name": "JPMORGAN CHASE & CO",
+  "tickers": [
+    "JPM"
+  ],
+  "filings": {
+    "recent": {
+      "form": [
+        "10-K",
+        "10-K/A",
+        "10-K/A"
+      ],
+      "accessionNumber": [
+        "0000950123-06-002875",
+        "0000950123-06-008545",
+        "0000950123-06-009854"
+      ],
+      "reportDate": [
+        "2005-12-31",
+        "2005-12-31",
+        "2005-12-31"
+      ],
+      "filingDate": [
+        "2006-03-09",
+        "2006-06-22",
+        "2006-08-03"
+      ],
+      "primaryDocument": [
+        "y17599e10vk.htm",
+        "y22910e10vkza.htm",
+        "y23756e10vkza.htm"
+      ]
+    },
+    "files": []
+  },
+  "_fixture_note": "Trimmed from data.sec.gov submissions for JPMorgan Chase: the FY2005 10-K and its two 10-K/A amendments. Recorded 2026-10-02 for T1-06 (amendment linking and D14 restatement selection)."
+}

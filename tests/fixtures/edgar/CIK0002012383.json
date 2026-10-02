@@ -1,0 +1,28 @@
+{
+  "cik": "0002012383",
+  "name": "BlackRock, Inc.",
+  "tickers": [
+    "BLK"
+  ],
+  "filings": {
+    "recent": {
+      "form": [
+        "10-K"
+      ],
+      "accessionNumber": [
+        "0001193125-26-071966"
+      ],
+      "reportDate": [
+        "2025-12-31"
+      ],
+      "filingDate": [
+        "2026-02-25"
+      ],
+      "primaryDocument": [
+        "blk-20251231.htm"
+      ]
+    },
+    "files": []
+  },
+  "_fixture_note": "Trimmed from data.sec.gov submissions for BLK new registrant: annual forms only, five fields. Recorded 2026-10-02 for T1-06."
+}

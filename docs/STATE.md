@@ -11,8 +11,17 @@ carried into Phase 2 on 2026-10-02 against spec v1.4.
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | IN PROGRESS on branch `phase-2-facts-engine`; owner approved the start on 2026-10-02 |
-| Current task | P2-00 (housekeeping, streaming indexer, throughput profile, core-ticker indexing) |
-| Tests | `make test` → 289 passed offline, sockets blocked, no `.env`; `make lint` clean |
+| Current task | P2-09/P2-10 done next; P2-00(e) core-ticker indexing running in the background |
+| Tests | `make test` → 289 passed at the Phase 1 gate; Phase 2 has added ~130 more (facts extract/calc/indexer/hygiene). Re-run before the gate. |
+
+## 1a. Phase 2 facts (measured, 2026-10-02)
+- **Facts store built**: `data/derived/facts.sqlite`, **26,041 facts**, 66 submissions, 13 tickers, 3,040 distinct concepts, from the newest 5 originals per ticker plus the GS FY2023 10-K/A. `make facts` is idempotent: a second run reports all 66 `unchanged` and `--rebuild` reproduces the byte-identical content hash (T2-08).
+- **Oracle cross-check (P2-09)**: 20,892 comparable (accn, concept, start, end, unit) pairs. **99.11% bit-exact overall; 100.00% on the 1,330 pairs for the 23 concepts the metric registry uses; 100% agree within the filer's declared precision. Zero scale errors, zero sign errors, zero unclassified mismatches.** The 181 `rounding` rows are filings tagging a concept twice — rounded in prose (`decimals="-8"`) and exact in a table; the oracle keeps the precise one, we keep the other. None touches a registry concept.
+- **Coverage (P2-11)**: 634 of 780 (ticker, metric, year) resolutions = 81.3%, **zero ambiguous**. 146 `metric_not_found_in_filing`, all plausible (banks: no gross profit, no R&D, no OperatingIncomeLoss; AMZN tags no `us-gaap:Liabilities`). 51 `conflict` validations remain and are mostly v1 parser section-boundary defects, not extraction errors.
+- **Indexing throughput (P2-00d)**: batch size is worth ~9% at 512 tokens (2.15-2.35 chunks/s); sequence length is worth 2x (4.8 chunks/s at 256) but changes what a vector means, so it was rejected (D2-00). Batch 8 in a real run against an existing index: **1.34 GB peak RSS vs 3.05 GB at batch 64, and faster** — Qdrant local mode holds every existing collection in RAM, which the isolated grid did not capture. `config.index_batch_size = 8`.
+- **iXBRL formats**: across all 250 cached documents (65 filings) there are exactly **7** distinct `ix:nonFraction/@format` values, all implemented. `ixt-sec:numwordsen` uses 16 distinct texts including `nil` and `three million`.
+- **DEI labels (P2-03)**: 65 of 65 match `period_end.year`; catalog now records `fiscal_label_source='dei'` for those 65. **29 of 65 filings are multi-document submissions** (not just WFC) and `exhibit_docs` is populated.
+- `.cache/filings/` now holds ~500 MB (one directory per accession). Reuse it; the offline re-runs make zero requests.
 
 ## 2. Machine and environment (seed)
 macOS arm64, **8 GB RAM**, CPython 3.12.14, `git` 2.51, `gh` authenticated. Keys live in `.env` (`groq_api`/`GROQ_API_KEY`, `GEMINI_API_KEY`, `edgar_email`); never read or print it. No paid services (D18). `.cache/` (~187 MB of SEC responses) and the downloaded raw filings are preserved and gitignored; reuse them before fetching again.
@@ -38,6 +47,9 @@ Numeric 2/2 pass (N1, N5); computed 0/1 (C1: classification failure); trend 0/1 
 
 ## 6. Decisions in force (see `docs/DECISIONS.md` and spec section 4)
 D1 facts from iXBRL · D2 `as_of` via catalog · D5 headline total net revenue · D6 company's own fiscal label (DEI) · D7 typed errors · D13 admin fail-closed · D14 restatement rule · D17 portfolio repo · D18 no paid services · D19 `Co-Authored-By: Claude` · D20 normalize citation brackets (counted) · D21 partial baseline accepted, evaluation-core tickers indexed before Phase 3.
+
+## 6a. Phase 2 decisions
+D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0).
 
 ## 7. Open items
 1. P2-00: indexing throughput profile, streaming indexer, evaluation-core tickers (AAPL, AMZN done; MSFT, JPM, GOOGL, NFLX, BLK, GS next).

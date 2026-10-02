@@ -1,0 +1,54 @@
+{
+  "checked_at_utc": "2026-10-02T16:10:38.798818+00:00",
+  "submissions": 66,
+  "facts": 26041,
+  "comparable": 20892,
+  "counts": {
+    "not_in_oracle": 5149,
+    "exact": 20706,
+    "rounding": 181,
+    "oracle_precision": 5
+  },
+  "exact_rate": 0.9910970706490523,
+  "registry_concepts": [
+    "us-gaap:Assets",
+    "us-gaap:CashAndCashEquivalentsAtCarryingValue",
+    "us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+    "us-gaap:EarningsPerShareDiluted",
+    "us-gaap:GrossProfit",
+    "us-gaap:IncomeLossFromContinuingOperationsPerDilutedShare",
+    "us-gaap:Liabilities",
+    "us-gaap:NetCashProvidedByUsedInOperatingActivities",
+    "us-gaap:NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
+    "us-gaap:NetIncomeLoss",
+    "us-gaap:OperatingIncomeLoss",
+    "us-gaap:PaymentsToAcquireProductiveAssets",
+    "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+    "us-gaap:ProfitLoss",
+    "us-gaap:ResearchAndDevelopmentExpense",
+    "us-gaap:ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost",
+    "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+    "us-gaap:RevenueFromContractWithCustomerIncludingAssessedTax",
+    "us-gaap:Revenues",
+    "us-gaap:RevenuesNetOfInterestExpense",
+    "us-gaap:SalesRevenueNet",
+    "us-gaap:StockholdersEquity",
+    "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+  ],
+  "registry_comparable": 1330,
+  "registry_counts": {
+    "exact": 1330
+  },
+  "registry_exact_rate": 1.0,
+  "agreeing_within_declared_precision": 20892,
+  "thresholds": {
+    "exact_min": 0.995,
+    "exact_pass": false,
+    "scale_errors": 0,
+    "sign_errors": 0,
+    "passed": false
+  },
+  "mismatches": [],
+  "tickers_missing_oracle": [],
+  "edgar_requests": 0
+}

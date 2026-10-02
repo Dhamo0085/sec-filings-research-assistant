@@ -10,7 +10,7 @@ carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure a
 | Repository | private, `github.com/Dhamo0085/sec-filings-research-assistant`; branch model: `main` + one `phase-N-<slug>` branch per phase, merged by the owner via PR |
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
-| Phase 2 | COMPLETE through P2-13 closure; PR #3 open from `phase-2-facts-engine`. All T2 tests pass and all T2-10 thresholds are met |
+| Phase 2 | COMPLETE through P2-13 closure. **PR #3 was merged mid-session with the 12 pre-closure commits** (`21566ee`); the two P2-13 commits are on `phase-2-facts-engine` and need a follow-up PR to reach `main`. All T2 tests pass and all T2-10 thresholds are met |
 | Current task | none — awaiting "Approved: start Phase 3" |
 | Tests | `make test` → **547 passed, 0 skipped**; `facts/` 88.7%, `catalog/` 95.4%; ruff and hygiene clean |
 

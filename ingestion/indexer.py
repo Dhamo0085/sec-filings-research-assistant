@@ -296,7 +296,10 @@ def index_stream(
     """
     if batch_size is None:
         from config import settings
-        batch_size = settings.embedding_batch_size
+        # index_batch_size, not embedding_batch_size: see D2-00. The grid found
+        # batch size worth ~9% of throughput but it does drive peak memory, and
+        # memory is what stopped P1-00.
+        batch_size = settings.index_batch_size
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 

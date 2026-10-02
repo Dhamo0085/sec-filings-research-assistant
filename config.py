@@ -92,6 +92,13 @@ class Settings(BaseSettings):
     embedding_model:     str = "BAAI/bge-base-en-v1.5" #change to a larger model if you have a GPU with enough VRAM
     embedding_dim:       int = 768
     embedding_batch_size: int = 64
+    # Batch size for the streaming indexer specifically (P2-00c/d). Separate
+    # from embedding_batch_size, which also governs query encoding, and lower
+    # than it on purpose: the P2-00(d) grid measured batch size as worth only
+    # ~9% of throughput at 512 tokens (2.15-2.35 chunks/s across 8/16/32/64)
+    # while the transient attention activations scale with it, and on this 8 GB
+    # machine memory is the binding constraint, not arithmetic. See D2-00.
+    index_batch_size:    int = 8
     sparse_model:        str = "Qdrant/bm25"
 
     # Retrieval

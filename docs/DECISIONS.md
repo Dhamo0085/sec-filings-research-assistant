@@ -108,6 +108,64 @@ because K9 genuinely needed local-mode behaviour.
 
 ---
 
+## 2026-10-02 — D2-00 Keep bge-base at full 512 tokens; the 4 chunks/s bar was a proxy
+
+**Context.** P2-00(d) sets a decision rule: keep v1's dense embedding model if a tuned
+setting reaches **≥ 4 chunks/s**, because the full 35,838-chunk corpus would then index in
+about 2.5 hours overnight. Otherwise fall back, in order, to (i) embedding only text and
+footnote chunks for non-core tickers, (ii) a smaller model (declared per D21), (iii) a free
+Colab GPU runtime.
+
+**Measurement** (`reports/phase2/throughput_profile.json`, 200 real chunks stratified by
+(ticker, chunk_type), each configuration in its own subprocess):
+
+| max_length | batch 8 | batch 16 | batch 32 | batch 64 | peak RSS |
+|---|---|---|---|---|---|
+| 512 | **2.35** | 2.17 | 2.15 | 2.22 | 1.0–1.1 GB |
+| 256 | **4.80** | 4.68 | 4.74 | 3.72 | 1.0–1.4 GB |
+
+Two things the grid settles:
+
+* **Batch size is nearly irrelevant** (2.15–2.35 at 512). The corpus median chunk is 986
+  tokens and 81% exceed 512, so every sequence is padded to the cap and cost is one
+  fixed-size sequence per chunk however they are grouped. Tuning batch size was the wrong
+  knob.
+* **P1-00's 1.6 s/chunk was memory pressure, not the model.** The same model on the same
+  machine now measures 0.43 s/chunk — 3.8× faster — because the streaming indexer holds one
+  batch instead of the whole corpus. Peak RSS is 1.0–1.1 GB against the 2.4 GB that drove
+  swap to 9.6 of 10 GB.
+
+**Options.** (a) Keep bge-base at 512 and accept 2.35 chunks/s. (b) Drop `max_length` to 256
+for the 2× speed-up. (c) Fall back to text+footnote chunks only for non-core tickers.
+(d) Switch to a smaller model.
+
+**Choice.** (a) — keep bge-base at 512, with batch 8. No fallback is taken.
+
+**Reason.** The ≥ 4 chunks/s bar is a proxy for "can this be indexed overnight", and at 2.35
+chunks/s the answer is still yes: 4.2 hours for the full corpus, and **78 minutes** for what
+P2-00(e) actually asks for (the 10,976 chunks of the five core tickers with chunk files). The
+bar was set expecting 2.5 hours; 4.2 hours is a longer night, not an infeasible one, so
+taking a fallback would trade real quality for a constraint that is not binding.
+
+Option (b) is rejected on grounds the bar does not capture. `max_length=256` is not a tuning
+knob, it changes **what a vector means**: with a median chunk of 986 tokens, it would embed
+roughly the first quarter of each chunk and discard the rest. It would also make the index
+internally inconsistent — AAPL and AMZN were already embedded at 512 — so adopting it means
+re-indexing everything, and every retrieval number measured before and after would be
+incomparable. Buying 2× throughput with that is a bad trade when the full run already fits
+in a night.
+
+Option (c) would deliberately drop the 77% of the corpus that is table chunks for the
+non-core filers, which are precisely the chunks a financial question needs. It is held in
+reserve.
+
+**What would change it.** A larger corpus (the spec's `FACTS_FILINGS_PER_COMPANY` growing, or
+more tickers) pushing the full run past a night; or a machine with enough RAM to make batch
+size matter again, which would need the grid re-run rather than re-reasoned. If the embedding
+model is ever changed, D21 requires it to be declared in every results table.
+
+---
+
 ## 2026-10-02 — D1-04b Role model orders, chosen by measurement
 
 **Context.** Spec Appendix A proposed roles from *declared* free-tier limits:

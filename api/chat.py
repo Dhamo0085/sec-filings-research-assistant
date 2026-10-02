@@ -23,12 +23,7 @@ from pydantic import BaseModel
 
 from api.auth import ADMIN_DEPENDENCY
 from config import settings
-from generation.generator import generate_answer
-from generation.synthesizer import synthesize
-from models import QueryResult
 from query import ask
-from retrieval.retriever import retrieve
-from routing.resolver import classify_and_ensure
 
 # ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -80,6 +75,22 @@ def _init_db() -> None:
             );
             CREATE INDEX IF NOT EXISTS idx_turns_session ON turns(session_id);
         """)
+        # P3-09 added the 6.5 status fields. The chat DB is runtime data
+        # (D16, untracked), so an additive migration is cheaper and safer
+        # than a rebuild — an existing history keeps working and old turns
+        # simply report the pre-Phase-3 default.
+        existing = {row[1] for row in con.execute("PRAGMA table_info(turns)")}
+        for column, default in (
+            ("status", "'answered_text'"),
+            ("abstain_reason", "NULL"),
+            ("error_code", "NULL"),
+            ("as_of", "NULL"),
+            ("definition_note", "NULL"),
+        ):
+            if column not in existing:
+                con.execute(
+                    f"ALTER TABLE turns ADD COLUMN {column} TEXT DEFAULT {default}"
+                )
 
 
 try:
@@ -96,17 +107,15 @@ except Exception:
 
 # ── Pipeline helper ───────────────────────────────────────────────────────────
 
-def _run_pipeline(question: str, tickers=None, years=None) -> QueryResult:
-    """Run the RAG pipeline with optional caller-supplied ticker/year filters."""
-    if tickers or years:
-        cls = classify_and_ensure(question)
-        t = tickers or cls.tickers
-        y = years   or cls.years
-        if cls.query_type in ("multi_doc", "temporal"):
-            return synthesize(question, t, y, cls.query_type, focus=cls.focus)
-        retrieved = retrieve(question, t, y, focus=cls.focus)
-        return generate_answer(question, retrieved, cls.query_type)
-    return ask(question)
+def _run_pipeline(question: str, tickers=None, years=None, as_of=None):
+    """Run the pipeline. Returns the P3-01 Outcome.
+
+    P3-03 retired routing/classifier.py: the filter chips are now an override
+    applied *after* routing (query.ask), so the intent, metric and focus are
+    still read from the question rather than guessed again by a second,
+    differently-prompted model call.
+    """
+    return ask(question, as_of=as_of, tickers=tickers, years=years)
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -116,6 +125,8 @@ class ChatRequest(BaseModel):
     question:   str
     tickers:    Optional[List[str]] = None
     years:      Optional[List[int]] = None
+    # P3-08/P3-09: point-in-time answers from the chat UI too (D2, G2).
+    as_of:      Optional[str] = None
 
 
 class TurnOut(BaseModel):
@@ -127,6 +138,12 @@ class TurnOut(BaseModel):
     citations:   list
     is_correct:  Optional[bool] = None
     created_at:  str
+    # Spec 6.5, so the chat UI can show the same badges and notes as /query.
+    status:          str = "answered_text"
+    abstain_reason:  Optional[str] = None
+    error_code:      Optional[str] = None
+    as_of:           Optional[str] = None
+    definition_note: Optional[str] = None
 
 
 class SessionOut(BaseModel):
@@ -206,18 +223,30 @@ def chat(req: ChatRequest):
         question = f"[Conversation history]\n{ctx}\n\n[Current question]\n{req.question}"
 
     try:
-        result = _run_pipeline(question, req.tickers, req.years)
+        outcome = _run_pipeline(question, req.tickers, req.years, req.as_of)
     except Exception as exc:
         logger.exception("Chat pipeline error")
         raise HTTPException(500, "Something went wrong while answering your question. Please try again.") from exc
+
+    body = outcome.to_ui_response()
+    if body["status"] == "error":
+        # Same rule as /query: a dependency failure is a 503 with its code,
+        # never a 200 carrying an apology (D7, G4).
+        raise HTTPException(503, {"error_code": body["error_code"],
+                                  "message": body["answer"]})
 
     tid = str(uuid.uuid4())
     try:
         with _conn() as con:
             con.execute(
-                "INSERT INTO turns VALUES (?,?,?,?,?,?,?,?)",
-                (tid, sid, req.question, result.answer,
-                 result.query_type, json.dumps(result.citations), None, now),
+                "INSERT INTO turns (id, session_id, question, answer, "
+                "query_type, citations, is_correct, created_at, status, "
+                "abstain_reason, error_code, as_of, definition_note) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (tid, sid, req.question, body["answer"], body["query_type"],
+                 json.dumps(body["citations"]), None, now, body["status"],
+                 body["abstain_reason"], body["error_code"], body["as_of"],
+                 body["definition_note"]),
             )
             con.execute("UPDATE sessions SET updated_at=? WHERE id=?", (now, sid))
     except sqlite3.Error as exc:
@@ -225,10 +254,12 @@ def chat(req: ChatRequest):
 
     return TurnOut(
         id=tid, session_id=sid,
-        question=req.question, answer=result.answer,
-        query_type=result.query_type,
-        citations=result.citations,
+        question=req.question, answer=body["answer"],
+        query_type=body["query_type"], citations=body["citations"],
         is_correct=None, created_at=now,
+        status=body["status"], abstain_reason=body["abstain_reason"],
+        error_code=body["error_code"], as_of=body["as_of"],
+        definition_note=body["definition_note"],
     )
 
 

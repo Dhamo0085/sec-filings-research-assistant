@@ -429,12 +429,21 @@ def ask(
     question: str,
     *,
     as_of: Optional[str] = None,
+    tickers: Optional[Sequence[str]] = None,
+    years: Optional[Sequence[int]] = None,
     deps: Optional[Deps] = None,
 ) -> Outcome:
-    """Answer ``question``, or say exactly why not. Never raises."""
+    """Answer ``question``, or say exactly why not. Never raises.
+
+    ``tickers`` and ``years`` are the UI's filter chips: an explicit choice by
+    the user, so they override what the router read out of the sentence. They
+    are applied after routing rather than before, so the intent, metric and
+    focus are still decided from the question itself.
+    """
     deps = deps or Deps()
     try:
-        return _ask_inner(question, as_of=as_of, deps=deps)
+        return _ask_inner(question, as_of=as_of, deps=deps,
+                          tickers=tickers, years=years)
     except LLMError as exc:
         code = error_code_for(exc)
         logger.error(f"dependency failure [{code.value}]: {type(exc).__name__}: {exc}")
@@ -449,7 +458,11 @@ def ask(
         return error_for(ErrorCode.INTERNAL, query=question, as_of=as_of)
 
 
-def _ask_inner(question: str, *, as_of: Optional[str], deps: Deps) -> Outcome:
+def _ask_inner(
+    question: str, *, as_of: Optional[str], deps: Deps,
+    tickers: Optional[Sequence[str]] = None,
+    years: Optional[Sequence[int]] = None,
+) -> Outcome:
     catalog_tickers: Sequence[str] = ()
     try:
         catalog_tickers = deps.get_catalog().tickers()
@@ -464,6 +477,7 @@ def _ask_inner(question: str, *, as_of: Optional[str], deps: Deps) -> Outcome:
         today=None,
         as_of_override=as_of,
     )
+    route_ = _apply_filters(route_, tickers, years)
     logger.info(f"route: {route_.trace()}")
 
     if route_.path is Path.CLARIFY:
@@ -490,6 +504,52 @@ def _ask_inner(question: str, *, as_of: Optional[str], deps: Deps) -> Outcome:
     if route_.path is Path.FACTS:
         return _answer_from_facts(deps, route_, question)
     return _answer_from_text(deps, route_, question)
+
+
+def _apply_filters(
+    route_: Route,
+    tickers: Optional[Sequence[str]],
+    years: Optional[Sequence[int]],
+) -> Route:
+    """Override the routed filers and years with the caller's explicit choice.
+
+    A filter cannot rescue a question the router refused: an out-of-scope
+    question or a quarterly period stays refused, because narrowing the
+    companies does not make "should I buy this" answerable.
+    """
+    if not tickers and not years:
+        return route_
+    if route_.path in (Path.ABSTAIN, Path.CLARIFY) and route_.abstain_reason is not None:
+        return route_
+
+    import dataclasses
+
+    changes: Dict[str, Any] = {}
+    rationale = list(route_.rationale)
+    if tickers:
+        upper = tuple(str(t).upper() for t in tickers)
+        changes["entities"] = dataclasses.replace(
+            route_.entities, tickers=upper,
+            names={t: route_.entities.names.get(t, t) for t in upper},
+        )
+        rationale.append(f"tickers overridden by the caller: {', '.join(upper)}")
+    if years:
+        labels = tuple(sorted({int(y) for y in years}))
+        changes["period"] = PeriodRequest(
+            kind=PeriodKind.FISCAL_LABEL, labels=labels,
+            as_of=route_.period.as_of, bare=True,
+            matched=route_.period.matched,
+        )
+        rationale.append(f"years overridden by the caller: "
+                         f"{', '.join(str(y) for y in labels)}")
+    changes["rationale"] = tuple(rationale)
+
+    updated = dataclasses.replace(route_, **changes)
+    # With a filer now named, a clarification is no longer the right outcome.
+    if updated.path is Path.CLARIFY and updated.tickers:
+        updated = dataclasses.replace(updated, path=Path.TEXT,
+                                      intent=QueryType.NARRATIVE)
+    return updated
 
 
 def _sub_annual_phrase(route_: Route) -> str:

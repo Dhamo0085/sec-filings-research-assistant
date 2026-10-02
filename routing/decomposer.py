@@ -9,17 +9,17 @@ from a single collection.
 import json
 import re
 from functools import lru_cache
-from typing import List, Dict
+from typing import Dict, List
 
 from groq import Groq
 from loguru import logger
 
-from config import settings, TICKER_TO_COMPANY
+from config import TICKER_TO_COMPANY, require_groq_api, settings
 
 
 @lru_cache(maxsize=1)
 def _get_client() -> Groq:
-    return Groq(api_key=settings.groq_api)
+    return Groq(api_key=require_groq_api())
 
 SYSTEM_PROMPT = """\
 You decompose complex financial queries into atomic sub-questions for searching SEC 10-K filings.

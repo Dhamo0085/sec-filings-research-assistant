@@ -9,13 +9,13 @@ Flow:
 
 import time
 from functools import lru_cache
-from typing import List, Optional
+from typing import List
 
 import tiktoken
-from groq import Groq, RateLimitError, APIConnectionError, APITimeoutError, APIStatusError
+from groq import APIConnectionError, APIStatusError, APITimeoutError, Groq, RateLimitError
 from loguru import logger
 
-from config import settings
+from config import require_groq_api, settings
 from models import QueryResult, RetrievedChunk
 from retrieval.reranker import _compress_xbrl
 
@@ -165,7 +165,7 @@ def _build_context(retrieved: List[RetrievedChunk]) -> tuple[str, List[dict]]:
 
 @lru_cache(maxsize=1)
 def _get_client() -> Groq:
-    return Groq(api_key=settings.groq_api)
+    return Groq(api_key=require_groq_api())
 
 
 def _call_generation(user_message: str, retries: int = 2, backoff: float = 1.5) -> str:

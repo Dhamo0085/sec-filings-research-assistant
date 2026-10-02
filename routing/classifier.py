@@ -17,7 +17,7 @@ from groq import Groq
 from loguru import logger
 from pydantic import BaseModel
 
-from config import settings, COMPANIES
+from config import COMPANIES, require_groq_api, settings
 
 VALID_TICKERS = {c["ticker"] for c in COMPANIES}
 VALID_YEARS   = {2023, 2024, 2025}
@@ -121,7 +121,7 @@ class ClassifiedQuery(BaseModel):
 
 @lru_cache(maxsize=1)
 def _get_client() -> Groq:
-    return Groq(api_key=settings.groq_api)
+    return Groq(api_key=require_groq_api())
 
 
 def classify_query(query: str) -> ClassifiedQuery:

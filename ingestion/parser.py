@@ -1,17 +1,16 @@
-import os
-import re
 import json
+import re
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
 
-from config import settings
+from config import require_groq_api, settings
 from models import ContentBlock, ParsedDocument, ParsedSection
 
 # ---------------------------------------------------------------------------
@@ -194,7 +193,7 @@ def _table_to_markdown(df: pd.DataFrame) -> str:
     h_line   = "| " + " | ".join(clean_headers) + " |"
     sep_line = "| " + " | ".join("---" for _ in clean_headers)  + " |"
     d_lines  = ["| " + " | ".join(str(c) for c in row) + " |" for row in rows]
-    return "\n".join([h_line, sep_line] + d_lines)
+    return "\n".join([h_line, sep_line, *d_lines])
 
 
 def _extract_tables(soup: BeautifulSoup, start_idx: int = 0) -> Tuple[Dict[str, Tuple[str, List]], int]:
@@ -360,7 +359,7 @@ def _llm_locate_fs_headings(
         return []
 
     from groq import Groq
-    client = Groq(api_key=settings.groq_api)
+    client = Groq(api_key=require_groq_api())
 
     # 500 lines routinely hit Groq's per-request TPM limit outright (verified:
     # "Requested 14144/21038/... tokens, Limit 6000" 413 errors on real
@@ -755,7 +754,7 @@ def _annotate_fs_header_tables(soup: BeautifulSoup) -> None:
                 cell_text = cell.get_text(separator=" ", strip=True).lower()
                 if not cell_text or len(cell_text) > 120:
                     continue
-                for pattern, section_id, title in _FS_RECOVERY_PATTERNS:
+                for pattern, _section_id, title in _FS_RECOVERY_PATTERNS:
                     if re.search(pattern, cell_text):
                         sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
                         table_tag.insert_before(sentinel)
@@ -780,7 +779,7 @@ def _annotate_fs_header_tables(soup: BeautifulSoup) -> None:
             for cell_text in cell_texts:
                 if not cell_text or len(cell_text) > 120:
                     continue
-                for pattern, section_id, title in _ITEM_RECOVERY_PATTERNS:
+                for pattern, _section_id, title in _ITEM_RECOVERY_PATTERNS:
                     if re.search(pattern, cell_text):
                         sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
                         table_tag.insert_before(sentinel)
@@ -800,7 +799,7 @@ def _annotate_fs_header_tables(soup: BeautifulSoup) -> None:
             # "item 1." + "business" + "3" -> "item 1.business3" fails "$").
             joined = "".join(t for t in cell_texts if t)
             if joined and len(joined) <= 120:
-                for pattern, section_id, title in _ITEM_RECOVERY_PATTERNS:
+                for pattern, _section_id, title in _ITEM_RECOVERY_PATTERNS:
                     if re.search(pattern, joined):
                         sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
                         table_tag.insert_before(sentinel)

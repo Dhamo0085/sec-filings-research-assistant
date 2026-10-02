@@ -126,6 +126,17 @@ class PeriodSelector:
         return f"the year ending {self.value}"
 
 
+def _plain(value: Decimal) -> str:
+    """Decimal without exponent notation.
+
+    ``str(Decimal("2.0407E+10"))`` keeps the exponent, and an abstention
+    message reading "candidates: 1.2794E+10 vs 2.0407E+10" asks the reader to
+    decode scientific notation before they can see that one is 12.8 billion and
+    the other 20.4 billion.
+    """
+    return format(value, "f")
+
+
 @dataclass(frozen=True)
 class Abstain:
     """A refusal with a reason from the 6.5 enum. Never a value."""
@@ -487,7 +498,7 @@ class FactsResolver:
                     f"{filing.accession}",
                     candidates=(override.concept,),
                     candidate_values={override.concept:
-                                      ", ".join(sorted(str(v) for v in values))})
+                                      ", ".join(sorted(_plain(v) for v in values))})
             return self._build(filing, spec, metric, hits[0],
                                selection="override",
                                candidates=candidates,
@@ -548,7 +559,7 @@ class FactsResolver:
                 f"override with evidence is needed to choose between them",
                 candidates=tuple(present),
                 candidate_values={
-                    c: ", ".join(sorted(str(f.value) for f in hits))
+                    c: ", ".join(sorted(_plain(f.value) for f in hits))
                     for c, hits in present.items()
                 })
 
@@ -559,7 +570,7 @@ class FactsResolver:
             f"{filing.accession}",
             candidates=(concept,),
             candidate_values={concept:
-                              ", ".join(sorted(str(v) for v in values))})
+                              ", ".join(sorted(_plain(v) for v in values))})
 
     def _build(self, filing: Filing, spec: Metric, metric: str,
                fact: StoredFact, *, selection: str,

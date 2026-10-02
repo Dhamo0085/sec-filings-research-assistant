@@ -37,3 +37,14 @@ tickers:
   TROW:  {primary: 1113169}
   IVZ:   {primary: 914208}
   NFLX:  {primary: 1065280}
+
+  # Cross-check-only filers (P2-09). The oracle comparison is strongest on
+  # filers this project has never tuned anything for: no overrides, no sector
+  # entry, no fixtures. CIKs read from SEC company_tickers.json on 2026-10-02.
+  # They are deliberately NOT added to config.COMPANIES — the text index and
+  # the evaluation corpus stay as they are (D21).
+  NVDA:  {primary: 1045810}
+  TSLA:  {primary: 1318605}
+  V:     {primary: 1403161}
+  COST:  {primary: 909832}
+  META:  {primary: 1326801}

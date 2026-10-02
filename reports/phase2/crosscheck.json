@@ -1,15 +1,15 @@
 {
-  "checked_at_utc": "2026-10-02T16:10:38.798818+00:00",
-  "submissions": 66,
-  "facts": 26041,
-  "comparable": 20892,
+  "checked_at_utc": "2026-10-02T16:13:12.049955+00:00",
+  "submissions": 94,
+  "facts": 33512,
+  "comparable": 27506,
   "counts": {
-    "not_in_oracle": 5149,
-    "exact": 20706,
-    "rounding": 181,
+    "not_in_oracle": 6006,
+    "exact": 27268,
+    "rounding": 233,
     "oracle_precision": 5
   },
-  "exact_rate": 0.9910970706490523,
+  "exact_rate": 0.9913473423980222,
   "registry_concepts": [
     "us-gaap:Assets",
     "us-gaap:CashAndCashEquivalentsAtCarryingValue",
@@ -35,12 +35,12 @@
     "us-gaap:StockholdersEquity",
     "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
   ],
-  "registry_comparable": 1330,
+  "registry_comparable": 1861,
   "registry_counts": {
-    "exact": 1330
+    "exact": 1861
   },
   "registry_exact_rate": 1.0,
-  "agreeing_within_declared_precision": 20892,
+  "agreeing_within_declared_precision": 27506,
   "thresholds": {
     "exact_min": 0.995,
     "exact_pass": false,
@@ -50,5 +50,5 @@
   },
   "mismatches": [],
   "tickers_missing_oracle": [],
-  "edgar_requests": 0
+  "edgar_requests": 5
 }

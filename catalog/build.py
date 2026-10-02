@@ -34,6 +34,7 @@ from loguru import logger
 
 from catalog.store import ANNUAL_FORMS, CatalogStore, Filing, fiscal_label_from_period_end
 from config import require_edgar_email, settings
+from ingestion.sec_cache import SecResponseError, is_poisoned_json_cache, validated_json
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _OVERRIDES_FILE = _PACKAGE_DIR / "cik_overrides.yaml"
@@ -95,10 +96,12 @@ class EdgarFetcher:
     def _fetch_json(self, url: str, cache_name: str) -> Optional[Dict]:
         cached = self.cache_dir / cache_name
         if cached.exists():
-            try:
+            # A cache entry written before P3-00b may itself be an SEC error
+            # page, so it is validated on read as well as on write.
+            poisoned = is_poisoned_json_cache(cached)
+            if poisoned is None:
                 return json.loads(cached.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                logger.warning(f"catalog: corrupt cache {cached.name}, refetching")
+            logger.warning(f"catalog: discarding unusable cache {cached.name} ({poisoned})")
         if self.offline:
             logger.warning(f"catalog: offline and {cache_name} is not cached")
             return None
@@ -112,8 +115,16 @@ class EdgarFetcher:
         if resp.status_code != 200:
             logger.error(f"catalog: {url} -> HTTP {resp.status_code}")
             return None
+        # Validate BEFORE writing (P3-00b): SEC serves its rate-limit page with
+        # HTTP 200, and the previous order cached that page and then raised on
+        # resp.json(), leaving a poisoned entry behind.
+        try:
+            data = validated_json(resp.text, url=url)
+        except SecResponseError as exc:
+            logger.error(f"catalog: {exc}")
+            return None
         cached.write_text(resp.text, encoding="utf-8")
-        return resp.json()
+        return data
 
     def submissions(self, cik: int) -> Optional[Dict]:
         return self._fetch_json(

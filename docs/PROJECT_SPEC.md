@@ -1,6 +1,6 @@
 # Financial_RAG v2 — Project Specification
 
-Version 1.3 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
+Version 1.4 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
 
 ---
 
@@ -75,6 +75,8 @@ Validated for reuse: iXBRL extraction matched SEC `companyfacts` on 105/105 (fil
 | D17 | Provenance: v2 is a **new, personal portfolio repository** with fresh history, created by Step 0 (`docs/BOOTSTRAP.md`) through the GitHub CLI. The code started from an earlier MIT-licensed prototype; `LICENSE` and a one-paragraph `NOTICE` acknowledge that. No data, deployments, secrets, or links from the old project are carried over. | DECIDED |
 | D18 | **No paid services.** Delivery is local-first (`make up`, Docker Compose) plus a recorded demo. A hosted demo is optional and only on a verified-free platform (O2). | DECIDED |
 | D19 | Commits made by Claude Code carry a `Co-Authored-By: Claude` trailer: the repository states openly that development is AI-assisted and owner-supervised, and the owner reviews and merges every phase PR. | DECIDED |
+| D20 | Citation markers are normalized at the generator boundary: fullwidth/ideographic brackets (for example `【1】`) become ASCII `[1]`. Every normalization is counted and recorded in the trace, so format drift stays visible. With normalization in place, gpt-oss models may serve in the tail of the generator failover list; the primary generator stays a Gemini Flash-Lite entry. | DECIDED |
+| D21 | Baseline scope: the partial 9-of-25 v1 baseline is accepted for now. The evaluation-core tickers (AAPL, AMZN indexed; MSFT, JPM, GOOGL, NFLX, BLK, GS next) are indexed with v1's embedding model before Phase 3. V0 in Phase 4 runs on the gold items whose corpus is indexed, with N reported explicitly. The embedding model is changed only if P2-00 proves it infeasible, and then the change is declared in every results table. | DECIDED |
 | O1 | Free-tier keys: **created** (Groq, Gemini). Gemini limits are recorded in Appendix A. Groq free-plan limits are measured in P1-04 (response headers) and may be added to `llm/limits.local.yaml`. | PARTIALLY RESOLVED |
 | O2 | Whether and where to host a free public demo (verify current free terms at signup), and how derived DBs and Qdrant data reach it. | OPEN (decide at P5-02) |
 
@@ -317,6 +319,7 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 
 | ID | Task | Level |
 |---|---|---|
+| P2-00 | **Housekeeping and indexing throughput (run first; it can overlap with P2-01 to P2-08).** (a) Remove `test_setup.py` (`make test` exists). (b) `scripts/check_repo_hygiene.py` also reads a gitignored `.hygiene_local` file of extra patterns (the old project's handle, repository name, and hostnames, supplied by the owner); the file is never committed and no committed file names the old project. (c) Replace v1's one-pass embedding with a **streaming indexer**: embed and upsert per collection with a bounded batch size and visible progress output (chunks/s, RSS); keep `eval/phase1/index_per_ticker.py` until the new indexer is verified. (d) **Throughput profile** on 200 real chunks: batch size {8, 16, 32, 64} × max sequence length {512, 256}, measuring chunks/s and peak RSS with other heavy apps closed. Keep the v1 dense model (bge-base) if the tuned setting reaches ≥ 4 chunks/s (the full set then takes about 2.5 hours; run it overnight with `caffeinate -i`). Otherwise, in this order: embed text and footnote chunks only for non-core tickers; then, as a last resort, switch to a smaller model, declared per D21. Fallback if local indexing stays infeasible: build the index on a free Colab GPU runtime (the removed v1 notebook is recoverable with `git show v1-baseline:colab.ipynb`) and copy `data/qdrant` back. (e) Index the evaluation-core tickers in the order MSFT, JPM, GOOGL, NFLX, BLK, GS. (f) Create or refresh `docs/STATE.md` and keep it current (CLAUDE.md rule 16). | MUST |
 | P2-01 | Fixtures: trimmed iXBRL excerpts listed in section 10. | MUST |
 | P2-02 | `facts/extract.py`: pooled per-submission parsing; contexts (period, dimensions), units; `ix:nonFraction` with `scale`, `sign`, `format` transforms (collect every distinct `format` value in the corpus, handle all, **fail loudly on unknown**; include zero-dash and fixed-zero styles), `xsi:nil`, nested/hidden facts (`ix:header/ix:hidden` carries the cover-page `dei:` facts). | MUST |
 | P2-03 | DEI extraction: `DocumentFiscalYearFocus`, `DocumentPeriodEndDate`, `DocumentType`, `AmendmentFlag`, `EntityRegistrantName`, `EntityCentralIndexKey`. Verify DEI fiscal labels on all 13 tickers (report mismatches vs `period_end.year`); update catalog `fiscal_label` and `fiscal_label_source`. | MUST |
@@ -344,6 +347,8 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | T2-08 | Idempotent rebuild: running `make facts` twice yields identical DB content hashes. |
 | T2-09 | Golden values: ≥ 20 (ticker, metric, fiscal_label) tuples, owner/oracle-verified, resolved exactly. |
 | T2-10 | Cross-check thresholds (live/network): ≥ 99.5% exact on comparable pairs; 0 scale errors; 0 sign errors; every discrepancy classified. |
+| T2-11 | Streaming indexer: with a fake embedder, collections are embedded and upserted one at a time; no batch exceeds the configured size; an interrupted run resumes without re-embedding finished collections. |
+| T2-12 | Hygiene local patterns: a planted pattern in a temporary `.hygiene_local` is detected; the file is gitignored; the committed tree contains no old-project names. |
 
 **Exit criteria:** T2 tests pass; cross-check thresholds met; DEI fiscal-label verification reported; spot-check sheet produced.
 **Owner gate:** complete the spot-check sheet (mark each row OK/WRONG); any WRONG row must be fixed and re-checked before Phase 3.
@@ -360,7 +365,7 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | P3-02 | `routing/entities.py`: deterministic company/ticker resolution (SEC registry cache + aliases + bundled names). `routing/periods.py`: fiscal-year phrases, "fiscal 2024", bare years, "last year", "latest", ranges ("2022 to 2024"), explicit dates → `as_of`, quarterly phrases → `unsupported_period_type`; injectable clock. | MUST |
 | P3-03 | `routing/router.py`: rules first; LLM only to disambiguate intent/metric/narrative focus; schema-validated; metric aliases from the registry; unknown metric → `metric_not_supported` or text path with `answered_text` (document the rule). Replace `classifier.py` usage. | MUST |
 | P3-04 | `answering/facts_answer.py`: deterministic templates for numeric/computed/compare/trend, including period end, definition note (D5), source filing link, `restated` note. | MUST |
-| P3-05 | Text path integration: eligible collections from the catalog with `as_of` (D2); generator returns structured `{found, answer}` (replaces the refusal regex, K11); citations become typed with `accession` and `filing_date`; result status `answered_text`. | MUST |
+| P3-05 | Text path integration: eligible collections from the catalog with `as_of` (D2); generator returns structured `{found, answer}` (replaces the refusal regex, K11); citation markers are normalized per D20 (counted in the trace); citations become typed with `accession` and `filing_date`; result status `answered_text`. | MUST |
 | P3-06 | On-demand ingestion builds catalog + facts for the new filer; on facts failure → text path only, flagged. | MUST |
 | P3-07 | `answering/abstain.py`: single mapping from conditions to reasons and message templates. | MUST |
 | P3-08 | API: `/query` accepts `as_of` (ISO date) and returns 6.5; request IDs; admin-only `?debug=1` trace. | MUST |
@@ -382,6 +387,7 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | T3-07 | API contract/snapshot tests for `/query` request and response schemas. |
 | T3-08 | Offline end-to-end: fixture facts DB + `FakeLLM` + tiny Qdrant fixture; one case per intent. |
 | T3-09 | Netflix thousands case end-to-end → correct magnitude and wording. |
+| T3-10 | Citation normalization (D20): `【1】` and other fullwidth/ideographic variants become `[1]` and are counted; ASCII text is untouched; non-citation brackets are untouched; a model that mixes styles is handled in one pass. |
 
 **Exit criteria:** T3 tests pass; smoke eval completes with no crashes; transcripts show correct statuses; owner UI walkthrough done.
 **Owner gate:** try the 10 sample questions in the UI (listed in the report) and report anything surprising.
@@ -397,8 +403,8 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | P4-01 | Build `eval/gold/gold_v1.jsonl` (section 11): a generator script for oracle-sourced numeric/computed/multi items; `as_of` items from catalog filing dates; hand-drafted narrative and abstain items (owner approves). Schema validator. | MUST |
 | P4-02 | Owner verification sheet `reports/phase4/gold_verification.csv` (≥ 25 numeric/computed items, stratified by sector and category). Headline metrics are published only after the gate. | MUST |
 | P4-03 | `eval/scorers.py` (successor to Phase 0's): numeric (displayed-precision-aware), computed, multi-value attribution, abstention (by reason), look-ahead, citation validity, scale/period errors, narrative section hit@k. | MUST |
-| P4-04 | `eval/runner.py` + `eval/variants.yaml`: resumable, cached, token/latency/cost accounting; outputs JSONL, CSV summary, Markdown table. | MUST |
-| P4-05 | Run V0–V3 on the gold set (LLM budget per O1; resumable across days). | MUST |
+| P4-04 | `eval/runner.py` + `eval/variants.yaml`: resumable, cached, token/latency/cost accounting; **instruments every LLM role** (router, decomposer, generator, judge) in the trace, not only the generator; outputs JSONL, CSV summary, Markdown table. | MUST |
+| P4-05 | Run V0–V3 on the gold set (LLM budget per O1; resumable across days). V0 covers the gold items whose corpus is indexed with v1's embedding (D21) and reports its N explicitly; V1–V3 are also reported on that same subset so the comparison is paired. | MUST |
 | P4-06 | Retrieval ablations (flags in `retrieval/`, defaults unchanged); no generation tokens. | MUST |
 | P4-07 | Failure analysis: categorize every failure (router, retrieval, reading, resolution, abstention, scoring); at most one fix-and-rerun cycle for high-impact bugs. | MUST |
 | P4-08 | CI (`.github/workflows/ci.yml`): lint + offline tests + offline mini-eval (facts-path gold subset on committed fixtures with recorded LLM cache); thresholds: numeric subset 100%, look-ahead violations 0. | MUST |
@@ -461,7 +467,7 @@ Files Claude Code MUST produce at each phase end:
 - `reports/phaseN/tests/junit.xml` and `coverage.xml`.
 - `logs/phaseN/commands.log` — every non-trivial command, timestamp, exit code; plus raw logs for long runs.
 - `docs/explainers/phaseN.md` — a plain-language one-pager for the owner: what was built, why, how data flows, 5 likely interview questions with answers, 3 known weaknesses.
-- Updates to `docs/DECISIONS.md`, `docs/CHANGELOG.md`, and the phase status table in `CLAUDE.md`.
+- Updates to `docs/DECISIONS.md`, `docs/CHANGELOG.md`, `docs/STATE.md`, and the phase status table in `CLAUDE.md`.
 - Final terminal output: report path, ≤ 12-line summary, then `PHASE N COMPLETE — awaiting owner approval`.
 
 Failure handling: if a test fails after two fix iterations, stop, record it as an open defect, and ask in the report. Never weaken a test to pass it.
@@ -515,6 +521,7 @@ O1 Groq free-plan limits (measured in P1-04). O2 whether and where to host a fre
 ### 17.3 Changelog
 - v1.0 — initial specification after Phase 0.
 - v1.1 — new repository (D17); free-tier-only multi-provider LLM client (D11); no paid services, local-first delivery (D18); hosted-platform dependency removed.
+- v1.4 — Phase 1 reviewed; D20 (citation normalization), D21 (baseline scope); P2-00 (housekeeping, streaming indexer, throughput profile, core-ticker indexing, `docs/STATE.md`); T2-11, T2-12, T3-10; P4-04 instruments every role; P4-05 paired V0 subset.
 - v1.3 — Step 0 closed; `v2-dev` retired, one PR per phase into `main` (section 14); D19 commit trailer; P1-01 closes the Step 0 items; P1-13 hygiene script; `.cache/` reuse.
 - v1.2 — personal portfolio framing; Step 0 bootstrap through `gh` (D17); declared Gemini free-tier limits recorded (Appendix A); P1-00/P1-01/P1-04 updated.
 

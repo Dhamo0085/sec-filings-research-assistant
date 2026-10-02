@@ -14,7 +14,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
 ## Phase status (update this table at every gate; the owner approves each start)
 | Phase | Name | Status |
 |---|---|---|
-| Step 0 | Bootstrap: new private GitHub repo via `gh`, root cleanup (`docs/BOOTSTRAP.md`) | COMPLETE (report in `reports/bootstrap/REPORT.md`) |
+| Step 0 | Bootstrap: new private GitHub repo via `gh`, root cleanup (`docs/BOOTSTRAP.md`) | COMPLETE (PR #1 merged; report in `reports/bootstrap/REPORT.md`) |
 | 0 | Audit and baseline | COMPLETE (report in `reports/phase0/REPORT.md`) |
 | 1 | Foundation, hardening, catalog, true baseline | NOT STARTED, awaiting owner: "Start Phase 1" |
 | 2 | Facts engine (extract, store, resolve, calculate) | NOT STARTED |
@@ -28,7 +28,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
    (spec section 13), update the status table, print the summary, and STOP with the line
    `PHASE N COMPLETE — awaiting owner approval`. Start the next phase only after the owner writes "Approved: start Phase N+1".
 3. **Tests first for fixes.** Reproduce each defect with a failing test, then fix it. No network or real LLM in unit/integration tests.
-4. **Small reversible commits** on phase branches (spec section 14). Never commit to `main`. Never force-push.
+4. **Small reversible commits** on one branch per phase (`phase-N-<slug>`, spec section 14), merged into `main` by the owner through a pull request you open. Never commit directly to `main`. Never force-push. Add a `Co-Authored-By: Claude` trailer to your commits (D19).
 5. **Secrets.** Never read, print, log, or commit `.env` or key values. Report only "set" or "not set".
 6. **Raw data is read-only** (`data/raw/`). Derived data goes in `data/derived/`. Generated artifacts are gitignored unless the spec says otherwise.
 7. **LLM budget.** All LLM calls go through `llm/client.py` (multi-provider free-tier failover, cache, retry, budget, typed errors). Stop cleanly on a rate or budget limit and mark remaining work `not_run`. Do not loop.
@@ -39,6 +39,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
 12. **Environment.** Owner is on macOS (Apple Silicon). Use `pathlib`, UTF-8 everywhere, and no OS-specific shell assumptions in scripts.
 13. **Provenance.** The code started from an earlier MIT-licensed prototype; this is a new personal portfolio repository with fresh history. Keep `LICENSE` and `NOTICE`. Do not copy data, secrets, or deployment links from the old project, and do not reference its URLs or repository.
 14. **GitHub.** Use `git` and `gh` only against this project's own `origin`. Push only at the points the spec names (Step 0 and each phase gate), open pull requests with `gh pr create`, and leave merging to the owner. Never force-push, delete or rename a repository, change visibility or settings, or push to another remote. Never read or print tokens.
+15. **Checks you can trust.** Prefer small Python scripts over nested shell pipelines for scans and checks. Before relying on a "no matches" or "all clear" result, show that the check can fail (a negative control that plants a known match). Report any check you had to redo, as Step 0 did.
 
 ## Commands (the Makefile is created in P1-02; keep these targets working afterwards)
 `make setup` · `make test` (offline unit + integration) · `make test-live` · `make lint` · `make ingest` ·

@@ -14,7 +14,7 @@ and the child chunk's metadata for citations.
 """
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from typing import List, Optional
 
 from loguru import logger
 
@@ -88,16 +88,26 @@ def retrieve(
     years:   List[int]   = (),
     top_k:   int         = settings.rerank_top_k,
     focus:   str         = "other",
+    collections: Optional[List[str]] = None,
 ) -> List[RetrievedChunk]:
     """
     Full retrieval pipeline — returns RetrievedChunk objects ready for the LLM.
 
-    `focus` comes from routing/classifier.py's per-query classification (the
-    same Groq call that already extracts query_type/tickers/years, so this
-    costs nothing extra) and tells retrieval which metric/section the query
-    is actually about — see VALID_FOCUS there for the fixed category list.
+    `focus` tells retrieval which metric/section the query is actually about;
+    the values are routing/router.py's focus ids (which are these section ids
+    and were routing/classifier.py's VALID_FOCUS before it).
+
+    `collections` overrides the ticker/year lookup with an explicit list.
+    P3-05 passes the catalog's `as_of`-eligible collections: the Qdrant payload
+    has no `filing_date`, so point-in-time scope can only be decided by the
+    catalog, and deciding it here — before any search runs — is what makes a
+    look-ahead impossible rather than merely unlikely (D2, G2).
     """
-    collections = _target_collections(list(tickers), list(years))
+    if collections is None:
+        collections = _target_collections(list(tickers), list(years))
+    else:
+        available = set(list_collections())
+        collections = [c for c in collections if c in available]
     if not collections:
         return []
 

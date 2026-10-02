@@ -184,13 +184,38 @@ AMOUNTS = st.decimals(min_value=Decimal("0.01"), max_value=Decimal("1e13"),
 @given(later=AMOUNTS, earlier=AMOUNTS)
 @settings(max_examples=250, deadline=None)
 def test_growth_sign_follows_the_direction(later, earlier):
+    """The sign never contradicts the direction of the change.
+
+    Stated as "never contradicts" rather than "is strictly positive": the
+    result is quantized to PERCENT_PLACES (two decimals), so a real increase
+    from 200.01 to 200.02 is 0.005% and rounds to 0.00. Hypothesis found
+    exactly that pair in Phase 3 (reports/phase3/REPORT.md section 6). The
+    strict claim was wrong about the code, not the other way round — reporting
+    0.00% for a half-thousandth of a percent is correct, and a test that
+    demanded 0.01% would be demanding a wrong number.
+
+    The strict property still holds above the display precision, and that is
+    asserted separately below.
+    """
     result = growth_pct(usd(later, "2024-12-31"), usd(earlier, "2023-12-31"))
     if later > earlier:
-        assert result.value > 0
+        assert result.value >= 0
     elif later < earlier:
-        assert result.value < 0
+        assert result.value <= 0
     else:
         assert result.value == 0
+
+
+@given(later=AMOUNTS, earlier=AMOUNTS)
+@settings(max_examples=250, deadline=None)
+def test_growth_is_strictly_signed_once_it_is_visible_at_all(later, earlier):
+    """Above half of the last printed digit, the sign is strict."""
+    exact_pct = (later - earlier) / earlier * Decimal(100)
+    if abs(exact_pct) < Decimal("0.005"):
+        return
+    result = growth_pct(usd(later, "2024-12-31"), usd(earlier, "2023-12-31"))
+    assert (result.value > 0) == (later > earlier)
+    assert (result.value < 0) == (later < earlier)
 
 
 @given(base=AMOUNTS, factor=st.decimals(min_value=Decimal("1.01"),

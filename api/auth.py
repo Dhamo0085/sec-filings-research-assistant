@@ -66,6 +66,22 @@ def require_admin(
         raise HTTPException(status_code=403, detail="Invalid or missing admin token.")
 
 
+def is_admin(x_admin_token: Optional[str]) -> bool:
+    """Whether this token is the admin one, without raising (P3-08).
+
+    ``require_admin`` guards a whole route. ``?debug=1`` on ``/query`` is a
+    different shape: the route stays public and only the ``trace`` field is
+    privileged, so the check has to return a boolean rather than reject the
+    request. Same constant-time comparison, same fail-closed rule — an unset
+    ``ADMIN_TOKEN`` means nobody is an admin (D13).
+    """
+    configured = settings.admin_token
+    if not configured:
+        return False
+    return hmac.compare_digest((x_admin_token or "").encode("utf-8"),
+                               configured.encode("utf-8"))
+
+
 # The dependency object, so route declarations and the test that enumerates
 # routes both refer to the same callable.
 ADMIN_DEPENDENCY = Depends(require_admin)

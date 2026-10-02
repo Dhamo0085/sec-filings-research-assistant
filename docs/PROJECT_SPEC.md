@@ -1,6 +1,6 @@
 # Financial_RAG v2 — Project Specification
 
-Version 1.4 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
+Version 1.5 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
 
 ---
 
@@ -77,6 +77,9 @@ Validated for reuse: iXBRL extraction matched SEC `companyfacts` on 105/105 (fil
 | D19 | Commits made by Claude Code carry a `Co-Authored-By: Claude` trailer: the repository states openly that development is AI-assisted and owner-supervised, and the owner reviews and merges every phase PR. | DECIDED |
 | D20 | Citation markers are normalized at the generator boundary: fullwidth/ideographic brackets (for example `【1】`) become ASCII `[1]`. Every normalization is counted and recorded in the trace, so format drift stays visible. With normalization in place, gpt-oss models may serve in the tail of the generator failover list; the primary generator stays a Gemini Flash-Lite entry. | DECIDED |
 | D21 | Baseline scope: the partial 9-of-25 v1 baseline is accepted for now. The evaluation-core tickers (AAPL, AMZN indexed; MSFT, JPM, GOOGL, NFLX, BLK, GS next) are indexed with v1's embedding model before Phase 3. V0 in Phase 4 runs on the gold items whose corpus is indexed, with N reported explicitly. The embedding model is changed only if P2-00 proves it infeasible, and then the change is declared in every results table. | DECIDED |
+| D22 | Phase 2 closure: implement the precision-preference fix (when a filing tags one concept twice and the values agree within the coarser declared `decimals`, keep the instance with the larger `decimals`), rebuild the facts store, re-run the oracle cross-check, and report **before and after** corpus-wide exactness. Values that disagree beyond the coarser precision are never merged. T2-10 stays "not met" in the record if the re-measurement still falls short. | DECIDED |
+| D23 | v1's parsed statement sections are unreliable (one filer's income-statement section is 106 characters of heading, another's is empty, another's is over 1 MB). Nothing user-visible may depend on them. `validation_status` is informational only and never affects an answer or its confidence wording. Phase 3 first measures section quality for the narrative sections the text path uses (P3-00), then fixes or documents. | DECIDED |
+| D24 | Ingestion resolves a ticker's filings through the catalog, covering every CIK the ticker has filed under. This closes the BlackRock FY2023 hole (filed under the old CIK; in the facts store, absent from the text index). | DECIDED |
 | O1 | Free-tier keys: **created** (Groq, Gemini). Gemini limits are recorded in Appendix A. Groq free-plan limits are measured in P1-04 (response headers) and may be added to `llm/limits.local.yaml`. | PARTIALLY RESOLVED |
 | O2 | Whether and where to host a free public demo (verify current free terms at signup), and how derived DBs and Qdrant data reach it. | OPEN (decide at P5-02) |
 
@@ -140,7 +143,7 @@ Initial metrics: `revenue`, `net_income`, `operating_income`, `gross_profit`, `r
 ### 6.4 Resolution policy (from the Phase 0 findings; MUST)
 1. Pool **all documents of a submission** (wrapper + exhibits, or the complete instance XML) before resolving contexts.
 2. Duration facts: annual means 350–380 days (52/53-week years). Instant facts: at `period_end`. Exclude dimensional contexts.
-3. Candidate selection per (filer, metric): override if present; else if exactly one candidate has a value, use it; else return **`ambiguous`** with all candidates. Never silently pick.
+3. Candidate selection per (filer, metric) (D2-02): an evidenced per-filer override wins; otherwise take the metric's **tiered preference list**, where each tier states a required `preference` reason. Within the first tier that has any candidate: if all candidates carry the same value, that value is the result; if they differ, return **`ambiguous`** with all candidates. Never silently choose between differing values.
 4. Validation: the chosen value should appear as the matching line in the rendered income statement (parsed section `fs_income_stmt`). Record `validation_status` ∈ `validated|unvalidated|conflict`. Conflicts are listed in the phase report.
 5. Restatements (D14) and `as_of` (D2) are applied after candidate selection.
 
@@ -332,6 +335,7 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | P2-10 | Owner spot-check sheet `reports/phase2/owner_spotcheck.csv`: ≥ 15 rows (every sector, includes BLK, BAC, GS, WFC, NFLX), each with filing URL, statement/page hint, concept, extracted value. | MUST |
 | P2-11 | Coverage and ambiguity report; list every filer/metric returned as `ambiguous` or `conflict`. | MUST |
 | P2-12 | `docs/explainers/phase2.md` and the phase report. | MUST |
+| P2-13 | **Closure (D22).** After the owner completes the spot-check sheet: commit it; fix and re-check every WRONG row; implement the precision-preference fix in `facts/extract.py`; rebuild the facts store (identical-hash rules from T2-08 still apply); re-run the oracle cross-check; update the Phase 2 report with before/after exactness (corpus-wide and registry concepts); update `docs/STATE.md`, `docs/DECISIONS.md`, and the CLAUDE.md status table; push to the existing PR `phase-2-facts-engine`. | MUST |
 
 **Tests**
 
@@ -349,6 +353,7 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | T2-10 | Cross-check thresholds (live/network): ≥ 99.5% exact on comparable pairs; 0 scale errors; 0 sign errors; every discrepancy classified. |
 | T2-11 | Streaming indexer: with a fake embedder, collections are embedded and upserted one at a time; no batch exceeds the configured size; an interrupted run resumes without re-embedding finished collections. |
 | T2-12 | Hygiene local patterns: a planted pattern in a temporary `.hygiene_local` is detected; the file is gitignored; the committed tree contains no old-project names. |
+| T2-13 | Precision preference (D22): two instances of one concept that agree within the coarser `decimals` resolve to the larger-`decimals` instance; two that disagree beyond it are not merged; negative control: reverting the rule makes the test fail; the rebuild after the change is deterministic. |
 
 **Exit criteria:** T2 tests pass; cross-check thresholds met; DEI fiscal-label verification reported; spot-check sheet produced.
 **Owner gate:** complete the spot-check sheet (mark each row OK/WRONG); any WRONG row must be fixed and re-checked before Phase 3.
@@ -361,12 +366,13 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 
 | ID | Task | Level |
 |---|---|---|
+| P3-00 | **Section-quality audit and housekeeping (D23).** (a) `scripts/audit_sections.py`: for every parsed filing, report each narrative section the text path uses (Items 1, 1A, 1C, 3, 7, 7A and the financial-statement notes) as present/empty/too small/too large with character counts, plus the same for statement sections; include a **negative control** (planted empty and oversized sections must be flagged). Decide per defect class whether to fix the parser or document the limit, and record it. (b) Make the SEC response cache refuse to store non-JSON error pages (`.cache/company_tickers.json` currently holds one). (c) Refresh `docs/STATE.md`. | MUST |
 | P3-01 | `answering/outcome.py`: typed `Outcome`, `Citation` (fact|text), enums from 6.5; backward-compatible fields for the existing UI. | MUST |
 | P3-02 | `routing/entities.py`: deterministic company/ticker resolution (SEC registry cache + aliases + bundled names). `routing/periods.py`: fiscal-year phrases, "fiscal 2024", bare years, "last year", "latest", ranges ("2022 to 2024"), explicit dates → `as_of`, quarterly phrases → `unsupported_period_type`; injectable clock. | MUST |
 | P3-03 | `routing/router.py`: rules first; LLM only to disambiguate intent/metric/narrative focus; schema-validated; metric aliases from the registry; unknown metric → `metric_not_supported` or text path with `answered_text` (document the rule). Replace `classifier.py` usage. | MUST |
 | P3-04 | `answering/facts_answer.py`: deterministic templates for numeric/computed/compare/trend, including period end, definition note (D5), source filing link, `restated` note. | MUST |
 | P3-05 | Text path integration: eligible collections from the catalog with `as_of` (D2); generator returns structured `{found, answer}` (replaces the refusal regex, K11); citation markers are normalized per D20 (counted in the trace); citations become typed with `accession` and `filing_date`; result status `answered_text`. | MUST |
-| P3-06 | On-demand ingestion builds catalog + facts for the new filer; on facts failure → text path only, flagged. | MUST |
+| P3-06 | On-demand ingestion builds catalog + facts for the new filer; on facts failure → text path only, flagged. Ingestion resolves filings through the catalog and covers **every CIK** a ticker has filed under (D24); index BLK FY2023 as the proof case. | MUST |
 | P3-07 | `answering/abstain.py`: single mapping from conditions to reasons and message templates. | MUST |
 | P3-08 | API: `/query` accepts `as_of` (ISO date) and returns 6.5; request IDs; admin-only `?debug=1` trace. | MUST |
 | P3-09 | UI: `as_of` date input; status badges; fact citation chips linking to the EDGAR filing; "definition used" line; abstain-reason and error states. | MUST |
@@ -388,6 +394,8 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | T3-08 | Offline end-to-end: fixture facts DB + `FakeLLM` + tiny Qdrant fixture; one case per intent. |
 | T3-09 | Netflix thousands case end-to-end → correct magnitude and wording. |
 | T3-10 | Citation normalization (D20): `【1】` and other fullwidth/ideographic variants become `[1]` and are counted; ASCII text is untouched; non-citation brackets are untouched; a model that mixes styles is handled in one pass. |
+| T3-11 | Dual-CIK ingestion (D24): with a recorded BlackRock catalog fixture, the filing list for BLK includes the FY2023 filing from the old CIK; negative control: restricting to the current CIK drops it. |
+| T3-12 | Section audit: planted empty, tiny, and oversized sections are each flagged; a clean fixture passes; the audit output is deterministic. |
 
 **Exit criteria:** T3 tests pass; smoke eval completes with no crashes; transcripts show correct statuses; owner UI walkthrough done.
 **Owner gate:** try the 10 sample questions in the UI (listed in the report) and report anything surprising.
@@ -521,6 +529,7 @@ O1 Groq free-plan limits (measured in P1-04). O2 whether and where to host a fre
 ### 17.3 Changelog
 - v1.0 — initial specification after Phase 0.
 - v1.1 — new repository (D17); free-tier-only multi-provider LLM client (D11); no paid services, local-first delivery (D18); hosted-platform dependency removed.
+- v1.5 — Phase 2 reviewed; D22 (precision-preference closure, P2-13, T2-13), D23 (v1 statement sections not trusted; P3-00 audit, T3-12), D24 (catalog-driven, multi-CIK ingestion; P3-06, T3-11); 6.4 rule 3 aligned with D2-02.
 - v1.4 — Phase 1 reviewed; D20 (citation normalization), D21 (baseline scope); P2-00 (housekeeping, streaming indexer, throughput profile, core-ticker indexing, `docs/STATE.md`); T2-11, T2-12, T3-10; P4-04 instruments every role; P4-05 paired V0 subset.
 - v1.3 — Step 0 closed; `v2-dev` retired, one PR per phase into `main` (section 14); D19 commit trailer; P1-01 closes the Step 0 items; P1-13 hygiene script; `.cache/` reuse.
 - v1.2 — personal portfolio framing; Step 0 bootstrap through `gh` (D17); declared Gemini free-tier limits recorded (Appendix A); P1-00/P1-01/P1-04 updated.

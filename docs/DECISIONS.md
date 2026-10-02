@@ -108,6 +108,71 @@ because K9 genuinely needed local-mode behaviour.
 
 ---
 
+## 2026-10-02 — D2-03 Precision preference: keep the instance the filer tagged more precisely
+
+**Context.** P2-13 implements spec D22. P2-09's cross-check against SEC `companyfacts` left
+233 of 27,506 comparable values disagreeing with the oracle — the entire shortfall against
+T2-10's "≥ 99.5% exact" bar (99.1347%). Inspecting them found one phenomenon, not many: a
+filing can tag the same concept, in the same context, **more than once at different
+precisions**. Apple's FY2024 10-K reports `UnrecognizedTaxBenefits` for context `c-21` as
+
+    22,000,000,000   decimals="-8"   the narrative sentence, "$22.0 billion"
+    22,038,000,000   decimals="-6"   the tax-footnote table
+
+Both are real tagged values and neither is wrong. The extractor kept whichever came first in
+document order, which was the coarse one often enough to account for all 233.
+
+**Options.** (a) Leave it and record T2-10 as not met. (b) Widen the "exact" definition to
+count agreement-within-declared-precision. (c) Keep the instance with the larger `@decimals`
+when the instances agree within the coarser declared precision.
+
+**Choice.** (c).
+
+**Reason.** (b) is the tempting one and it is wrong: it would move the number by redefining
+the measurement rather than by improving the extraction, and a threshold that can be met by
+loosening its own definition measures nothing. (a) leaves a known, fixable defect in place.
+
+(c) improves the thing being measured. `companyfacts` keeps the precise instance, and so
+should we — a reader checking an answer against the filing will find the table, not the
+sentence. The agreement test is the precision the **filer itself declared**: `decimals="-8"`
+asserts accuracy to the nearest 10⁸, so a value carries a half-unit tolerance of 0.5 × 10⁸.
+Two instances describe the same quantity only when they fall within the sum of their
+tolerances (for the Apple case, |38,000,000| ≤ 50,500,000). Outside that, **both are kept**
+and the resolver reports `ambiguous_concept`, because a filing contradicting itself is not
+something this module may paper over. Instances with no declared `@decimals` are never
+merged: without a declared precision there is no basis for calling them one quantity.
+
+**Measured effect** (`reports/phase2/crosscheck.json`, before and after):
+
+| | before | after |
+|---|---|---|
+| facts extracted | 33,512 | 29,002 |
+| comparable pairs | 27,506 | 23,429 |
+| **exact, corpus-wide** | **99.1347%** | **99.9787%** |
+| exact, registry concepts | 100.0000% | 100.0000% |
+| `rounding` discrepancies | 233 | **0** |
+| `oracle_precision` | 5 | 5 |
+| scale / sign / unclassified | 0 / 0 / 0 | 0 / 0 / 0 |
+| **T2-10 exact ≥ 99.5%** | **not met** | **met** |
+
+The smaller denominators are the same cause: 4,510 duplicate instances collapsed, of which
+only 272 changed a value — the rest were one number tagged in several places (Apple tags
+`NetIncomeLoss` four times in one context). Two corroborations that this is an improvement
+rather than a bookkeeping trick: `validated` rose from 223 to 256 against the rendered
+statements, because the precise instance is the one printed in the table; and **all 20 values
+on the owner-signed spot-check sheet re-resolve unchanged**.
+
+The 5 remaining `oracle_precision` rows are the oracle carrying *fewer* digits than the filing
+(Microsoft's par value is 0.00000625 in the document and 0.000006 in `companyfacts`). Ours is
+the more precise of the two, so there is nothing to fix on this side.
+
+**What would change it.** A filer using `@decimals` to mean something other than accuracy —
+for example tagging a rounded figure as exact. That would show up as a `mismatch` in the
+cross-check rather than silently, because disagreements beyond the declared tolerance are
+still never merged.
+
+---
+
 ## 2026-10-02 — D2-02 Tiered candidate concepts, and agreement is not ambiguity
 
 **Context.** Spec 6.4 rule 3: use the per-filer override; else if exactly one candidate has a

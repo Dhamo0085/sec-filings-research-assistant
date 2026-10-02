@@ -454,3 +454,52 @@ def test_definition_note_names_the_concept_and_the_period(world):
     note = outcome.definition_note()
     assert "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax" in note
     assert "2024-09-28" in note
+
+
+# ── D23: validation_status is informational only ──────────────────────────
+
+def test_validation_status_never_changes_a_resolved_value(world, tmp_path):
+    """D23. v1's parsed statement sections are unreliable, so nothing
+    user-visible may depend on them.
+
+    The same resolution is run with statement text available and with it
+    switched off. Only `validation_status` and its detail may differ; the
+    value, concept, filing and selection must be identical.
+    """
+    from facts.resolve import UNVALIDATED, StatementText
+
+    without = world.resolve("AAPL", "revenue", PeriodSelector.fiscal_label(2024))
+    with_text = FactsResolver(
+        catalog=world.catalog, store=world.store, registry=world.registry,
+        statements=StatementText(tmp_path),       # empty dir: nothing to find
+        today=date(2026, 10, 2),
+    ).resolve("AAPL", "revenue", PeriodSelector.fiscal_label(2024))
+
+    assert without.resolved and with_text.resolved
+    for field in ("value", "concept", "accession", "selection", "unit",
+                  "fiscal_label", "end_date", "restated"):
+        assert getattr(without, field) == getattr(with_text, field), field
+    assert without.validation_status == UNVALIDATED
+
+
+def test_a_conflicting_validation_does_not_suppress_the_answer(world, tmp_path):
+    """A `conflict` is a note for a human, not a veto on the number."""
+    from facts.resolve import CONFLICT, StatementText
+
+    # A statement section with plenty of numbers, none of them ours.
+    parsed = tmp_path / "AAPL_2024.json"
+    filler = " ".join(str(1000 + i) for i in range(200))
+    parsed.write_text(json.dumps({
+        "sections": [{"title": "Consolidated Statements of Operations",
+                      "content_blocks": [{"text": filler, "raw_table": None}]}]
+    }), encoding="utf-8")
+
+    resolver = FactsResolver(catalog=world.catalog, store=world.store,
+                             registry=world.registry,
+                             statements=StatementText(tmp_path),
+                             today=date(2026, 10, 2))
+    outcome = resolver.resolve("AAPL", "revenue", PeriodSelector.fiscal_label(2024))
+    assert outcome.resolved, "a conflict must not turn into an abstention"
+    assert outcome.value == Decimal("391035000000")
+    assert outcome.validation_status == CONFLICT
+    assert "not found among" in outcome.validation_detail

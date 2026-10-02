@@ -308,6 +308,14 @@ class StatementText:
         return "\n".join(c for c in chunks if c) or None
 
 
+# `statements=None` must mean "disabled", not "use the default" — otherwise a
+# test that passes None silently reads the machine's real data/parsed directory
+# and its result depends on what happens to be on disk. A dedicated sentinel
+# keeps the two meanings apart. (Found by the D23 guard test, which thought it
+# had disabled validation and got `validated` back.)
+_DEFAULT_STATEMENTS = object()
+
+
 class FactsResolver:
     def __init__(
         self,
@@ -315,13 +323,14 @@ class FactsResolver:
         catalog: Optional[CatalogStore] = None,
         store: Optional[FactsStore] = None,
         registry: Optional[Registry] = None,
-        statements: Optional[StatementText] = None,
+        statements=_DEFAULT_STATEMENTS,
         today: Optional[date] = None,
     ) -> None:
         self.catalog = catalog or CatalogStore(Path(settings.catalog_path))
         self.store = store or FactsStore(Path(settings.facts_db_path))
         self.registry = registry or load_registry()
-        self.statements = statements if statements is not None else StatementText()
+        self.statements = (StatementText() if statements is _DEFAULT_STATEMENTS
+                           else statements)
         # Injectable clock: "is fiscal 2030 in the future" must not depend on
         # the day the test suite runs (the same requirement P3-02 states).
         self._today = today

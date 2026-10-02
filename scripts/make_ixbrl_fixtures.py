@@ -193,6 +193,21 @@ SPECS: List[FixtureSpec] = [
         max_facts_per_concept=10,
     ),
     FixtureSpec(
+        name="aapl_fy2024_precision",
+        why=("the D22 case: Apple tags UnrecognizedTaxBenefits for ONE context "
+             "twice at two precisions — 22,000,000,000 with decimals=\"-8\" in "
+             "the narrative sentence and 22,038,000,000 with decimals=\"-6\" in "
+             "the tax-footnote table. Keeping whichever came first in document "
+             "order was the entire shortfall against SEC companyfacts in P2-09 "
+             "(233 of 27,506 values). T2-13 needs both instances present, so "
+             "this fixture exists to carry them"),
+        sources=["AAPL_2024_0000320193-24-000123.htm"],
+        period_end="2024-09-28",
+        concepts=["UnrecognizedTaxBenefits", "IncomeTaxExpenseBenefit",
+                  "DeferredTaxAssetsValuationAllowance", "IncomeTaxesPaidNet"],
+        max_facts_per_concept=12,
+    ),
+    FixtureSpec(
         name="aapl_fy2024_edge_values",
         why=("ixt:fixed-zero (an em-dash that means 0, with scale=6 attached) "
              "and xsi:nil (which means 'not reported', NOT 0 — reading the two "

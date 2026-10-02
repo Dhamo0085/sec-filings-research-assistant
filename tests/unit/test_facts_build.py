@@ -89,14 +89,20 @@ def test_build_stores_facts_for_each_filing(world):
     stats = result["store_stats"]
     assert stats["accessions"] == 2
     assert stats["tickers"] == 2
-    # The fixtures are trimmed to a handful of concepts, so the useful
-    # assertion is that the right VALUES landed, not that there are many.
-    assert stats["facts"] > 20
-    aapl = {f.concept: f.value for f in store.query(ticker="AAPL")}
-    assert aapl["us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax"] \
-        == Decimal("391035000000")
-    nflx = {f.concept: f.value for f in store.query(ticker="NFLX")}
-    assert nflx["us-gaap:Revenues"] == Decimal("39000966000")
+    # Not a count. The fixtures are trimmed to a handful of concepts and D22
+    # then collapses duplicate instances, so any threshold here is a number
+    # that goes stale the next time either changes — as it did. What matters is
+    # that the right values landed and that each concept landed exactly once.
+    assert stats["facts"] > 0
+    for ticker, concept, expected in (
+        ("AAPL", "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+         "391035000000"),
+        ("NFLX", "us-gaap:Revenues", "39000966000"),
+    ):
+        rows = [f for f in store.query(ticker=ticker) if f.concept == concept]
+        assert len(rows) == 1, (
+            f"{ticker} {concept} stored {len(rows)} times; D22 should leave one")
+        assert rows[0].value == Decimal(expected)
 
 
 def test_build_marks_the_catalog(world):

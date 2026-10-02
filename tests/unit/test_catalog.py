@@ -313,3 +313,134 @@ def test_offline_fetcher_makes_no_requests_for_a_missing_cache(tmp_path):
 ])
 def test_fiscal_label_from_period_end(period_end, expected):
     assert fiscal_label_from_period_end(period_end) == expected
+
+
+# ── fetcher and CLI paths (coverage for catalog/build.py) ───────────────────
+
+class _StubResp:
+    def __init__(self, status, payload=None, text=""):
+        self.status_code = status
+        self._payload = payload
+        self.text = text or (json.dumps(payload) if payload is not None else "")
+
+    def json(self):
+        return self._payload
+
+
+class _StubSession:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = []
+
+    def get(self, url, headers=None, timeout=None):
+        self.calls.append({"url": url, "headers": headers})
+        return self.responses.pop(0)
+
+
+def test_fetcher_writes_and_reuses_the_cache(tmp_path, monkeypatch):
+    """A second call must be served from disk, making a rebuild free."""
+    monkeypatch.setenv("edgar_email", "t@example.com")
+    import config
+    monkeypatch.setattr(config.settings, "edgar_email", "t@example.com")
+    payload = {"name": "Test Co", "cik": 1, "filings": {"recent": {}, "files": []}}
+    session = _StubSession([_StubResp(200, payload)])
+    f = EdgarFetcher(cache_dir=tmp_path / "c", offline=False, session=session)
+    assert f.submissions(1)["name"] == "Test Co"
+    assert f.requests_made == 1
+    assert f.submissions(1)["name"] == "Test Co"
+    assert f.requests_made == 1, "second call must come from the cache"
+
+
+def test_fetcher_sends_a_contact_user_agent(tmp_path, monkeypatch):
+    """SEC returns 403 without one (observed in Phase 0)."""
+    import config
+    monkeypatch.setattr(config.settings, "edgar_email", "owner@example.com")
+    session = _StubSession([_StubResp(200, {"name": "X", "cik": 1,
+                                            "filings": {"recent": {}, "files": []}})])
+    f = EdgarFetcher(cache_dir=tmp_path / "c", offline=False, session=session)
+    f.submissions(1)
+    ua = session.calls[0]["headers"]["User-Agent"]
+    assert "owner@example.com" in ua
+
+
+def test_fetcher_requires_edgar_email(tmp_path, monkeypatch):
+    import config
+    monkeypatch.setattr(config.settings, "edgar_email", None)
+    session = _StubSession([_StubResp(200, {})])
+    f = EdgarFetcher(cache_dir=tmp_path / "c", offline=False, session=session)
+    with pytest.raises(config.MissingSettingError):
+        f.submissions(1)
+
+
+def test_fetcher_reports_a_non_200(tmp_path, monkeypatch):
+    import config
+    monkeypatch.setattr(config.settings, "edgar_email", "t@example.com")
+    session = _StubSession([_StubResp(403, None, text="forbidden")])
+    f = EdgarFetcher(cache_dir=tmp_path / "c", offline=False, session=session)
+    assert f.submissions(1) is None
+
+
+def test_fetcher_refetches_a_corrupt_cache(tmp_path, monkeypatch):
+    import config
+    monkeypatch.setattr(config.settings, "edgar_email", "t@example.com")
+    cache = tmp_path / "c"
+    cache.mkdir()
+    (cache / "CIK0000000001.json").write_text("{not json", encoding="utf-8")
+    payload = {"name": "Recovered", "cik": 1, "filings": {"recent": {}, "files": []}}
+    session = _StubSession([_StubResp(200, payload)])
+    f = EdgarFetcher(cache_dir=cache, offline=False, session=session)
+    assert f.submissions(1)["name"] == "Recovered"
+
+
+def test_fetcher_follows_pagination_chunks(tmp_path, monkeypatch):
+    """filings.recent is only the newest slice (Phase 0 missed this)."""
+    import config
+    monkeypatch.setattr(config.settings, "edgar_email", "t@example.com")
+    fields = ["form", "accessionNumber", "reportDate", "filingDate", "primaryDocument"]
+    recent = dict(zip(fields, [
+        ["10-K"], ["new"], ["2024-12-31"], ["2025-02-01"], ["a.htm"]], strict=True))
+    older = dict(zip(fields, [
+        ["10-K"], ["old"], ["2023-12-31"], ["2024-02-01"], ["b.htm"]], strict=True))
+    main_doc = {"name": "Test Co", "cik": 1,
+                "filings": {"recent": recent, "files": [{"name": "chunk-1.json"}]}}
+    session = _StubSession([_StubResp(200, older)])
+    f = EdgarFetcher(cache_dir=tmp_path / "c", offline=False, session=session)
+    rows = rows_from_submissions("TST", 1, main_doc, f)
+    assert sorted(r.accession for r in rows) == ["new", "old"], (
+        "older pagination chunks must be followed"
+    )
+
+
+def test_cli_runs_offline(tmp_path, monkeypatch, capsys):
+    from catalog.build import main as build_main
+    cache = tmp_path / "edgar"
+    cache.mkdir()
+    for src in FIXTURES.glob("CIK*.json"):
+        (cache / src.name).write_bytes(src.read_bytes())
+    monkeypatch.setattr("catalog.build._CACHE_DIR", cache)
+    rc = build_main(["--ticker", "AAPL", "--offline",
+                     "--catalog-path", str(tmp_path / "c.sqlite")])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "AAPL" in out
+    assert "edgar_requests" in out
+
+
+def test_cli_reports_a_failure(tmp_path, monkeypatch):
+    from catalog.build import main as build_main
+    monkeypatch.setattr("catalog.build.build",
+                        lambda **kw: (_ for _ in ()).throw(RuntimeError("boom")))
+    assert build_main(["--offline", "--catalog-path", str(tmp_path / "c.sqlite")]) == 1
+
+
+def test_store_helpers(tmp_path):
+    store = CatalogStore(tmp_path / "c.sqlite")
+    store.upsert([_filing()])
+    store.set_collection_name("acc-1", "AAPL_2024")
+    assert store.get("acc-1").collection_name == "AAPL_2024"
+    store.mark_facts_built("acc-1")
+    assert store.get("acc-1").facts_built_at
+    assert store.tickers() == ["AAPL"]
+    assert len(store.all_filings()) == 1
+    assert store.to_dicts()[0]["accession"] == "acc-1"
+    assert store.get("missing") is None

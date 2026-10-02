@@ -31,9 +31,16 @@ setup: $(VENV)/bin/python   ## Create the venv and install serving + dev depende
 setup-eval: $(VENV)/bin/python   ## Additionally install the optional RAGAS stack
 	$(PIP) install --quiet -r requirements-eval.txt
 
-test: ## Offline unit + integration tests (sockets blocked; must pass with no .env)
+# --allow-unix-socket is required, not a loophole: starlette's TestClient runs
+# the ASGI app on an asyncio event loop, and the loop's internal self-pipe is an
+# AF_UNIX socketpair. Blocking it makes every API test fail with a 500 rather
+# than exercising the app. AF_UNIX cannot reach the network, so the intent -
+# no network in offline tests - still holds, and
+# tests/unit/test_offline_guarantee.py asserts that network access really is
+# blocked under these flags.
+test: ## Offline unit + integration tests (network blocked; must pass with no .env)
 	$(PYTEST) tests/unit tests/integration -m "not live and not slow" \
-	  --disable-socket \
+	  --disable-socket --allow-unix-socket \
 	  --cov=. --cov-report=term-missing --cov-report=xml:reports/phase1/tests/coverage.xml \
 	  --junitxml=reports/phase1/tests/junit.xml
 

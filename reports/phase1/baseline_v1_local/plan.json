@@ -1,0 +1,299 @@
+{
+  "planned_at_utc": "2026-10-02T09:38:00.732864+00:00",
+  "indexed_collections": [
+    "AAPL_2023",
+    "AAPL_2024",
+    "AAPL_2025",
+    "AMZN_2023",
+    "AMZN_2024",
+    "AMZN_2025"
+  ],
+  "runnable_ids": [
+    "N1",
+    "N5",
+    "C1",
+    "M2",
+    "R3",
+    "T2",
+    "U1",
+    "U2",
+    "U3"
+  ],
+  "not_run_ids": [
+    "N2",
+    "N3",
+    "N4",
+    "N6",
+    "C2",
+    "C3",
+    "M1",
+    "M3",
+    "R1",
+    "R2",
+    "R4",
+    "T1",
+    "T3",
+    "T4",
+    "U4",
+    "S1"
+  ],
+  "runnable": [
+    {
+      "id": "N1",
+      "category": "numeric",
+      "needs": [
+        "AAPL_2024"
+      ],
+      "reason": "all required collections present"
+    },
+    {
+      "id": "N5",
+      "category": "numeric",
+      "needs": [
+        "AMZN_2023"
+      ],
+      "reason": "all required collections present"
+    },
+    {
+      "id": "C1",
+      "category": "computed",
+      "needs": [
+        "AAPL_2024"
+      ],
+      "reason": "all required collections present"
+    },
+    {
+      "id": "M2",
+      "category": "trend",
+      "needs": [
+        "AMZN_2023",
+        "AMZN_2024",
+        "AMZN_2025"
+      ],
+      "reason": "all required collections present"
+    },
+    {
+      "id": "R3",
+      "category": "narrative",
+      "needs": [
+        "AAPL_2024"
+      ],
+      "reason": "all required collections present"
+    },
+    {
+      "id": "T2",
+      "category": "ambiguity",
+      "needs": [
+        "AAPL_2025"
+      ],
+      "reason": "all required collections present"
+    },
+    {
+      "id": "U1",
+      "category": "unanswerable",
+      "needs": [
+        "AAPL_2024"
+      ],
+      "reason": "all required collections present"
+    },
+    {
+      "id": "U2",
+      "category": "unanswerable",
+      "needs": [],
+      "reason": "no index required"
+    },
+    {
+      "id": "U3",
+      "category": "unanswerable",
+      "needs": [],
+      "reason": "no index required"
+    }
+  ],
+  "not_run": [
+    {
+      "id": "N2",
+      "category": "numeric",
+      "needs": [
+        "MSFT_2024"
+      ],
+      "missing_collections": [
+        "MSFT_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "N3",
+      "category": "numeric",
+      "needs": [
+        "JPM_2024"
+      ],
+      "missing_collections": [
+        "JPM_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "N4",
+      "category": "numeric",
+      "needs": [
+        "GOOGL_2024"
+      ],
+      "missing_collections": [
+        "GOOGL_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "N6",
+      "category": "numeric",
+      "needs": [
+        "BLK_2024"
+      ],
+      "missing_collections": [
+        "BLK_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "C2",
+      "category": "computed",
+      "needs": [
+        "GOOGL_2023",
+        "GOOGL_2024"
+      ],
+      "missing_collections": [
+        "GOOGL_2023",
+        "GOOGL_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "C3",
+      "category": "computed",
+      "needs": [
+        "GS_2024"
+      ],
+      "missing_collections": [
+        "GS_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "M1",
+      "category": "compare",
+      "needs": [
+        "JPM_2024",
+        "BAC_2024"
+      ],
+      "missing_collections": [
+        "JPM_2024",
+        "BAC_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "M3",
+      "category": "compare",
+      "needs": [
+        "MSFT_2024",
+        "GOOGL_2024"
+      ],
+      "missing_collections": [
+        "MSFT_2024",
+        "GOOGL_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "R1",
+      "category": "narrative",
+      "needs": [
+        "JPM_2024"
+      ],
+      "missing_collections": [
+        "JPM_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "R2",
+      "category": "narrative",
+      "needs": [
+        "MSFT_2024"
+      ],
+      "missing_collections": [
+        "MSFT_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "R4",
+      "category": "narrative",
+      "needs": [
+        "WFC_2024"
+      ],
+      "missing_collections": [
+        "WFC_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "T1",
+      "category": "ambiguity",
+      "needs": [
+        "MSFT_2024"
+      ],
+      "missing_collections": [
+        "MSFT_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "T3",
+      "category": "lookahead",
+      "needs": [
+        "MSFT_2023",
+        "MSFT_2024"
+      ],
+      "missing_collections": [
+        "MSFT_2023",
+        "MSFT_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "T4",
+      "category": "lookahead",
+      "needs": [
+        "GOOGL_2024"
+      ],
+      "missing_collections": [
+        "GOOGL_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "U4",
+      "category": "unanswerable",
+      "needs": [
+        "BLK_2024"
+      ],
+      "missing_collections": [
+        "BLK_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    },
+    {
+      "id": "S1",
+      "category": "units",
+      "needs": [
+        "NFLX_2024"
+      ],
+      "missing_collections": [
+        "NFLX_2024"
+      ],
+      "reason": "collection not indexed; running this question would trigger auto-ingest (download, parse, chunk, embed) inside the measurement"
+    }
+  ],
+  "constraint": "v1 embeds at a measured ~1.63 s/chunk on this 8 GB machine (AAPL: 589 chunks in 957.8 s), so indexing all 35,838 chunks of the bundled 12 is a ~16 hour job. Questions whose collections are absent are excluded rather than allowed to trigger auto-ingest inside the measurement."
+}

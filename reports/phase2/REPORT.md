@@ -36,8 +36,10 @@ Protocol: `docs/PROJECT_SPEC.md` section 13.
   a 12-filing survey had missed.
 - **Six defects were in my own code and checks**, each caught by a check rather
   than by review (section 6). Two would have shipped false confidence.
-- **P2-00(e) is incomplete at the time of writing**: MSFT and JPM are indexed,
-  GOOGL/BLK/GS are still running at a measured ~1.6 chunks/s. Section 7 item 1.
+- **P2-00(e) is complete.** All eight evaluation-core tickers are indexed —
+  AAPL, AMZN, MSFT, JPM, GOOGL, NFLX, BLK, GS — in 24 collections holding
+  13,520 points. 10,848 chunks embedded in 1.6 h at 1.86 chunks/s, peak RSS
+  never above 1.37 GB (§4.3a). D21's precondition for Phase 3 is met.
 - Suite: **511 passed, 1 documented skip**, `facts/` 88.7%, `catalog/` 96.4%,
   ruff clean, hygiene clean.
 
@@ -220,6 +222,38 @@ were written against.
   embedded at 512, so adopting it means re-indexing everything and every
   retrieval number measured before and after becomes incomparable.
 
+### 4.3a Core-ticker indexing (P2-00e) — complete
+
+`reports/phase2/index_{MSFT,JPM,GOOGL,BLK,GS}.json`, run in the spec's order
+with `caffeinate -i`.
+
+| Ticker | Chunks | Seconds | chunks/s | Peak RSS |
+|---|---|---|---|---|
+| MSFT | 1,182 | 427 | 2.77 | 1.37 GB |
+| JPM | 4,954 | 2,814 | 1.76 | 1.08 GB |
+| GOOGL | 970 | 541 | 1.79 | 1.01 GB |
+| BLK | 1,529 | 660 | 2.32 | 0.99 GB |
+| GS | 2,213 | 1,395 | 1.59 | 0.95 GB |
+| **Total** | **10,848** | **5,837 (1.6 h)** | **1.86** | **≤ 1.37 GB** |
+
+NFLX needed the full pipeline rather than just indexing, because it is an
+on-demand filer with no chunk files: download, parse and chunk produced 891
+chunks across FY2023–2025, and the whole thing — fetch to searchable — took
+about 9 minutes. That run is also the end-to-end verification of the P2-00(c)
+rewiring on the **production on-demand path**: `ingestion/auto_ingest.py` drove
+the streaming indexer, including the background pass for the 65 non-priority
+chunks, with `force_reindex` correctly dropped (see the commit note on
+`3b2a081` — v1's flag meant "upsert anyway" while the new one deletes, so
+keeping it would have wiped the 826 chunks a user was already searching).
+
+Final state: 24 collections, 13,520 points.
+
+| Ticker | Collections |
+|---|---|
+| AAPL · AMZN · MSFT · JPM · GOOGL · NFLX · GS | 3 each |
+| BLK | 2 — **FY2023 is absent**, because BlackRock's FY2023 10-K is filed under its old CIK (1364742) and was never chunked. The catalog knows about it (N1, dual CIK); the text index does not. Noted for Phase 4's V0 subset. |
+| TSLA | 1 — left over from a Phase 1 auto-ingest during the baseline measurement |
+
 ### 4.4 Corpus facts worth recording
 
 - **iXBRL formats**: across all 250 cached documents (65 filings) there are
@@ -299,11 +333,11 @@ confidence.
 
 ## 7. Owner actions and questions
 
-1. **Core-ticker indexing (P2-00e) is not finished.** MSFT and JPM are indexed;
-   GOOGL, BLK and GS are still running at a measured ~1.6 chunks/s, about 75
-   minutes of remaining work. It is resumable (`make index ONLY=GS`), so this
-   needs no decision — but **P2-00(e) is a MUST and it is incomplete at this
-   gate.** The final collection list will be appended to `docs/STATE.md`.
+1. **Core-ticker indexing (P2-00e) finished after the report was first
+   drafted** — all eight tickers, 24 collections, 13,520 points (§4.3a). The one
+   residual gap is **BLK FY2023**, whose 10-K sits under BlackRock's old CIK and
+   has no chunk files; the facts store has it, the text index does not. Decide
+   whether Phase 4's V0 subset needs it.
 2. **Spot-check sheet (P2-10) is the owner gate.**
    `reports/phase2/owner_spotcheck.csv`, 20 rows, each with the EDGAR URL and
    the value as the filing prints it. Mark each `verdict` OK or WRONG. The spec
@@ -334,7 +368,8 @@ confidence.
 - [x] Coverage ≥ 85% on `facts/` (88.7%) and `catalog/` (96.4%)
 - [x] `docs/explainers/phase2.md`, `DECISIONS.md`, `CHANGELOG.md`, `STATE.md`,
       `CLAUDE.md` status table updated
-- [ ] **P2-00(e) core-ticker indexing complete** — in progress (§7 item 1)
+- [x] **P2-00(e) core-ticker indexing complete** — 8 tickers, 24 collections,
+      13,520 points (§4.3a); BLK FY2023 absent for the dual-CIK reason
 - [ ] Owner spot-check sheet completed, every WRONG row fixed and re-checked
 - [ ] Pull request reviewed and merged by the owner
 

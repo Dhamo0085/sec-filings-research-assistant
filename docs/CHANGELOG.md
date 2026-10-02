@@ -73,8 +73,10 @@ scale errors, zero sign errors, zero unclassified mismatches.**
   shortfall is 233 values in filings that tag one concept twice, rounded in
   prose and exact in a table; they agree within the filer's declared precision
   and none is a registry concept.
-- **P2-00(e) core-ticker indexing is incomplete** at the gate: MSFT and JPM
-  indexed, GOOGL/BLK/GS still running. Resumable.
+- P2-00(e) core-ticker indexing **completed**: all eight evaluation-core
+  tickers, 24 collections, 13,520 points, 10,848 chunks in 1.6 h at
+  1.86 chunks/s. BLK FY2023 is the one gap — its 10-K is under BlackRock's old
+  CIK and has no chunk files.
 - v1's parsed statement sections are unreliable (one filer's "income statement"
   section is 106 characters of heading, JPMorgan's is empty), which makes 51
   `conflict` validations parser defects rather than extraction errors — and is

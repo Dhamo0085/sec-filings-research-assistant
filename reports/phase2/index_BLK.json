@@ -1,0 +1,31 @@
+{
+  "batch_size": 8,
+  "max_length": null,
+  "seconds": 660.0,
+  "chunks_embedded": 1529,
+  "chunks_per_second": 2.317,
+  "peak_rss_bytes": 990019584,
+  "peak_rss_gb": 0.99,
+  "collections": [
+    {
+      "name": "BLK_2025",
+      "chunks_total": 458,
+      "chunks_embedded": 458,
+      "chunks_already_present": 0,
+      "seconds": 253.8,
+      "chunks_per_second": 1.805,
+      "status": "indexed",
+      "error": null
+    },
+    {
+      "name": "BLK_2024",
+      "chunks_total": 1071,
+      "chunks_embedded": 1071,
+      "chunks_already_present": 0,
+      "seconds": 406.2,
+      "chunks_per_second": 2.637,
+      "status": "indexed",
+      "error": null
+    }
+  ]
+}

@@ -10,7 +10,7 @@ carried into Phase 2 on 2026-10-02 against spec v1.4.
 | Repository | private, `github.com/Dhamo0085/sec-filings-research-assistant`; branch model: `main` + one `phase-N-<slug>` branch per phase, merged by the owner via PR |
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
-| Phase 2 | COMPLETE at the gate; PR open from `phase-2-facts-engine` (9 commits). Two items open: T2-10's exact threshold and P2-00(e) indexing |
+| Phase 2 | COMPLETE; PR #3 open from `phase-2-facts-engine`. One item open: T2-10's exact threshold (99.13% vs 99.5%) |
 | Current task | none — awaiting "Approved: start Phase 3" |
 | Tests | `make test` → **511 passed, 1 documented skip**; `facts/` 88.7%, `catalog/` 96.4%; ruff and hygiene clean |
 
@@ -38,7 +38,7 @@ macOS arm64, **8 GB RAM**, CPython 3.12.14, `git` 2.51, `gh` authenticated. Keys
 ## 4. Data facts (seed)
 - Catalog (`catalog/`): **365** annual filings, **29** amendments, **13** tickers, built offline from cache. BlackRock = two CIKs (1364742 for FY2023, 2012383 for FY2024–25). MSFT FY2026 present. `fiscal_label` is still `period_end.year` (P2-03 replaces it with the DEI label).
 - Bundled tickers: AAPL, MSFT, GOOGL, AMZN, JPM, WFC, BAC, GS, BLK, STT, TROW, IVZ (+ NFLX on demand). Full text index = **35,838 chunks**.
-- **Indexed collections: AAPL_2023/24/25 and AMZN_2023/24/25 only.** Raw, parsed, and chunk files exist for 35 filings.
+- **Indexed collections (after P2-00e): 24, 13,520 points.** AAPL, AMZN, MSFT, JPM, GOOGL, NFLX, GS at 3 fiscal years each; BLK at 2 (FY2023 absent — its 10-K is under BlackRock's old CIK 1364742 and has no chunk files); TSLA_2025 left over from a Phase 1 auto-ingest. 10,848 chunks embedded in 1.6 h at 1.86 chunks/s, peak RSS <= 1.37 GB.
 - Embedding throughput was **1.1–1.6 s/chunk** while the machine was swapping (swap hit 9.6 of 10 GB). v1's `index_chunks` embeds every chunk of every collection before the first upsert; `eval/phase1/index_per_ticker.py` (resumable, per ticker) is the workaround. The slowness is probably memory pressure, not the model: confirm in P2-00 before concluding anything.
 - K9 (Qdrant local filter) is REFUTED on a real collection (qdrant-client 1.19.1).
 
@@ -52,7 +52,7 @@ D1 facts from iXBRL · D2 `as_of` via catalog · D5 headline total net revenue �
 D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0).
 
 ## 7. Open items
-1. **P2-00(e) indexing is unfinished.** AAPL, AMZN, MSFT, JPM indexed; GOOGL, BLK, GS still to go at a measured ~1.6 chunks/s. Resume with `make index ONLY=GS` (resumable by point id, so re-running costs nothing for what is done). NFLX has no chunk files at all — it needs download/parse/chunk first.
+1. **P2-00(e) is DONE** (all 8 core tickers). Residual gap: **BLK FY2023** has no chunk files because that 10-K is under BlackRock's old CIK. Decide whether Phase 4's V0 subset needs it.
 2. **T2-10's exact threshold is not met**: 99.13% corpus-wide vs the 99.5% bar. The whole shortfall is 233 values in filings that tag one concept twice (rounded in prose, exact in a table); they agree within the declared precision and none is a registry concept. Fix proposed in the report section 9 item 1.
 3. **v1's parsed statement sections are unreliable** and Phase 3's text path reads the same ones: the section titled "Consolidated Statements of Operations" is 106 chars of heading for AMZN, empty for JPM in all three years, over a megabyte for GS, and GOOGL's "Balance Sheets" section holds the auditors' report. This is why 51 validations are `conflict`.
 4. `.hygiene_local` is still EMPTY, so the old project's names are not being scanned for (the check works; it has nothing to look for).

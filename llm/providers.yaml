@@ -25,6 +25,11 @@ providers:
     models:
       openai/gpt-oss-120b:
         context_window: 131072
+        # NOT ascii_citations: the P1-04 bake-off found this model cites with
+        # FULLWIDTH brackets (U+3010/U+3011), e.g. "...net sales of $391,035
+        # million\u30101\u3011". The content is right but generation/citations.py
+        # parses ASCII [N], so the pipeline would see zero citations. Fine for
+        # JSON roles, disqualified as the generator.
         capabilities: [chat, json_object, reasoning]
         # Free-plan limits are not published on the models page; measured from
         # response headers in P1-04 and written to llm/limits.local.yaml.
@@ -35,13 +40,20 @@ providers:
           P1-00 that content is clean JSON for v1's classifier prompt.
       openai/gpt-oss-20b:
         context_window: 131072
+        # Same fullwidth-bracket behaviour as the 120b (P1-04).
         capabilities: [chat, json_object, reasoning]
         limits: {rpm: null, rpd: null, tpm: null}
       qwen/qwen3.8-27b:
         context_window: 131072
-        capabilities: [chat, json_object]
-        limits: {rpm: null, rpd: null, tpm: null}
-        notes: preview model; no separate reasoning field observed in P1-00.
+        capabilities: [chat, json_object, ascii_citations]
+        # MEASURED from response headers during the P1-04 bake-off, which is the
+        # first hard number for a Groq free-plan limit (O1). Note the 8000 TPM:
+        # that is small for a generator prompt carrying retrieved chunks, which
+        # is why this entry is last in the generator order.
+        limits: {rpm: null, rpd: 1000, tpm: 8000}
+        notes: >-
+          Preview model. No separate reasoning field observed in P1-00. Scored
+          4/4 in the P1-04 bake-off (JSON, ASCII citations, honest refusal).
 
   gemini:
     # Google's OpenAI-compatible surface.
@@ -50,27 +62,58 @@ providers:
     models:
       gemini-3.5-flash-lite:
         context_window: 1048576
-        capabilities: [chat, json_object]
+        capabilities: [chat, json_object, ascii_citations]
         limits: {rpm: 15, tpm: 250000, rpd: 500}
+        notes: Scored 4/4 in the P1-04 bake-off; fastest of the compliant models.
       gemini-3.1-flash-lite:
         context_window: 1048576
-        capabilities: [chat, json_object]
+        capabilities: [chat, json_object, ascii_citations]
         limits: {rpm: 15, tpm: 250000, rpd: 500}
-        notes: separate quota from 3.5, so failover across the two is useful.
+        notes: >-
+          Separate quota from 3.5, so failover across the two is useful. Scored
+          4/4 in the P1-04 bake-off.
+      gemma-4-26b-a4b-it:
+        context_window: 32768
+        # Deliberately NOT given json_object: the P1-04 bake-off measured 0/2
+        # valid JSON from this model, and ~80s median latency (vs under 1s for
+        # every other candidate). Appendix A suggested it for router/judge work
+        # on the strength of its 14.4K RPD; measurement says otherwise. Kept
+        # here so the decision is visible rather than the model silently absent.
+        capabilities: [chat, ascii_citations]
+        limits: {rpm: 30, tpm: 16000, rpd: 14400}
+        notes: >-
+          Gemma 4 IDs were discovered from the provider models endpoint in
+          P1-04, as the spec asked (the other is gemma-4-31b-it).
 
 # Ordered provider:model lists per role. These are DEFAULTS; the environment
 # (ROUTER_PROVIDERS / GENERATOR_PROVIDERS / JUDGE_PROVIDERS / LLM_PROVIDERS)
-# overrides them, and the P1-04 bake-off decides the final order.
-#
-# Spec section 9 rule 10: a judge must come from a different model than the
-# generator, and evaluation runs pin one entry with no failover.
+# overrides them. The orders below were chosen by the P1-04 bake-off
+# (reports/phase1/bakeoff.json, 24 calls). Spec section 9 rule 10: a judge
+# must not be the model that generated, and evaluation runs pin one entry.
 roles:
   router:
+    # Only needs valid JSON, so the gpt-oss fullwidth-citation problem is
+    # irrelevant here. Groq goes first to preserve Gemini's scarcer 500 RPD
+    # for the generator, where output format matters.
     requires: [chat, json_object]
-    order: [groq:openai/gpt-oss-20b, gemini:gemini-3.5-flash-lite]
+    order:
+      - groq:openai/gpt-oss-20b
+      - gemini:gemini-3.5-flash-lite
+      - gemini:gemini-3.1-flash-lite
   generator:
-    requires: [chat]
-    order: [groq:openai/gpt-oss-120b, gemini:gemini-3.5-flash-lite]
+    # ascii_citations is required, which excludes both gpt-oss models: they
+    # cite correctly but in fullwidth brackets the pipeline cannot parse.
+    # Gemini's 250K TPM leads because a generator prompt carries retrieved
+    # chunks; qwen is last because its measured 8000 TPM may not fit one.
+    requires: [chat, json_object, ascii_citations]
+    order:
+      - gemini:gemini-3.5-flash-lite
+      - gemini:gemini-3.1-flash-lite
+      - groq:qwen/qwen3.8-27b
   judge:
+    # Spec section 9 rule 10: never the same model that generated. The
+    # generator leads with Gemini, so the judge leads with Groq.
     requires: [chat, json_object]
-    order: [gemini:gemini-3.1-flash-lite, groq:qwen/qwen3.8-27b]
+    order:
+      - groq:openai/gpt-oss-120b
+      - groq:qwen/qwen3.8-27b

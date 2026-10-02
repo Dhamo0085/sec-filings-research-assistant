@@ -72,6 +72,6 @@ models/
 # -- v2 bootstrap (Step 0): local-only and derived artifacts --
 .venv*/
 data/derived/
-data/chat_history.db
+data/chat_history.db*
 *.zip
 llm/limits.local.yaml

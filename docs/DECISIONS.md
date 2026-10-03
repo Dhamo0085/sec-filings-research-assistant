@@ -5,6 +5,67 @@ Newest first.
 
 ---
 
+## 2026-10-03 — D4-05 The expanded narrative set is a separate retrieval file, not more gold
+
+**Context.** P4-13 expands the narrative items from 15 to at least 40 so D27's
+reranker rule is decided on something other than noise. The obvious place to
+put them is `eval/gold/gold_v1.jsonl`, which is where the 15 live.
+
+**Options.** (a) Append them to the gold set. (b) A separate file the
+ablations read through their existing `--gold` argument.
+
+**Choice.** (b) — `eval/gold/narrative_retrieval_v1.jsonl`, 45 items.
+
+**Reason.** Every headline number in Phase 4 is `n/N` over the gold set, and
+the gold set's category targets are fixed by spec 6.6 (`narrative: 15`).
+Appending 30 items would take the set from 80 to 110, change the denominator
+of every figure already measured, and make the V1/V2/V3 runs of P4-12
+incomparable with the ones they exist to be compared against — including V0,
+which is frozen and cannot be re-asked anything. The expansion exists to serve
+one measurement, the retrieval ablation, which scores section hit@k and MRR
+and makes no generation call; `eval/ablations.py --gold <path>` already takes
+an arbitrary item file, so the separation costs nothing and the two
+measurements keep their own denominators.
+
+**What would change it.** A later phase that wants narrative *answer* quality
+measured over 45 items rather than 15. That is a different measurement with a
+different cost — it needs generation for every item — and it would be a new
+decision about the gold set's shape, not a quiet merge of two files.
+
+---
+
+## 2026-10-03 — D4-04 A relink clears a catalog link the store can no longer honour
+
+**Context.** `link_collections()` joins `catalog.filings.collection_name` to
+the Qdrant collections. It only ever set a name. P4-12 re-indexed 39 filings
+and deliberately left TSLA out of scope, so after the activation swap the
+catalog still pointed TSLA FY2025 at collection `TSLA_2025`, which the live
+store does not hold. T4-09's orphan check is the mirror of this — a collection
+with no catalog row — and passed at 0, so nothing in the test suite saw it.
+
+**Options.** (a) Leave it and document it: retrieval already intersects its
+target collections with the live ones, so nothing crashes. (b) Clear a link
+the store cannot honour, as part of the relink. (c) Delete the catalog row.
+
+**Choice.** (b). `collection_names` is now documented as the whole truth about
+the store rather than a patch to apply to it, and a name not in that list is
+cleared.
+
+**Reason.** The link is not only read by retrieval. `query._years_with()` reads
+`collection_name` to tell a user which fiscal years have text coverage, so a
+stale link makes a refusal offer a year that nothing can search — the system
+claiming a capability it does not have, which is the failure this project is
+built to avoid. (c) is wrong because the filing is real and the catalog should
+keep saying so; it simply has no text.
+
+**What would change it.** A store that is deliberately a subset of the catalog's
+links — for example an evaluation arm pointed at a partial index. That is why
+the clearing is driven by the caller's list rather than by probing the store:
+a caller that passes a subset gets what it asked for, and the docstring says to
+pass every live collection.
+
+---
+
 ## 2026-10-03 — D4-03 The P4-12 re-index writes to new directories and is swapped in separately
 
 **Context.** P4-12 re-parses, re-chunks and re-indexes 39 filings — an overnight

@@ -14,9 +14,9 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
-| Phase 4 | COMPLETE on `phase-4-evaluation`, awaiting owner approval and merge (`reports/phase4/REPORT.md`). All 10 MUST tasks done |
-| Current task | none — awaiting the owner's two gates (sign `reports/phase4/gold_verification.csv`; rate 15 narrative answers), the PR merge, and "Approved: start Phase 5" |
-| Tests | `make test` → **1,173 passed, 0 failed, 0 skipped** (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `./scripts/ci_local.sh` green. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+| Phase 4 | **REOPENED by the owner against spec v1.8** (2026-10-03). P4-00 to P4-10 are done (`reports/phase4/REPORT.md`); P4-02b and P4-11 are now done too; **P4-12 to P4-15 remain**. PR #6 is open on `phase-4-evaluation` and must not be merged |
+| Current task | none in flight. Next is **P4-12** (the overnight re-index), which the owner starts. P4-13, P4-14 and P4-15 wait for the owner's go-ahead |
+| Tests | `make test` → **1,277 passed, 0 failed, 0 skipped** (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
 
 ## 1b. Phase 3 facts (measured, 2026-10-02)
 - **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.
@@ -27,6 +27,41 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 - **Indexed collections: 25** (BLK_2023 added — 1,037 chunks, 286.5 s, 3.62 chunks/s). **`catalog.collection_name` is now populated for all 25**; before P3-06 it was null on all 483 rows, which would have left the text path's `as_of` scope empty on real data. Re-run `python -m ingestion.catalog_ingest --link` after any indexing.
 - **D24 proved**: BLK's filing list spans CIKs [1364742, 2012383]; with `as_of=2025-01-01` the BLK scope is `[BLK_2023]` alone.
 - Coverage: facts 88.8%, catalog 95.5%, llm 90.5%, answering 97.2%, routing/entities 95.5%, routing/periods 98.8%; lowest new file 73.6%.
+
+## 1d. Phase 4 reopening: spec v1.8, P4-02b and P4-11 (2026-10-03)
+- **Spec v1.8** adds **D27** (the reranker decision rule, pre-registered before the data is
+  seen), **D28** (the one fix-and-rerun cycle goes to router defects A–C; the deferred re-index is
+  scheduled as P4-12), **D29** (owner-only fields), tasks **P4-02b** and **P4-11 to P4-15**, and
+  tests **T4-08 to T4-12**. The owner gate now requires the narrative rating to come from the
+  **post-re-index** run. **CLAUDE.md rule 17** carries D29 into the standing rules.
+- **P4-02b DONE.** `scripts/make_gold_verification_assist.py` →
+  `reports/phase4/gold_verification_assisted.csv` (committed). **37 of 37 rows located, all
+  `found_exact`, 25 of 25 core rows**; re-running produces a byte-identical file. **This is the
+  sheet to sign**, not `gold_verification.csv` — D4-01 explains why it is a second file, and the
+  script refuses `--out == --in`. `verdict`, `owner_note` and `verified_by` are untouched and
+  `assert_unchanged()` proves it per row before writing.
+  - Four real defects were found by *reading* the first output: Microsoft sets statement headings
+    with letter-spacing ("INC OME STATE MENTS"), Bank of America's Consolidated Balance Sheet
+    carries its title inside the table, Amazon prints capex as "( 82,999 )", and computed operands
+    had no statement hint so Netflix's revenue landed on the MD&A "Streaming revenues" line.
+  - The spot-check sample (seed 20261003) is `N-NFLX-OPERATINGINCOME-2024`,
+    `C-AAPL-DEBTEQUITY-2024`, `C-AAPL-NETMARGIN-2024`, `C-MSFT-REVENUECAGR-2025`,
+    `N-GOOGL-RDEXPENSE-2024`.
+  - **Known limit:** the located line is the best-scoring printed occurrence. For a few rows an
+    MD&A summary table and the statement itself both carry the figure under the same heading
+    words; `statement_to_check` and `assist_link` remain the owner's check.
+- **P4-11 DONE** (D4-02). All three defects fixed, each from a failing test; **12 of 12 computed
+  gold items and 5 of 5 facts-path abstention items now score correct** against the real stores.
+  The ratio defect was *not* in the router — `query._compute` paired two metrics only for a
+  margin, so a two-metric ratio answered with the numerator alone. Longest-match aliasing was
+  already in place; the cash-flow phrase was simply missing from `facts/concepts.yaml`.
+  `period_not_covered` is now decided from `FactsStore.has_facts()`, because `facts_built_at`
+  records that the build *ran* (four flagged submissions hold no facts).
+- **Still open from P4-11's scope:** defect D (the MSFT segments over-refusal) is deferred to
+  after the re-index by D28.
+- **Carried into P4-12 and after:** the three remaining owner-facing gaps are unchanged — sign the
+  assisted sheet, rate 15 narrative answers **from the post-re-index run** (P4-14 builds the
+  sheet), and the re-index itself.
 
 ## 1c. Phase 4 facts (measured, 2026-10-03)
 - **Variant results, D21 paired subset (69 of 80 items)**: V3 **60/69 (87.0%, CI 77.0–93.0)** ·
@@ -51,7 +86,8 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 - **D25 old-vs-new index arm**: both stores hold the same pre-rewrite parse (re-index deferred), and
   the arms agree — a check on the backup, not a result about the parser. One unexplained difference:
   `hybrid` MRR 0.578 vs 0.544 on byte-identical content, most likely RRF tie-break order.
-- **Open product defects** (none fixed; P4-07's one cycle was not spent on them): the router does not
+- **Open product defects** — **three of the four are now fixed by P4-11 (see section 1d); the
+  figures below describe the run before that fix and will change in P4-12's re-run**: the router does not
   route "ratio of X to Y" or "A less B" though `facts/calc.py` implements both; "cash flow from
   operating activities" resolves to `cash_and_equivalents`; `X-PERIOD-NOT-COVERED` refuses with the
   wrong reason; one over-refusal on MSFT segments.
@@ -207,5 +243,5 @@ Carried into Phase 5:
 ## 9. Resume commands
 `make test` · `make lint` · `./scripts/ci_local.sh` (the CI mirror) · `python -m eval.mini_eval` ·
 `python -m eval.gold.build_gold --check` · `python -m eval.runner --variant V3 --report-only` ·
-`python -m eval.ablations` · `python eval/phase4/run_v0.py --worktree /Users/dhamo_85/Downloads/FinancialRAG_v1_baseline` (an existing v1-baseline worktree; the driver symlinks `.env` into it and never reads the key) ·
+`python -m eval.ablations` · `python scripts/make_gold_verification_assist.py` (P4-02b; offline, ~30 s) · `python eval/phase4/run_v0.py --worktree /Users/dhamo_85/Downloads/FinancialRAG_v1_baseline` (an existing v1-baseline worktree; the driver symlinks `.env` into it and never reads the key) ·
 `make setup` · `make hygiene` · `python scripts/check_repo_hygiene.py --self-test` · `make catalog` · `make facts` · `make up` · `python scripts/smoke.py --base-url http://localhost:8000` · resumable indexing: `python eval/phase1/index_per_ticker.py --only AAPL,AMZN` (run from the v1 worktree) · section audit: `python scripts/audit_sections.py` then `python scripts/compare_section_audits.py <before> <after>`.

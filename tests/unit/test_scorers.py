@@ -383,3 +383,42 @@ def test_summarize_reports_per_category_rates_and_flag_totals():
 def test_match_value_returns_missing_number_when_the_answer_has_none():
     result = match_value(AAPL_REVENUE_2024, numerals_in("I could not find that."))
     assert result.verdict == "missing_number"
+
+
+# ── two bugs the first full run exposed ──────────────────────────────────────
+
+def test_a_citation_marker_is_not_read_as_a_figure():
+    """"[1]" is a pointer, not a quantity.
+
+    Found by the first FakeLLM run: an answer that reported the wrong metric
+    entirely was scored `scale_error`, because "1" shifted eleven places lands
+    near 115,877,000,000. The label pointed at the extractor and hid a routing
+    defect.
+    """
+    assert [n.value for n in numerals_in("Revenue was $391.0 billion [1].")] == [
+        Decimal("391000000000")
+    ]
+    assert numerals_in("See [1] and [12].") == []
+
+
+def test_a_single_digit_is_not_evidence_of_a_scale_error():
+    """Half a step of "1" is fifty per cent, which matches almost anything."""
+    result = match_value(Decimal("115877000000"), numerals_in("about 1"))
+    assert result.verdict == "wrong_value"
+
+
+def test_scale_detection_keeps_the_precision_the_answer_was_written_with():
+    """A bigger factor must not buy a looser test.
+
+    Shifting the tolerance along with the value made the check looser the
+    larger the exponent; the candidate's precision is a property of how it was
+    written, so the comparison is relative.
+    """
+    # Genuinely a thousand-fold error, written to four significant digits.
+    assert match_value(
+        Decimal("391035000000"), numerals_in("$391.0 million"),
+    ).verdict == "scale_error"
+    # Right order of magnitude after shifting, but not the same number.
+    assert match_value(
+        Decimal("391035000000"), numerals_in("$275.4 million"),
+    ).verdict == "wrong_value"

@@ -97,6 +97,26 @@ class Deps:
     retriever: Optional[Callable[..., List[Any]]] = None
     registry: Any = None
 
+    # ── Ablation switches (P4-04/P4-06; spec section 11's V1 and V2) ────────
+    #
+    # ``None`` means "use the configured value", which is the full system. They
+    # are here rather than read from ``settings`` at the point of use so that a
+    # single process can run V1, V2 and V3 over the same gold set without
+    # mutating global configuration between items — an evaluation that reassigns
+    # a global per item cannot be resumed or run concurrently, and a leaked
+    # value would silently mislabel a whole variant.
+    enable_facts: Optional[bool] = None
+    enable_asof: Optional[bool] = None
+    enable_abstain_gate: Optional[bool] = None
+
+    def flag(self, name: str) -> bool:
+        """This run's value for an ablation switch."""
+        override = getattr(self, name)
+        if override is not None:
+            return bool(override)
+        from config import settings
+        return bool(getattr(settings, name))
+
     def get_llm(self):
         if self.llm is None:
             from llm import get_client
@@ -515,6 +535,14 @@ def _ask_inner(
     except Exception as exc:
         logger.warning(f"catalog unavailable for ticker resolution: {exc}")
 
+    # V2 removes point-in-time scoping: the question is answered from whatever
+    # the corpus holds, which is what a system without `as_of` does. The date
+    # is dropped before routing rather than ignored afterwards, so nothing
+    # downstream can quietly still honour it and make the ablation look like a
+    # smaller change than it is.
+    if not deps.flag("enable_asof"):
+        as_of = None
+
     route_ = route(
         question,
         registry=deps.registry,
@@ -526,6 +554,21 @@ def _ask_inner(
         force_years=years,
     )
     logger.info(f"route: {route_.trace()}")
+
+    # V1 removes the facts path. The question still routes normally — the
+    # router is not the thing being ablated — but a numeric question is then
+    # answered from retrieved text, which is what v1 did and what the facts
+    # engine exists to replace.
+    if route_.path is Path.FACTS and not deps.flag("enable_facts"):
+        return _answer_from_text(deps, route_, question, history=history)
+
+    # V2 removes the abstention gate. A question the gate would refuse is sent
+    # down the text path instead, so the run shows what gets said when nothing
+    # declines to answer. CLARIFY is left alone: it is not the abstention gate,
+    # it is the router having no company to work with, and answering anyway
+    # would mean picking a filer at random.
+    if route_.path is Path.ABSTAIN and not deps.flag("enable_abstain_gate"):
+        return _answer_from_text(deps, route_, question, history=history)
 
     if route_.path is Path.CLARIFY:
         return clarification_no_company(query=question, as_of=route_.as_of,

@@ -60,6 +60,7 @@ VERDICTS: FrozenSet[str] = frozenset({
     "unit_error",          # a fraction where a percentage was asked for, or back
     "wrong_period",        # the right metric for a different year
     "wrong_entity",        # the right metric for a different company
+    "wrong_metric",        # a traceable figure, for a different line entirely
     "missing_number",      # answered, but states no number at all
     "partial_multi",       # some values of a compare/trend right, not all
     "wrong_abstain_reason",  # refused correctly, for the wrong reason
@@ -119,6 +120,10 @@ MAGNITUDES: Dict[str, Decimal] = {
     "thousand": Decimal(10) ** 3, "k": Decimal(10) ** 3,
 }
 
+#: "[1]", "[12]" — a marker pointing at a citation, anchored at the digits so
+#: it can be tested at the position a number match started.
+_CITATION_MARKER_RE = re.compile(r"\d{1,3}\]")
+
 _NUMBER_RE = re.compile(
     r"""
     (?P<cur_outer>[$€£])?\s*            # "$(10,959)" — the symbol can sit
@@ -168,8 +173,16 @@ def numerals_in(text: str) -> List[Numeral]:
     it then means: the failure being guarded is a correct answer scored wrong
     because it was phrased in billions.
     """
+    text = text or ""
     out: List[Numeral] = []
-    for match in _NUMBER_RE.finditer(text or ""):
+    for match in _NUMBER_RE.finditer(text):
+        # "[1]" is a citation marker, not a figure. Reading it as one produced
+        # a real misclassification: an answer about the wrong metric was called
+        # a `scale_error` because "1" times 10^11 lands near the expected
+        # 115,877,000,000, which hid an actual routing defect behind a label
+        # that pointed at the extractor.
+        if _CITATION_MARKER_RE.match(text, match.start()):
+            continue
         digits = match.group("digits").replace(",", "")
         try:
             value = Decimal(digits)
@@ -195,6 +208,12 @@ def numerals_in(text: str) -> List[Numeral]:
 
 
 # ── comparing one value ───────────────────────────────────────────────────────
+
+def _significant_digits(numeral: "Numeral") -> int:
+    """How many digits the answer actually wrote, ignoring magnitude words."""
+    digits = re.sub(r"[^\d]", "", numeral.raw.split("e")[0])
+    return len(digits.lstrip("0")) or len(digits)
+
 
 def _relative_difference(a: Decimal, b: Decimal) -> Decimal:
     if b == 0:
@@ -280,9 +299,19 @@ def match_value(
             continue
         if numeral.agrees_with(-expected):
             return ValueVerdict("sign_error", f"{numeral.raw!r} has the opposite sign", numeral)
+        # A one-digit number carries no evidence of a scale error: "1" shifted
+        # eleven places lands within half a step of almost anything, because
+        # half a step of 1 is 0.5 — fifty per cent. Two significant digits is
+        # the least that can distinguish 391 from 392.
+        if _significant_digits(numeral) < 2:
+            continue
+        # Relative, not absolute: shifting the tolerance along with the value
+        # makes the test looser the larger the factor, which is backwards. The
+        # candidate's precision is a property of how it was written.
+        half_step_relative = (numeral.displayed_step / 2) / abs(numeral.value)
         for factor in _SCALE_FACTORS:
             shifted = numeral.value.scaleb(factor)
-            if abs(shifted - expected) <= numeral.displayed_step.scaleb(factor) / 2:
+            if _relative_difference(shifted, expected) <= half_step_relative:
                 return ValueVerdict(
                     "scale_error",
                     f"{numeral.raw!r} is 10^{-factor} times the expected {expected}",
@@ -477,6 +506,23 @@ def score_numeric(
         if value == target:
             return Scored(item["id"], item["category"], "correct",
                           "fact citation carries the exact value", frozenset(flags))
+
+    # A traceable figure for the wrong LINE is a routing or resolution defect,
+    # not a reading one, and saying so is the difference between a failure
+    # analysis that starts from evidence and one that starts from a pile of
+    # "incorrect" (P4-07). The first FakeLLM run produced exactly this: "cash
+    # flow from operating activities" resolved to cash_and_equivalents.
+    wanted_metric = expected.get("metric")
+    cited_metrics = {
+        str(c.get("metric")) for c in view.citations
+        if c.get("kind") == "fact" and c.get("metric")
+    }
+    if wanted_metric and cited_metrics and wanted_metric not in cited_metrics:
+        return Scored(
+            item["id"], item["category"], "wrong_metric",
+            f"answered with {sorted(cited_metrics)}, expected {wanted_metric}",
+            frozenset(flags),
+        )
 
     result = match_value(
         target, numerals_in(view.answer),

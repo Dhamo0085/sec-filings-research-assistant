@@ -196,14 +196,14 @@ def _cik_for(catalog, ticker: str) -> Optional[int]:
 
 def _abstain_from_facts(
     refusal: Abstain, route_: Route, ticker: str, *, question: str,
-    catalog, period_label: str,
+    catalog, period_label: str, store=None,
 ) -> Outcome:
     """Turn the resolver's typed refusal into the user-facing one (G3)."""
     reason = reason_from_facts(refusal.reason)
     # The years this system can answer, not every year on EDGAR — see
     # _available_for.
     available: Sequence[int] = _available_for(catalog, [ticker], route_.as_of,
-                                              kind="facts")
+                                              kind="facts", store=store)
 
     candidates = ""
     if refusal.candidate_values:
@@ -283,7 +283,8 @@ def _answer_from_facts(deps: Deps, route_: Route, question: str) -> Outcome:
             route_.period.describe(),
         )
         return _abstain_from_facts(refusal, route_, ticker, question=question,
-                                   catalog=catalog, period_label=period_label)
+                                   catalog=catalog, period_label=period_label,
+                                   store=getattr(deps.get_resolver(), "store", None))
 
     cik = _cik_for(catalog, resolved[0].ticker)
     companies = {t: _company_name(route_, t, catalog) for t in tickers}
@@ -322,13 +323,24 @@ def _compute(
     figures, not to fail the whole question.
     """
     computation = route_.computation
+    #: Calculations that take two *metrics* in one period rather than one
+    #: metric in two periods. Before P4-11 only the margin was in this set, so
+    #: "the ratio of total liabilities to stockholders' equity" fell through
+    #: to the two-period branch, found one resolution, gave up, and answered
+    #: with total liabilities alone — a number that answers a question nobody
+    #: asked, with a citation to make it look checked.
+    two_metric = {
+        Computation.MARGIN_PCT: calc_module.margin_pct,
+        Computation.RATIO: calc_module.ratio,
+        Computation.DIFFERENCE: calc_module.difference,
+    }
     try:
-        if computation is Computation.MARGIN_PCT and route_.metric_denominator:
-            pair = _margin_operands(deps, route_, resolved)
+        if computation in two_metric and route_.metric_denominator:
+            pair = _two_metric_operands(deps, route_, resolved)
             if pair is None:
                 return None
             (numerator_op, numerator_res), (denominator_op, denominator_res) = pair
-            calculation = calc_module.margin_pct(numerator_op, denominator_op)
+            calculation = two_metric[computation](numerator_op, denominator_op)
             return computed_answer(
                 calculation, [numerator_res, denominator_res],
                 question=question, company=companies.get(resolved[0].ticker),
@@ -368,13 +380,14 @@ def _compute(
         return None
 
 
-def _margin_operands(deps: Deps, route_: Route, resolved: List[Resolution]):
+def _two_metric_operands(deps: Deps, route_: Route, resolved: List[Resolution]):
     """((numerator_operand, fact), (denominator_operand, fact)) or None.
 
     The denominator is resolved for the *same* fiscal year as the numerator,
     never for whatever the period request happened to select: an operating
     margin computed from one year's income and another year's revenue would
-    be a plausible-looking number with no meaning.
+    be a plausible-looking number with no meaning. The same holds for a ratio
+    and for a difference, which is why all three share this function.
     """
     numerator_res = resolved[0]
     selector = _selector_for(route_.period, numerator_res.fiscal_label)
@@ -441,7 +454,7 @@ def _answer_from_text(deps: Deps, route_: Route, question: str,
 
 
 def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str],
-                   *, kind: str = "any") -> List[int]:
+                   *, kind: str = "any", store=None) -> List[int]:
     """Years this system can actually answer about, for the refusal's hint.
 
     ``kind`` picks which capability is being offered: ``"facts"`` for years
@@ -457,6 +470,12 @@ def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str],
     the rest produced "I do have fiscal 1994, 1995, 1996 ..." under a refusal
     — a list of years that would each refuse in turn, which is worse than no
     hint at all.
+
+    ``store``, when given, is consulted instead of trusting
+    ``facts_built_at``. The flag records that the build *ran* over a
+    submission, not that it produced anything: Goldman's FY2023 10-K/A is
+    flagged and holds no annual fact. Without this the refusal introduced by
+    P4-11 C read "I don't have fiscal 2023 ... I do have fiscal 2023."
     """
     years: set = set()
     for ticker in tickers:
@@ -467,9 +486,15 @@ def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str],
             logger.debug(f"could not list filings for {ticker}: {exc}")
             continue
         for f in filings:
-            has = {"facts": bool(f.facts_built_at),
+            facts = bool(f.facts_built_at)
+            if facts and store is not None:
+                try:
+                    facts = store.has_facts(f.accession)
+                except Exception as exc:  # a store hiccup drops the hint, not the refusal
+                    logger.debug(f"could not check facts for {f.accession}: {exc}")
+            has = {"facts": facts,
                    "text": bool(f.collection_name),
-                   "any": bool(f.facts_built_at or f.collection_name)}[kind]
+                   "any": bool(facts or f.collection_name)}[kind]
             if has:
                 years.add(f.fiscal_label)
     return sorted(years)

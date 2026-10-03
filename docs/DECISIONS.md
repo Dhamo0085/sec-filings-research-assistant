@@ -5,6 +5,93 @@ Newest first.
 
 ---
 
+## 2026-10-03 — D4-02 The three router defects, and what each fix turned out to be
+
+**Context.** P4-11 (D28) spends Phase 4's one fix-and-rerun cycle on the three
+router defects the Phase 4 report named. Each fix started from a failing test
+taken from the gold item that exposed it
+(`tests/unit/test_router_defects.py`, T4-08).
+
+**A. "ratio of X to Y" and "A less B".** The report said the router did not
+route them. Half of that was wrong, and the half that was wrong mattered more.
+*The router already routed the ratio correctly* — `Computation.RATIO`,
+`metric=total_liabilities`, `metric_denominator=stockholders_equity`. The
+defect was one layer down: `query._compute` paired two metrics only for
+`margin_pct`, so a two-metric ratio fell through to the two-period branch,
+found one resolution, gave up, and answered with **total liabilities alone**.
+A wrong answer to a question nobody asked, carrying a citation. The fix makes
+`ratio` and `difference` share the margin's `_two_metric_operands` path, which
+also resolves the denominator for the numerator's own fiscal year.
+"A less B" genuinely was a routing gap: "less" was not a difference cue.
+
+**Why "net of" is not a cue.** The first attempt added `\bnet\s+of\b`.
+That turned "Bank of America's total revenue, net of interest expense" — the
+filer's own income-statement caption, and a plain numeric gold item — into a
+subtraction. Removed. `\bless\b` carries a `(?!\s+than)` lookahead for the
+same reason: "revenue less than Microsoft's" is a comparison.
+
+**B. "cash flow from operating activities" → `cash_and_equivalents`.** The
+spec framed this as longest-match alias resolution. The router has matched the
+longest alias first since Phase 3; the phrase simply **was not an alias**, so
+the only thing in the question that matched anything was "cash". The fix is
+five aliases in `facts/concepts.yaml`. The *test* is the part worth keeping:
+table-driven over every multi-word alias in the registry, with a negative
+control that runs the same table under shortest-first and asserts that it
+still mis-resolves something — so the table cannot quietly become toothless.
+
+**C. A catalogued year with no extracted facts.** `X-PERIOD-NOT-COVERED`
+("Apple's revenue in fiscal 2019") refused with `metric_not_found_in_filing`.
+The filing is in the catalog — the catalog holds a filer's whole EDGAR history
+— and the facts build keeps only the newest originals per ticker, so nothing
+was ever extracted from it. The old refusal asserted something about Apple
+that is not true. `FactsResolver._select_period` now checks
+`FactsStore.has_facts()` over the eligible filings **before any fact is read**
+and returns `period_not_covered`.
+
+- `facts_built_at` on the catalog row was rejected as the signal: it records
+  that the build ran, not that it produced anything. Four flagged submissions
+  in the current build hold no facts (a GS 10-K/A and three TSLA rows).
+- The same flag made the refusal contradict itself — "I don't have fiscal 2023
+  for Goldman Sachs. I do have fiscal 2023." `_available_for` now confirms
+  against the store.
+- **Two existing tests changed expectation** (GS FY2023, whose only fixture
+  filing is a 10-K/A with no annual facts): `metric_not_found_in_filing` →
+  `period_not_covered`. That is the fix, not a regression — the older test's
+  own docstring said the refusal must not imply Goldman does not report
+  revenue, while its assertion took the reason that implies exactly that. A
+  negative control pins the other direction: BLK FY2024 is fully extracted and
+  does not tag gross profit, and that stays `metric_not_found_in_filing`.
+
+**Two presentation defects found by reading the output, fixed with the same
+cycle.** Both were invisible until a two-metric ratio could be produced at all:
+- `Calculation.formula` printed resolved values in scientific notation
+  ("Computed as 3.08030E+11 / 5.6950E+10"), because the resolver's scaling
+  leaves an exponent on the `Decimal`. Every calculation was affected, not
+  just the new ones.
+- `_calculation_label` named only the first operand: "total liabilities
+  ratio", and worse, "change in net cash provided by operating activities" for
+  operating cash flow minus capital expenditure. Two-metric ratios and
+  differences now name both; the one-metric two-period shape keeps "change in",
+  pinned by a negative control.
+- The headline figure now carries the exact value as every other template does
+  ("5.41x (5.4088)"). A ratio displays to two decimals and is computed to four,
+  so the gold item's 0.0001 tolerance had nothing to match in the text.
+
+**Measured** against the real stores, with the real pipeline: all **12**
+computed gold items and all **5** facts-path abstention items now score
+`correct`/`correct_abstain` (`eval.scorers`). `make test` 1,277 passed, 0
+failed, 0 skipped; same under CI's isolation; ruff clean; `eval.mini_eval`
+numeric+computed 9/9, look-ahead 0.
+
+**Not fixed here.** Defect D (the MSFT segments over-refusal) is deferred to
+after the re-index by D28, because it is a retrieval question and the corpus
+is about to change.
+
+**What would change it.** A filer whose question phrasing defeats the alias
+table; the re-index changing which items fail.
+
+---
+
 ## 2026-10-03 — D4-01 The assisted sheet is a second file, not an edit of the first
 
 **Context.** P4-02b adds `assist_*` columns to `reports/phase4/gold_verification.csv`.

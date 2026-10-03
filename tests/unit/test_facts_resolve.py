@@ -235,10 +235,22 @@ def test_amendment_is_recognised_and_restates_nothing(world):
 
     Resolving FY2023 from the amendment alone has to abstain — and not with a
     reason that implies Goldman does not report revenue.
+
+    P4-11 C changed *which* refusal this is, and the change is the point of
+    that fix: nothing was extracted from the only filing in scope, so the
+    honest statement is about this project's coverage
+    (``period_not_covered``), not about what Goldman tagged
+    (``metric_not_found_in_filing``, which the old assertion took while the
+    docstring above argued against it). The negative control that a real
+    missing line item still reports ``metric_not_found_in_filing`` is
+    `tests/unit/test_router_defects.py`.
     """
     outcome = world.resolve("GS", "revenue", PeriodSelector.fiscal_label(2023))
     assert not outcome.resolved
-    assert outcome.reason == REASON_METRIC_NOT_IN_FILING
+    assert outcome.reason == REASON_PERIOD_NOT_COVERED
+    assert "revenue" not in outcome.detail, (
+        "the refusal must not read as a statement about what Goldman reports"
+    )
 
 
 def test_an_amendment_supersedes_its_original_when_it_restates(world, tmp_path):

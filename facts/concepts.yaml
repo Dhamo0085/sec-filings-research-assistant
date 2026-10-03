@@ -206,8 +206,17 @@ metrics:
     statement: cash_flow
     period_type: duration
     unit_kind: money
+    # "cash flow from operating activities" and the statement's own wording
+    # were missing, so the only alias those questions matched was "cash" —
+    # and a cash-flow question was answered with the balance-sheet cash line
+    # (P4-11 B; T4-08 keeps every multi-word alias ahead of its prefixes).
     aliases: [operating cash flow, cash from operations, cash flow from operations,
-              ocf, net cash from operating activities]
+              ocf, net cash from operating activities,
+              cash flow from operating activities,
+              cash flows from operating activities,
+              cash provided by operating activities,
+              net cash provided by operating activities,
+              operating activities]
     candidates:
       default:
         - us-gaap:NetCashProvidedByUsedInOperatingActivities

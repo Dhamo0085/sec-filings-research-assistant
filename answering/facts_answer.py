@@ -176,7 +176,12 @@ def computed_answer(
     resolutions = list(resolutions)
     subject = _subject(resolutions[0], company)
     label = description or _calculation_label(calculation, resolutions)
-    value = format_value(calculation.value, calculation.unit)
+    # The exact figure alongside the readable one, as every other template
+    # does. A ratio is displayed to two decimals and computed to four
+    # (`RATIO_PLACES`), so "5.41x" alone both hid the calculator's own answer
+    # and sat outside the gold item's 0.0001 tolerance — the computation was
+    # right and the row still scored wrong.
+    value = format_with_exact(calculation.value, calculation.unit)
 
     markers = " ".join(f"[{i}]" for i in range(1, len(resolutions) + 1))
     inputs = "; ".join(
@@ -206,6 +211,19 @@ def _calculation_label(calculation: Calculation, resolutions: Sequence[Resolutio
     metric = resolutions[0].metric_label.lower() if resolutions else "value"
     years = sorted({r.fiscal_label for r in resolutions})
     span = f"fiscal {years[0]} to {years[-1]}" if len(years) > 1 else f"fiscal {years[0]}"
+
+    # A ratio or a difference can be either shape: one metric across two
+    # periods, or two metrics in one period (P4-11 A). They need different
+    # words — "change in net cash provided by operating activities" is wrong
+    # for operating cash flow minus capital expenditure, and it names only
+    # half of what was computed.
+    labels = [r.metric_label.lower() for r in resolutions]
+    two_metrics = len(labels) == 2 and labels[0] != labels[1]
+    if two_metrics and calculation.operation == "ratio":
+        return f"ratio of {labels[0]} to {labels[1]} for {span}"
+    if two_metrics and calculation.operation == "difference":
+        return f"{labels[0]} less {labels[1]}, {span}"
+
     return {
         "growth_pct": f"{metric} growth, {span}",
         "cagr_pct": f"{metric} compound annual growth rate, {span}",

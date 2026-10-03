@@ -27,7 +27,7 @@ from answering.facts_answer import (
     trend_answer,
 )
 from answering.outcome import CitationKind, QueryType, Status
-from facts.calc import Operand, growth_pct, margin_pct
+from facts.calc import Operand, difference, growth_pct, margin_pct, ratio
 from facts.resolve import Resolution
 
 pytestmark = pytest.mark.unit
@@ -193,6 +193,72 @@ def test_a_margin_answer_names_both_inputs():
     assert "31.51%" in out.answer
     assert "Operating income" in out.definition_note
     assert "Total net revenue" in out.definition_note
+
+
+def test_a_two_metric_ratio_names_both_metrics_not_just_the_numerator():
+    """P4-11 A. "total liabilities ratio" names half of what was computed."""
+    equity = resolution(metric="stockholders_equity",
+                        metric_label="Total stockholders' equity",
+                        concept="us-gaap:StockholdersEquity",
+                        value=Decimal("56950000000"))
+    liabilities = resolution(metric="total_liabilities",
+                             metric_label="Total liabilities",
+                             concept="us-gaap:Liabilities",
+                             value=Decimal("308030000000"))
+    calc = ratio(Operand.from_resolution(liabilities),
+                 Operand.from_resolution(equity))
+    out = computed_answer(calc, [liabilities, equity], company="Apple Inc.")
+    assert "ratio of total liabilities to total stockholders' equity" in out.answer
+    assert "5.4088" in out.answer
+
+
+def test_a_two_metric_difference_is_not_described_as_a_change_over_time():
+    """P4-11 A. "change in operating cash flow" is a different question."""
+    capex = resolution(metric="capex", metric_label="Capital expenditures",
+                       concept="us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+                       value=Decimal("82999000000"))
+    ocf = resolution(metric="operating_cash_flow",
+                     metric_label="Net cash provided by operating activities",
+                     concept="us-gaap:NetCashProvidedByUsedInOperatingActivities",
+                     value=Decimal("115877000000"))
+    calc = difference(Operand.from_resolution(ocf), Operand.from_resolution(capex))
+    out = computed_answer(calc, [ocf, capex], company="Amazon.com Inc.")
+    assert "net cash provided by operating activities less capital expenditures" in out.answer
+    assert "change in" not in out.answer
+
+
+def test_a_one_metric_difference_is_still_a_change_over_time():
+    """Negative control: the two-period shape must keep its own wording."""
+    earlier = resolution(fiscal_label=2023, value=Decimal("383285000000"),
+                         end_date="2023-09-30", start_date="2022-10-02",
+                         accession="0000320193-23-000106", filing_date="2023-11-03")
+    later = resolution()
+    calc = difference(Operand.from_resolution(later), Operand.from_resolution(earlier))
+    out = computed_answer(calc, [earlier, later], company="Apple Inc.")
+    assert "change in total net revenue" in out.answer
+
+
+def test_the_printed_formula_is_never_in_scientific_notation():
+    """P4-11. Resolved values carry an exponent; "3.08030E+11" is not checkable.
+
+    Negative control that this test can fail: ``str()`` on the same Decimal
+    keeps the exponent, which is exactly what the template used to print.
+    """
+    scaled = Decimal("3.08030E+11")
+    assert "E+" in str(scaled), "the fixture no longer reproduces the defect"
+
+    liabilities = resolution(metric="total_liabilities",
+                             metric_label="Total liabilities",
+                             concept="us-gaap:Liabilities", value=scaled)
+    equity = resolution(metric="stockholders_equity",
+                        metric_label="Total stockholders' equity",
+                        concept="us-gaap:StockholdersEquity",
+                        value=Decimal("5.6950E+10"))
+    calc = ratio(Operand.from_resolution(liabilities),
+                 Operand.from_resolution(equity))
+    out = computed_answer(calc, [liabilities, equity], company="Apple Inc.")
+    assert "308030000000 / 56950000000" in out.answer
+    assert "E+" not in out.answer
 
 
 # ── compare ───────────────────────────────────────────────────────────────────

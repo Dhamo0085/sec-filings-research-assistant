@@ -54,6 +54,7 @@ class LinkReport(NamedTuple):
     already: List[str]                # already correct, left alone
     orphan_collections: List[str]     # indexed, but no catalog filing matches
     unindexed_filings: List[str]      # catalog filing with no collection
+    cleared: List[str]                # link dropped: the store no longer holds it
 
     @property
     def ok(self) -> bool:
@@ -109,6 +110,19 @@ def link_collections(
     own — v1 indexes one collection per (ticker, fiscal year) built from the
     original document — and pointing both at the same collection would make a
     citation claim the amendment's text was searched when it was not.
+
+    A link the store can no longer honour is **cleared**, not left in place.
+    P4-12 re-indexed 39 filings into a new store and deliberately left TSLA
+    out, so the catalog's TSLA FY2025 row survived the swap pointing at a
+    collection the live store does not hold. ``collection_name`` is what
+    ``query._years_with`` reads to tell the user which years have text, so a
+    stale one makes a refusal name a year that nothing can search. Retrieval
+    itself is unharmed — it intersects its target list with the live
+    collections first — which is exactly why this was quiet enough to need a
+    test.
+
+    ``collection_names`` is therefore read as the whole truth about the store,
+    not as a patch to apply to it. Pass every live collection, never a subset.
     """
     by_key: Dict[tuple, str] = {}
     orphans: List[str] = []
@@ -119,9 +133,12 @@ def link_collections(
             continue
         by_key[(match.group("ticker"), int(match.group("year")))] = name
 
+    live = set(by_key.values())
+
     linked: List[str] = []
     already: List[str] = []
     unindexed: List[str] = []
+    cleared: List[str] = []
     matched_keys: set = set()
 
     for ticker in catalog.tickers():
@@ -131,6 +148,11 @@ def link_collections(
             if name is None or filing.is_amendment:
                 if not filing.is_amendment:
                     unindexed.append(f"{filing.ticker} FY{filing.fiscal_label}")
+                stale = filing.collection_name
+                if stale and stale not in live:
+                    if not dry_run:
+                        catalog.set_collection_name(filing.accession, None)
+                    cleared.append(stale)
                 continue
             matched_keys.add(key)
             if filing.collection_name == name:
@@ -141,8 +163,10 @@ def link_collections(
             linked.append(f"{name} -> {filing.accession}")
 
     orphans.extend(f"{t}_{y}" for (t, y) in sorted(set(by_key) - matched_keys))
-    return LinkReport(sorted(linked), sorted(set(already)), sorted(orphans),
-                      sorted(unindexed))
+    return LinkReport(linked=sorted(linked), already=sorted(set(already)),
+                      orphan_collections=sorted(orphans),
+                      unindexed_filings=sorted(unindexed),
+                      cleared=sorted(set(cleared)))
 
 
 def facts_for_ticker(ticker: str, *, filings_per_ticker: int = 3,
@@ -199,11 +223,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         report = link_collections(catalog, list(list_collections()),
                                   dry_run=args.dry_run)
         print(f"\nlinked {len(report.linked)}, already correct "
-              f"{len(report.already)}, orphan collections "
+              f"{len(report.already)}, cleared {len(report.cleared)}, "
+              f"orphan collections "
               f"{len(report.orphan_collections)}, unindexed filings "
               f"{len(report.unindexed_filings)}")
         for line in report.linked:
             print(f"  + {line}")
+        for name in report.cleared:
+            print(f"  - cleared a link to {name}: no such collection in the store")
         for name in report.orphan_collections:
             print(f"  ! orphan collection with no catalog filing: {name}")
         return 0 if report.ok else 1

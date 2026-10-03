@@ -284,8 +284,11 @@ def relink_catalog() -> int:
     get_client().close()
     print(f"  {len(names)} collection(s): linked {len(report.linked)}, "
           f"already correct {len(report.already)}, "
+          f"cleared {len(report.cleared)}, "
           f"orphans {len(report.orphan_collections)}, "
           f"unindexed catalog filings {len(report.unindexed_filings)}")
+    for name in report.cleared:
+        print(f"  - cleared a link to {name}: the live store no longer holds it")
     for name in report.orphan_collections:
         print(f"  ! orphan collection with no catalog filing: {name}")
     return 0 if report.ok else 1

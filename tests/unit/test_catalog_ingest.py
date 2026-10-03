@@ -270,3 +270,55 @@ def test_a_facts_build_success_reports_its_counts(monkeypatch):
     result = ci.facts_for_ticker("BLK")
     assert result == {"ok": True, "counts": {"built": 3},
                       "facts_path": "derived/facts.sqlite"}
+
+
+# ── a link the store can no longer honour (P4-12) ────────────────────────────
+
+def test_a_link_to_a_collection_the_store_no_longer_holds_is_cleared(tmp_path):
+    """P4-12 found this on the real catalog, after the re-index swap.
+
+    The re-index covered 39 filings and deliberately left TSLA out, so the
+    catalog's TSLA FY2025 row kept a ``collection_name`` pointing at a
+    collection the new live store does not contain. ``link_collections`` only
+    ever *set* a name, so a relink could not repair it. The retriever filters
+    an unknown collection out before searching, which is why this is a wrong
+    coverage hint rather than a crash: ``query._years_with`` reads
+    ``collection_name`` to tell the user which years have text, so a refusal
+    would name a year nothing can actually search.
+    """
+    catalog = blk_catalog(tmp_path)
+    link_collections(catalog, ["BLK_2024", "BLK_2025"])
+    assert {f.fiscal_label: f.collection_name for f in catalog.for_ticker("BLK")}[2024] \
+        == "BLK_2024"
+
+    report = link_collections(catalog, ["BLK_2025"])
+
+    linked = {f.fiscal_label: f.collection_name for f in catalog.for_ticker("BLK")}
+    assert linked[2024] is None, "the stale link must not survive a relink"
+    assert linked[2025] == "BLK_2025", "a live link must be left alone"
+    assert report.cleared == ["BLK_2024"]
+    assert "BLK FY2024" in report.unindexed_filings
+
+
+def test_clearing_a_stale_link_respects_dry_run(tmp_path):
+    catalog = blk_catalog(tmp_path)
+    link_collections(catalog, ["BLK_2024"])
+
+    report = link_collections(catalog, ["BLK_2025"], dry_run=True)
+
+    assert report.cleared == ["BLK_2024"]
+    linked = {f.fiscal_label: f.collection_name for f in catalog.for_ticker("BLK")}
+    assert linked[2024] == "BLK_2024", "a dry run must not write"
+
+
+def test_a_relink_that_clears_nothing_reports_nothing_cleared(tmp_path):
+    """Negative control for the two tests above: without a stale row the
+    cleared list stays empty, so a passing assertion there means something."""
+    catalog = blk_catalog(tmp_path)
+    link_collections(catalog, ["BLK_2024", "BLK_2025"])
+
+    report = link_collections(catalog, ["BLK_2024", "BLK_2025"])
+
+    assert report.cleared == []
+    linked = {f.fiscal_label: f.collection_name for f in catalog.for_ticker("BLK")}
+    assert linked[2024] == "BLK_2024" and linked[2025] == "BLK_2025"

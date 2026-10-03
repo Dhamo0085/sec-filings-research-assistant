@@ -1,0 +1,84 @@
+# Continuous integration (P4-08).
+#
+# Everything here runs with no network, no API key and no data/ directory: the
+# repository is checked out, dependencies are installed, and that is all CI
+# gets. That constraint is the point — `make test` must pass with no .env
+# (spec P1-03, T1-05), and the mini-evaluation answers real gold items from the
+# committed iXBRL fixtures rather than from the gitignored stores.
+#
+# scripts/ci_local.sh runs the same four steps on a developer's machine, and a
+# test asserts the two lists agree, so this file cannot drift into testing
+# something the local mirror does not (T4-04).
+
+name: CI
+
+on:
+  push:
+    branches: ["main", "phase-*"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Repository hygiene
+        # --self-test first: a hygiene check that has never failed is not
+        # evidence that it can (CLAUDE.md rule 15).
+        run: |
+          python scripts/check_repo_hygiene.py --self-test
+          python scripts/check_repo_hygiene.py
+
+      - name: Offline tests
+        # pytest-socket blocks the network, so a test that reaches for it fails
+        # here rather than passing quietly on a machine that happens to be
+        # online.
+        run: |
+          python -m pytest tests/unit tests/integration \
+            -m "not live and not slow" \
+            --disable-socket --allow-unix-socket \
+            --junitxml=reports/ci/junit.xml
+
+      - name: Gold set is reproducible from its plan
+        # Schema only: rebuilding the values needs the facts store, which CI
+        # does not have. This catches a hand-edited gold file, which would make
+        # every published number unreproducible.
+        run: python -c "import sys; sys.path.insert(0,'.'); from pathlib import Path; from eval.gold.schema import read_jsonl, validate; p=validate(read_jsonl(Path('eval/gold/gold_v1.jsonl'))); print('\n'.join(str(x) for x in p)); sys.exit(1 if p else 0)"
+
+      - name: Offline mini-evaluation
+        # Thresholds: numeric + computed 100%, look-ahead violations 0.
+        run: python -m eval.mini_eval --verbose
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: reports/ci/
+          if-no-files-found: ignore

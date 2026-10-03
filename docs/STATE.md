@@ -198,5 +198,5 @@ Carried into Phase 5:
 ## 9. Resume commands
 `make test` · `make lint` · `./scripts/ci_local.sh` (the CI mirror) · `python -m eval.mini_eval` ·
 `python -m eval.gold.build_gold --check` · `python -m eval.runner --variant V3 --report-only` ·
-`python -m eval.ablations` · `python eval/phase4/run_v0.py --worktree <v1-baseline checkout>` ·
+`python -m eval.ablations` · `python eval/phase4/run_v0.py --worktree /Users/dhamo_85/Downloads/FinancialRAG_v1_baseline` (an existing v1-baseline worktree; the driver symlinks `.env` into it and never reads the key) ·
 `make setup` · `make hygiene` · `python scripts/check_repo_hygiene.py --self-test` · `make catalog` · `make facts` · `make up` · `python scripts/smoke.py --base-url http://localhost:8000` · resumable indexing: `python eval/phase1/index_per_ticker.py --only AAPL,AMZN` (run from the v1 worktree) · section audit: `python scripts/audit_sections.py` then `python scripts/compare_section_audits.py <before> <after>`.

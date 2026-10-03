@@ -276,6 +276,7 @@ D4-00. The owner accepted the Item 7 miss and left the audit's thresholds alone.
 | **V0 deviations** | v1's own Groq models are Enterprise-only on this key and returned 404 to every request, so the Phase 1 gpt-oss substitutes are used; and v1's on-demand ingestion is disabled, because fetching filings mid-evaluation would rewrite the corpus. Without the first, V0 measures an outage; without the second, an accidental download. |
 | **One gold item corrected** | `X-NO-ENTITY` expected `company_not_found`; the system returns `clarification_needed`, which is better and is what spec 6.5's clarification path is for. The expectation was wrong, not the system. The item now accepts either, and says so. |
 | **`logs/phase4/`** | raw run logs are on disk and gitignored, as in every earlier phase. |
+| **V0 worktree** | a `v1-baseline` worktree already exists at `/Users/dhamo_85/Downloads/FinancialRAG_v1_baseline`; this phase created a temporary one in the scratch directory and removed it afterwards. A future V0 run can point `--worktree` at the existing checkout. |
 
 ---
 

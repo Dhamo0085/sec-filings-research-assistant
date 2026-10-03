@@ -4,6 +4,9 @@
 # ── Large data directories (regenerate with run_ingestion.py) ──
 data/raw/
 data/qdrant/
+# P4-00/D25: the pre-rewrite index, kept so the V0 baseline stays a true v1
+# measurement after the corpus is re-parsed and re-indexed. 163 MB.
+data/qdrant_v1_backup/
 data/parsed/
 data/chunks/
 data/pending_index/

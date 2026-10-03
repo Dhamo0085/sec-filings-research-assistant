@@ -6,18 +6,20 @@ missing outright, 24 are heading-only and 45 are oversized. The two ``xfail``
 tests below reproduce the two defect classes behind most of that, using a
 synthetic 10-K small enough to live in this file.
 
-**The parser is deliberately unchanged in Phase 3** (decision D3-00). Three
-targeted fixes were implemented and ablated over 13 filings; they moved the
-audit by +2 usable pairs out of 143 — inside the noise of a change that would
-require re-parsing, re-chunking and re-indexing the whole corpus. The numbers
-are in ``reports/phase3/REPORT.md`` section 4 and the decision is in
-``docs/DECISIONS.md``. These tests therefore record the defects rather than
-assert they are fixed: ``strict=True`` means that if someone does fix the
-parser, the unexpected pass fails the suite and forces the record to be
-updated, so a silent divergence between the code and D3-00 is not possible.
+Phase 3 left the parser unchanged (D3-00): three local fixes were implemented
+and ablated over 13 filings, moved the audit by +2 usable pairs out of 143, and
+were rejected as inside the noise of a change that forces a re-index. The two
+defect classes were pinned here as strict ``xfail`` tests, so that fixing the
+parser would fail the suite and force the record to be revisited.
 
-The non-xfail tests are live regression guards for behaviour that does hold
-today and that any future boundary-selection rewrite must preserve.
+**P4-00 (D25) rewrote boundary selection and both now pass**, so they are
+ordinary tests again. Over the 40-filing corpus the audit went from 245 to 298
+usable pairs, and Item 1 and Item 1A are usable in 40 of 40 (from 33 and 20).
+The measurement and the four remaining regressions are in
+``reports/phase4/REPORT.md``; the decision is D4-00 in ``docs/DECISIONS.md``.
+
+The rest of this file is live regression guards: behaviour that held before the
+rewrite and must keep holding.
 """
 
 from __future__ import annotations
@@ -82,24 +84,8 @@ def _chars(doc, section_id: str) -> int:
     return 0
 
 
-# ── defect 1 (open): the 15% TOC skip zone swallows a real early heading ─────
+# ── defect 1 (fixed in P4-00): a real heading inside the old 15 % TOC zone ──
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="D3-00: open defect. parse_filing skips the first 15% of a "
-           "document's lines to avoid table-of-contents matches. The filers "
-           "whose primary document IS the whole annual report start Part I "
-           "well inside that zone, so the real heading is never a candidate: "
-           "JPM FY2024's 'Item 1A. Risk Factors.' is at line 229 of 6,897 "
-           "(3.3%), GS FY2024's at 490 of 5,370 (9.1%), STT FY2024's at 405 "
-           "of 3,715 (10.9%). Item 1A is missing from 17 of 39 parsed "
-           "filings and its text is absorbed by the preceding section "
-           "(GS FY2024's Item 1 is 295,735 characters; JPM FY2024's "
-           "fs_income_stmt is 1,525,489). Capping the zone in absolute lines "
-           "recovers GS's 74,825-character Risk Factors section but costs "
-           "item_1c and item_3_legal on STT, netting out inside the noise "
-           "(reports/phase3/REPORT.md section 4).",
-)
 def test_real_item_1a_heading_before_the_toc_zone_is_detected(tmp_path):
     """The real Item 1A heading sits at ~10% of the lines, as it does for JPM/GS/STT."""
     body = _html(
@@ -131,22 +117,8 @@ def test_real_item_1a_heading_before_the_toc_zone_is_detected(tmp_path):
     assert _chars(doc, "item_1a_risk_factors") > 10_000
 
 
-# ── defect 2 (open): a heading destroyed by table decomposition ───────────────
+# ── defect 2 (fixed in P4-00): a heading destroyed by table decomposition ───
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="D3-00: open defect. Amazon renders each item heading as a table "
-           "row with 'Item 1A.' in one <td> and 'Risk Factors' in the next. "
-           "_extract_tables decomposes the table, so unlike every other "
-           "defect class the heading text never reaches the plain-text stream "
-           "— the audit found zero occurrences of it anywhere in AMZN's "
-           "parsed output, so no later line scan can recover it. "
-           "_annotate_fs_header_tables already joins a row's cell texts; "
-           "_ITEM_RECOVERY_PATTERNS lists only 'Item 1. Business'. Adding the "
-           "other item headings to that list recovers AMZN's Item 1C but "
-           "costs AMZN's Item 1 (the new sentinel outranks the plain-text "
-           "heading), again netting out inside the noise.",
-)
 def test_item_heading_split_across_table_cells_is_recovered(tmp_path):
     """AMZN class: <td>Item 1A.</td><td>Risk Factors</td> in one row."""
     def heading_table(num: str, title: str) -> str:
@@ -236,3 +208,145 @@ def test_legitimate_heading_spellings_are_detected(tmp_path, heading):
     )
     doc = _parse(_write_filing(tmp_path, body))
     assert "item_1a_risk_factors" in _section_ids(doc), f"{heading!r} no longer matches"
+
+
+# ── T4-06: the global assignment itself ──────────────────────────────────────
+
+def _greedy_monotonic(candidates):
+    """The selection rule P4-00 replaced, for the negative control below.
+
+    Keep the first occurrence of each section id, then walk them in line order
+    and drop anything whose Item priority is not higher than the highest seen
+    so far. This is what ``_select_and_validate`` did before the rewrite.
+    """
+    from ingestion.parser import _SECTION_PRIORITY
+
+    first: dict = {}
+    for c in sorted(candidates, key=lambda c: c.line):
+        first.setdefault(c.section_id, c)
+
+    kept, watermark = [], -1
+    for c in sorted(first.values(), key=lambda c: c.line):
+        priority = _SECTION_PRIORITY.get(c.section_id, 500)
+        if priority > watermark:
+            kept.append(c)
+            watermark = priority
+    return kept
+
+
+def _candidates_for(body: str, tmp_path: Path):
+    """The scored candidates parse_filing would work from, for one body."""
+    import re as _re
+
+    from bs4 import BeautifulSoup
+
+    from ingestion.parser import (
+        _annotate_fs_header_tables,
+        _collect_candidates,
+        _extract_tables,
+        _strip_ixbrl,
+    )
+
+    path = _write_filing(tmp_path, body)
+    soup = BeautifulSoup(_strip_ixbrl(path.read_text(encoding="utf-8")), "lxml")
+    _annotate_fs_header_tables(soup)
+    _extract_tables(soup, start_idx=0)
+    text = _re.sub(r"\n{4,}", "\n\n\n", soup.get_text(separator="\n"))
+    lines = text.split("\n")
+    return lines, _collect_candidates(lines, int(len(lines) * 0.97))
+
+
+# A filing whose first "Items 10-14" match arrives before the real Item 7, which
+# is what TROW FY2024 does: the greedy rule raised the watermark to 100 at that
+# line and then discarded Items 5, 7, 7A and 8. IVZ FY2024 lost Items 3, 4, 5, 7
+# and 7A the same way to an early Item 8.
+_EARLY_HIGH_PRIORITY_BODY_PARTS = (
+    "<p>Part I</p>",
+    "<p>Item 1. Business</p>",
+    "<p>Item 1A. Risk Factors</p>",
+    "<p>Item 10. Directors, Executive Officers and Corporate Governance</p>",
+    "<p>Item 7. Management's Discussion and Analysis</p>",
+    "<p>Item 8. Financial Statements and Supplementary Data</p>",
+)
+
+
+def _early_high_priority_body():
+    """The planted shape, with real prose behind every heading."""
+    part_i, item_1, item_1a, item_10, item_7, item_8 = _EARLY_HIGH_PRIORITY_BODY_PARTS
+    return _html(
+        part_i,
+        item_1, _filler(60),
+        item_1a, _filler(60),
+        item_10, _filler(60),
+        item_7, _filler(300),
+        item_8, _filler(60),
+    )
+
+
+def test_global_assignment_keeps_sections_the_greedy_rule_dropped(tmp_path):
+    """Negative control: the rule P4-00 replaced loses a section here, the new one does not.
+
+    CLAUDE.md rule 15 — a check that has never failed is not evidence. This
+    plants the exact shape that cost TROW and IVZ four and five sections, runs
+    BOTH selection rules over the same scored candidates, and asserts they
+    disagree in the direction the rewrite claims.
+    """
+    from ingestion.parser import _assign_sections
+
+    _lines, candidates = _candidates_for(_early_high_priority_body(), tmp_path)
+
+    greedy = {c.section_id for c in _greedy_monotonic(candidates)}
+    assigned = {c.section_id for c in _assign_sections(candidates)}
+
+    assert not {"item_7_mda", "item_8_financials"} & greedy, (
+        "the negative control no longer reproduces the defect it controls for: "
+        f"the greedy rule kept {sorted(greedy)}"
+    )
+    assert {
+        "item_1_business", "item_1a_risk_factors", "item_7_mda", "item_8_financials",
+    } <= assigned
+    assert len(assigned) > len(greedy)
+
+
+def test_the_same_candidates_always_assign_the_same_way(tmp_path):
+    """Determinism: the assignment is a function of its input, not of iteration order."""
+    from ingestion.parser import _assign_sections
+
+    _lines, candidates = _candidates_for(_early_high_priority_body(), tmp_path)
+
+    expected = _assign_sections(candidates)
+    for shuffled in (list(reversed(candidates)), sorted(candidates, key=lambda c: c.title)):
+        assert _assign_sections(shuffled) == expected
+
+
+def test_a_section_with_no_content_does_not_outrank_a_real_one(tmp_path):
+    """The bank cross-reference index: Item headings whose body is one pointer line.
+
+    JPM, WFC, GS and BAC satisfy Items 3, 5, 7, 7A and 8 by pointing at their
+    annual report, printing a run of well-formed Item headings each followed by
+    a single "Refer to pages ..." line. Those entries are anchored, explicit and
+    heading-shaped, so on score alone a run of them outranks the real sections
+    elsewhere in the document. _assign_sections weights them at 1 so they
+    cannot.
+    """
+    from ingestion.parser import _assign_sections
+
+    body = _html(
+        "<p>Part I</p>", "<p>Item 1. Business</p>", _filler(200),
+        # The pointer index: two well-formed headings, no disclosure behind them.
+        "<p>Item 7. Management's Discussion and Analysis</p>",
+        "<p>Refer to pages 44-115 of the 2024 Annual Report.</p>",
+        "<p>Item 7A. Quantitative and Qualitative Disclosures About Market Risk</p>",
+        "<p>Refer to pages 141-149 of the 2024 Annual Report.</p>",
+        # The disclosure itself, under the filer's own heading.
+        "<p>Management's Discussion and Analysis</p>", _filler(400),
+    )
+    _lines, candidates = _candidates_for(body, tmp_path)
+
+    stubs = [c for c in candidates if c.section_id == "item_7_mda" and not c.has_prose]
+    assert stubs, "the planted pointer entries are not being scored as content-free"
+
+    chosen = {c.section_id: c for c in _assign_sections(candidates)}
+    assert chosen["item_7_mda"].has_prose, (
+        "the content-free pointer entry was chosen as Item 7 over the real heading"
+    )

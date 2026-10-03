@@ -422,3 +422,61 @@ def test_scale_detection_keeps_the_precision_the_answer_was_written_with():
     assert match_value(
         Decimal("391035000000"), numerals_in("$275.4 million"),
     ).verdict == "wrong_value"
+
+
+# ── the section-title bug the first LIVE run exposed ─────────────────────────
+
+def test_a_citation_naming_a_section_by_its_display_title_still_counts():
+    """A Citation carries "Item 1A: Risk Factors"; the gold set says the id.
+
+    The first live V3 run scored narrative 0 of 15 — including answers that
+    cited Apple's Item 1A three times. Retrieval was right; the comparison was
+    not, and the result would have gone into a published table.
+    """
+    from eval.scorers import normalise_section
+
+    assert normalise_section("Item 1A: Risk Factors") == "item_1a_risk_factors"
+    assert normalise_section("Item 1C: Cybersecurity") == "item_1c_cyber"
+    assert normalise_section("Consolidated Statements of Operations") == "fs_income_stmt"
+    # An id passes through unchanged, suffix and all.
+    assert normalise_section("item_1a_risk_factors__2") == "item_1a_risk_factors"
+    # Something unrecognised is returned as-is rather than silently becoming
+    # a section it is not.
+    assert normalise_section("Appendix Q") == "Appendix Q"
+
+    hit, rank = section_hit(["Item 1A: Risk Factors"], ["item_1a_risk_factors"])
+    assert (hit, rank) == (True, 1)
+
+
+def test_a_narrative_answer_citing_the_right_section_by_title_passes():
+    item = {
+        "id": "R-1", "category": "narrative", "question": "What risks...?",
+        "as_of": None,
+        "expected": {"type": "text", "ticker": "AAPL", "fiscal_label": 2024,
+                     "expected_sections": ["item_1a_risk_factors"]},
+        "source": {}, "verified_by": "auto",
+    }
+    view = OutcomeView(
+        status="answered_text", answer="Apple describes supply-chain risks.",
+        citations=[{"kind": "text", "index": 1, "ticker": "AAPL", "accession": "a",
+                    "filing_date": "2024-11-01", "fiscal_label": 2024,
+                    "section": "Item 1A: Risk Factors"}],
+    )
+    assert score_item(item, view).verdict == "correct"
+
+
+def test_the_pinned_section_titles_match_the_parser():
+    """Negative control for the fallback table.
+
+    scorers.py keeps a pinned title->id map so it stays importable without the
+    ingestion package. That is a second place the truth is written down, so a
+    title renamed in the parser and not here fails the suite rather than
+    quietly making narrative items unscoreable again.
+    """
+    from eval.scorers import _FALLBACK_SECTION_TITLES
+    from ingestion.parser import SECTION_PATTERNS
+
+    parser_titles = {title.lower(): sid for _p, sid, title in SECTION_PATTERNS}
+    for title, section_id in _FALLBACK_SECTION_TITLES.items():
+        if title in parser_titles:
+            assert parser_titles[title] == section_id, title

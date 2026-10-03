@@ -287,6 +287,10 @@ def upsert_chunks(
 # Hybrid search
 # ---------------------------------------------------------------------------
 
+#: Retrieval arms for the P4-06 ablation. "hybrid" is the shipped default.
+_RETRIEVAL_MODES = frozenset({"hybrid", "dense", "bm25"})
+
+
 def hybrid_search(
     collection_name: str,
     query_dense: List[float],
@@ -294,12 +298,29 @@ def hybrid_search(
     query_sparse_values: List[float],
     top_k: int = settings.retrieval_top_k,
     chunk_type_filter: Optional[str] = None,
+    mode: Optional[str] = None,
 ) -> List[Dict]:
     """
     Dense + sparse prefetch with RRF fusion.
     Returns list of {id, score, payload} dicts — no Qdrant types leak out.
+
+    ``mode`` is the P4-06 ablation switch: ``"hybrid"`` (the default and the
+    shipped behaviour), ``"dense"`` or ``"bm25"``. ``None`` means
+    ``settings.retrieval_mode``, so the default path is byte-identical to what
+    it was before the switch existed — an ablation that changed the system it
+    was measuring would be worthless.
+
+    A single-mode search queries that vector directly rather than running the
+    fusion over one prefetch: RRF over a single list only re-ranks it into the
+    same order, but it also discards the raw similarity score, and the ablation
+    tables compare scores across arms.
     """
     client = get_client()
+    mode = (mode or settings.retrieval_mode or "hybrid").lower()
+    if mode not in _RETRIEVAL_MODES:
+        raise ValueError(
+            f"retrieval mode {mode!r} is not one of {sorted(_RETRIEVAL_MODES)}"
+        )
 
     conditions = []
     if chunk_type_filter:
@@ -308,24 +329,32 @@ def hybrid_search(
         )
     qdrant_filter = Filter(must=conditions) if conditions else None
 
-    response = client.query_points(
-        collection_name=collection_name,
-        prefetch=[
-            Prefetch(query=query_dense,               using="dense",  limit=top_k),
-            Prefetch(
-                query=SparseVector(
-                    indices=query_sparse_indices,
-                    values=query_sparse_values,
-                ),
-                using="sparse",
-                limit=top_k,
-            ),
-        ],
-        query=FusionQuery(fusion=Fusion.RRF),
-        limit=top_k,
-        query_filter=qdrant_filter,
-        with_payload=True,
+    sparse_query = SparseVector(
+        indices=query_sparse_indices, values=query_sparse_values,
     )
+
+    if mode == "dense":
+        response = client.query_points(
+            collection_name=collection_name, query=query_dense, using="dense",
+            limit=top_k, query_filter=qdrant_filter, with_payload=True,
+        )
+    elif mode == "bm25":
+        response = client.query_points(
+            collection_name=collection_name, query=sparse_query, using="sparse",
+            limit=top_k, query_filter=qdrant_filter, with_payload=True,
+        )
+    else:
+        response = client.query_points(
+            collection_name=collection_name,
+            prefetch=[
+                Prefetch(query=query_dense,  using="dense",  limit=top_k),
+                Prefetch(query=sparse_query, using="sparse", limit=top_k),
+            ],
+            query=FusionQuery(fusion=Fusion.RRF),
+            limit=top_k,
+            query_filter=qdrant_filter,
+            with_payload=True,
+        )
 
     return [
         {"id": str(p.id), "score": p.score, "payload": p.payload}

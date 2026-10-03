@@ -413,9 +413,9 @@ class OutcomeView:
         return values
 
     def sections(self) -> List[str]:
-        """Sections cited, in citation order, base ids only."""
+        """Sections cited, in citation order, as section ids."""
         return [
-            str(c.get("section") or "").split("__")[0]
+            normalise_section(c.get("section"))
             for c in self.citations
             if c.get("section")
         ]
@@ -656,6 +656,60 @@ def score_abstain(item: Mapping, view: OutcomeView) -> Scored:
                   frozenset(flags))
 
 
+#: Display title -> section id, pinned so this module stays importable without
+#: the ingestion package. ``section_titles()`` prefers the parser's own table
+#: and falls back to this; a test asserts the two agree, so a title changed in
+#: one place and not the other fails the suite rather than silently making every
+#: narrative item unscoreable.
+_FALLBACK_SECTION_TITLES: Dict[str, str] = {
+    "item 1: business": "item_1_business",
+    "item 1a: risk factors": "item_1a_risk_factors",
+    "item 1b: unresolved staff comments": "item_1b_staff",
+    "item 1c: cybersecurity": "item_1c_cyber",
+    "item 2: properties": "item_2_properties",
+    "item 3: legal proceedings": "item_3_legal",
+    "item 4: mine safety": "item_4_mine",
+    "item 5: market for equity": "item_5_market",
+    "item 6: selected financial data": "item_6_selected",
+    "item 7: md&a": "item_7_mda",
+    "item 7a: quantitative disclosures": "item_7a_market_risk",
+    "item 8: financial statements": "item_8_financials",
+    "item 9: disagreements with accountants": "item_9_accountants",
+    "item 9a: controls and procedures": "item_9a_controls",
+    "item 9b: other information": "item_9b_other",
+    "items 10-14: corporate governance": "item_governance",
+    "item 15: exhibits": "item_15_exhibits",
+}
+
+
+def section_titles() -> Dict[str, str]:
+    """Lower-cased display title -> section id, from the parser's own table."""
+    try:
+        from ingestion.parser import SECTION_PATTERNS
+    except Exception:
+        return dict(_FALLBACK_SECTION_TITLES)
+    mapping = dict(_FALLBACK_SECTION_TITLES)
+    for _pattern, section_id, title in SECTION_PATTERNS:
+        mapping[title.lower()] = section_id
+    return mapping
+
+
+def normalise_section(value: str) -> str:
+    """A citation's section as a section id, whichever spelling it carries.
+
+    A ``Citation`` carries ``section`` as the DISPLAY TITLE — "Item 1A: Risk
+    Factors" — because that is what the UI shows, while the gold set names
+    sections by id. Comparing the two directly scored every narrative item
+    wrong in the first live run, including answers that cited Apple's Item 1A
+    three times. The retrieval was right; the comparison was not.
+    """
+    raw = str(value or "").strip()
+    base = raw.split("__")[0]
+    if not base:
+        return ""
+    return section_titles().get(base.lower(), base)
+
+
 def section_hit(
     cited_sections: Sequence[str], expected_sections: Iterable[str], k: int = 5,
 ) -> Tuple[bool, Optional[int]]:
@@ -666,12 +720,12 @@ def section_hit(
     in both Item 1 and the MD&A — and pretending otherwise would score a right
     answer wrong.
     """
-    wanted = {s.split("__")[0] for s in expected_sections}
+    wanted = {normalise_section(s) for s in expected_sections}
     for rank, section in enumerate(cited_sections[:k], start=1):
         # Both sides are normalised: parse_filing suffixes a repeated id
-        # ("item_1a_risk_factors__2") and retrieval scrolls by the base id, so
-        # a caller can hand this either spelling.
-        if section.split("__")[0] in wanted:
+        # ("item_1a_risk_factors__2"), retrieval scrolls by the base id, and a
+        # Citation carries the display title. Any of the three may arrive here.
+        if normalise_section(section) in wanted:
             return True, rank
     return False, None
 

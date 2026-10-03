@@ -89,6 +89,11 @@ def retrieve(
     top_k:   int         = settings.rerank_top_k,
     focus:   str         = "other",
     collections: Optional[List[str]] = None,
+    *,
+    mode:              Optional[str]  = None,
+    enable_rerank:     Optional[bool] = None,
+    enable_focus_boost: Optional[bool] = None,
+    enable_parent_context: Optional[bool] = None,
 ) -> List[RetrievedChunk]:
     """
     Full retrieval pipeline — returns RetrievedChunk objects ready for the LLM.
@@ -102,7 +107,22 @@ def retrieve(
     has no `filing_date`, so point-in-time scope can only be decided by the
     catalog, and deciding it here — before any search runs — is what makes a
     look-ahead impossible rather than merely unlikely (D2, G2).
+
+    The four keyword-only switches are the P4-06 retrieval ablation. Each is
+    ``None`` by default, meaning "use the configured value", so the shipped
+    path is unchanged by their existence — an ablation harness that altered the
+    system it measures would not be measuring it. They are arguments rather
+    than globals because the ablation runs every arm in one process over the
+    same questions, and a global reassigned per arm cannot be run concurrently
+    and leaks if an arm raises.
     """
+    mode = mode or settings.retrieval_mode
+    if enable_rerank is None:
+        enable_rerank = settings.enable_rerank
+    if enable_focus_boost is None:
+        enable_focus_boost = settings.enable_focus_boost
+    if enable_parent_context is None:
+        enable_parent_context = True
     if collections is None:
         collections = _target_collections(list(tickers), list(years))
     else:
@@ -142,6 +162,7 @@ def retrieve(
             query_sparse_indices = sparse_idx,
             query_sparse_values  = sparse_val,
             top_k                = settings.retrieval_top_k,
+            mode                 = mode,
         )
         results += hybrid_search(
             collection_name      = col,
@@ -150,6 +171,7 @@ def retrieve(
             query_sparse_values  = sparse_val,
             top_k                = 10,
             chunk_type_filter    = "table",
+            mode                 = mode,
         )
         results += scroll_by_section_id(col, "fs_income_stmt", limit=5)
 
@@ -202,7 +224,14 @@ def retrieve(
     # Score every candidate (within the cap above) so the focus-aware boost
     # below can still rescue income-statement chunks that rank outside the
     # top few by raw cross-encoder score.
-    reranked = rerank(query, candidates, top_k=len(candidates))
+    # The ablation's no-rerank arm keeps the candidates' hybrid scores, and the
+    # boost block below is skipped with it: a focus boost is expressed as an
+    # offset to the RERANK score, so applying it to a raw hybrid score would be
+    # a third arm nobody asked for rather than "rerank off".
+    reranked = (
+        rerank(query, candidates, top_k=len(candidates)) if enable_rerank
+        else list(candidates)
+    )
 
     # --- 4b. Focus-aware aggregate boost.
     #
@@ -226,7 +255,9 @@ def retrieve(
     def _text(r: dict) -> str:
         return r["payload"].get("text", "")
 
-    if focus == "revenue":
+    if not (enable_rerank and enable_focus_boost):
+        pass          # boost arm off; `reranked` keeps the scores it has
+    elif focus == "revenue":
         _rev_row = _re.compile(r"\|\s*(?:total\s+)?(?:net\s+)?(?:revenue|net\s+sales|net\s+revenues)\s*\|", _re.IGNORECASE)
         for r in reranked:
             t  = _text(r)
@@ -357,10 +388,15 @@ def retrieve(
             logger.warning(f"Could not reconstruct Chunk from payload: {exc}")
             continue
 
+        # The ablation's parent-context-off arm hands the LLM the matched chunk
+        # alone. Worth measuring rather than assuming: the parent section is
+        # what makes a table row readable, but P3-00 measured that v1's section
+        # slices are often wrong, so a whole section can be worse context than
+        # the chunk that actually matched (D3-00, D23).
         parent_text = parent_store.get_section_text(
             doc_id     = chunk.doc_id,
             section_id = chunk.parent_id,
-        )
+        ) if enable_parent_context else ""
 
         retrieved.append(RetrievedChunk(
             chunk       = chunk,

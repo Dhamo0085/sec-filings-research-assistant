@@ -89,8 +89,12 @@ keep D3-00. (b) Adopt the rewrite, record Item 7 as missed, and proceed. (c)
 Adopt, and separately decide whether the audit's narrative cap should fit a
 bank MD&A.
 
-**Choice.** (b), put to the owner at the P4-00 gate, with (c) raised as a
-separate question. **Reason.** The exit rule exists to stop unbounded effort on
+**Choice.** (b) and (c) — **confirmed by the owner at the P4-00 gate on
+2026-10-03**: adopt the rewrite and record the Item 7 miss; leave the audit's
+thresholds exactly as committed and report the cap-bound finding rather than
+re-argue the cap mid-evaluation; and do **not** run the overnight re-index yet —
+build P4-01 to P4-04 against the current corpus first, so the evaluation is not
+assembled on a half-rebuilt index. **Reason.** The exit rule exists to stop unbounded effort on
 a parser that cannot be fixed; the measurement says the opposite happened —
 usable pairs went from 245 to 298, Item 1 and Item 1A are complete at 40 of 40,
 and the two strict `xfail` tests pass. Reverting that to honour the letter of a

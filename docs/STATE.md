@@ -14,7 +14,7 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 on 2026-10-03 
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
 | Phase 4 | IN PROGRESS on `phase-4-evaluation`, spec v1.6. P4-00 measured and committed (`63516cb`); awaiting the owner's decision on D25's exit rule and on the overnight re-index before P4-01 |
-| Current task | P4-00 gate — owner decision pending (see D4-00) |
+| Current task | P4-01 (gold set). P4-00 closed at the owner gate on 2026-10-03: rewrite **adopted** with the Item 7 miss recorded, audit thresholds **unchanged**, overnight re-index **deferred** until P4-01–P4-04 are built |
 | Tests | `make test` → **1,060 passed, 0 xfailed, 0 skipped**; ruff clean. Artifacts now land in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
 
 ## 1c. Phase 4 facts (measured, 2026-10-03)
@@ -95,8 +95,12 @@ D1 facts from iXBRL · D2 `as_of` via catalog · D5 headline total net revenue �
 D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0; **now part of spec 6.4 rule 3 rather than a deviation from it**) · D2-03 precision preference (D22), which took corpus-wide exactness from 99.1347% to 99.9787%.
 
 ## 6b. Phase 4 decisions
-**D4-00** the boundary rewrite is adopted although Item 7 misses D25's target; the exit rule's literal
-action (revert) is put to the owner with the numbers. **The audit's size thresholds stay as committed.**
+**D4-00** the boundary rewrite is adopted although Item 7 misses D25's target (owner-confirmed
+2026-10-03, so D25's exit rule was **not** applied). **The audit's size thresholds stay as committed** —
+12 of the 15 Item 7 misses are cap-bound, not boundary defects, and that is reported rather than fixed.
+P4-00 step 4 (the overnight re-index) is **deferred** until P4-01–P4-04 exist; until it runs,
+`data/parsed/`, `data/chunks/` and `data/qdrant/` are the Phase 3 artifacts and Phase 3's retrieval
+numbers still hold.
 
 Spec v1.5 also carries **D23** (v1's parsed statement sections are not trusted; `validation_status` is informational only and must never affect an answer — guarded by two tests in `test_facts_resolve.py`; P3-00 audits section quality) and **D24** (ingestion resolves filings through the catalog across every CIK a ticker has filed under; P3-06 uses BLK FY2023 as the proof case).
 

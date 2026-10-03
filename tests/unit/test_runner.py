@@ -328,3 +328,81 @@ def test_the_variants_file_defines_the_four_the_spec_names():
     assert variants["V3"].flags == {
         "enable_facts": True, "enable_asof": True, "enable_abstain_gate": True,
     }
+
+
+# ── free-tier pacing and rate-limit recovery ─────────────────────────────────
+
+def test_a_rate_limited_row_is_re_asked_not_counted(tmp_path, variant):
+    """A provider's quota is not the variant's accuracy.
+
+    V1 forces every question through the text path and hit the free-tier
+    token-per-minute limit on 23 of 80 items. Left in the file, those rows
+    would be scored `error` and reported as V1's result.
+    """
+    from eval.runner import load_existing
+
+    gold = gold_items(3)
+    path = tmp_path / "V3.jsonl"
+    for index, item in enumerate(gold):
+        row = {"item_id": item["id"], "variant": "V3", "category": "numeric",
+               "question": "q", "as_of": None, "latency_s": 0.0,
+               "llm": {"by_role": {}},
+               "outcome": {"status": "error", "error_code": "llm_rate_limited",
+                           "answer": "", "citations": []} if index == 1 else
+                          {"status": "answered", "answer": "The value was 100.",
+                           "citations": []}}
+        from eval.runner import append_row
+        append_row(path, row)
+
+    asked = StubAsk()
+    run_variant(variant, gold, llm=RecordingLLM(object()), runs_dir=tmp_path,
+                ask_fn=asked, retry_errors=("llm_rate_limited",))
+
+    assert asked.asked == ["N-1"], "only the rate-limited item should be re-asked"
+    rows = load_existing(path)
+    assert len(rows) == 3
+    assert rows["N-1"]["outcome"]["status"] == "answered"
+
+
+def test_an_ordinary_error_is_not_re_asked(tmp_path, variant):
+    """Only the named error codes are treated as outages.
+
+    An internal error is a result — re-asking it until it passes would be the
+    retry loop CLAUDE.md rule 7 forbids.
+    """
+    from eval.runner import append_row, load_existing
+
+    gold = gold_items(2)
+    path = tmp_path / "V3.jsonl"
+    for item in gold:
+        append_row(path, {
+            "item_id": item["id"], "variant": "V3", "category": "numeric",
+            "question": "q", "as_of": None, "latency_s": 0.0, "llm": {"by_role": {}},
+            "outcome": {"status": "error", "error_code": "internal",
+                        "answer": "", "citations": []},
+        })
+
+    asked = StubAsk()
+    run_variant(variant, gold, llm=RecordingLLM(object()), runs_dir=tmp_path,
+                ask_fn=asked, retry_errors=("llm_rate_limited",))
+    assert asked.asked == []
+    assert len(load_existing(path)) == 2
+
+
+def test_dropping_rows_leaves_one_row_per_item(tmp_path):
+    """Appending the replacement instead would leave two rows for one item.
+
+    load_existing keys by id so the later one wins, but the file is also read
+    by hand, and two rows for one item invites the wrong conclusion about which
+    produced the published number.
+    """
+    from eval.runner import _rewrite_without, append_row, load_existing
+
+    path = tmp_path / "V3.jsonl"
+    for item_id in ("a", "b", "c"):
+        append_row(path, {"item_id": item_id, "outcome": None})
+    _rewrite_without(path, ["b"])
+
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line]
+    assert len(lines) == 2
+    assert list(load_existing(path)) == ["a", "c"]

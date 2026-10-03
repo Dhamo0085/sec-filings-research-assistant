@@ -312,6 +312,28 @@ def load_existing(path: Path) -> Dict[str, Dict]:
     return rows
 
 
+def _rewrite_without(path: Path, item_ids: Sequence[str]) -> None:
+    """Drop the named rows, preserving the order of the rest.
+
+    Rewritten in place rather than appended to: ``load_existing`` keys by item
+    id and the later row would win, but the file is also read by hand, and two
+    rows for one item invites exactly the wrong conclusion about which one the
+    numbers came from.
+    """
+    drop = set(item_ids)
+    kept: List[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if str(row.get("item_id")) not in drop:
+            kept.append(line)
+    path.write_text("".join(line + "\n" for line in kept), encoding="utf-8")
+
+
 def append_row(path: Path, row: Mapping) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
@@ -330,19 +352,38 @@ def run_variant(
     ask_fn=ask_v2,
     deps_factory=None,
     on_item=None,
+    sleep_s: float = 0.0,
+    retry_errors: Sequence[str] = (),
 ) -> List[Dict]:
     """Ask every gold item, appending as it goes. Returns the rows for this run."""
     path = run_path(variant.id, runs_dir)
     done = load_existing(path) if resume else {}
 
+    # A recorded row whose error_code is in ``retry_errors`` is not a result.
+    # A free-tier rate limit is an outage, and leaving it in the file would
+    # report the provider's quota as the variant's accuracy. Re-asking is not
+    # a retry loop (CLAUDE.md rule 7): the first run stopped cleanly and this
+    # is a separate, paced run over what it could not reach.
+    if retry_errors:
+        retryable = {
+            item_id for item_id, row in done.items()
+            if ((row.get("outcome") or {}).get("error_code") in retry_errors)
+        }
+        for item_id in retryable:
+            done.pop(item_id, None)
+        if retryable:
+            _rewrite_without(path, retryable)
+
     items = list(gold)[: limit] if limit else list(gold)
     rows: List[Dict] = []
 
-    for item in items:
+    for index, item in enumerate(items):
         item_id = str(item["id"])
         if item_id in done:
             rows.append(done[item_id])
             continue
+        if sleep_s and index:
+            time.sleep(sleep_s)
 
         recorder = llm if isinstance(llm, RecordingLLM) else RecordingLLM(llm)
         recorder.reset()
@@ -581,6 +622,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--no-resume", action="store_true")
+    ap.add_argument("--sleep", type=float, default=0.0,
+                    help="seconds between items, to stay under a free-tier "
+                         "per-minute token limit")
+    ap.add_argument("--retry-rate-limited", action="store_true",
+                    help="re-ask items recorded with error_code=llm_rate_limited; "
+                         "a provider outage is not a result")
     ap.add_argument("--fake-llm", action="store_true",
                     help="run against llm.fake.FakeLLM — no network, no budget")
     ap.add_argument("--report-only", action="store_true",
@@ -631,7 +678,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             from llm import get_client
             llm = get_client()
         run_variant(variant, gold, llm=RecordingLLM(llm), runs_dir=args.runs_dir,
-                    resume=not args.no_resume)
+                    resume=not args.no_resume, sleep_s=args.sleep,
+                    retry_errors=("llm_rate_limited",) if args.retry_rate_limited else ())
 
     rows = list(load_existing(path).values())
     scored = score_run(gold, rows)

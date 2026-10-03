@@ -1,0 +1,261 @@
+{
+  "variant": "V1",
+  "scores": {
+    "n": 80,
+    "passed": 40,
+    "rate": 0.5,
+    "ci95": [
+      0.392972274311075,
+      0.607027725688925
+    ],
+    "by_category": {
+      "numeric": {
+        "n": 25,
+        "passed": 12,
+        "verdicts": {
+          "correct_text_only": 12,
+          "wrong_value": 2,
+          "error": 4,
+          "abstained_wrongly": 7
+        },
+        "rate": 0.48,
+        "ci95": [
+          0.30031003928960015,
+          0.6650178204685269
+        ]
+      },
+      "computed": {
+        "n": 12,
+        "passed": 3,
+        "verdicts": {
+          "abstained_wrongly": 4,
+          "wrong_value": 3,
+          "correct": 3,
+          "error": 2
+        },
+        "rate": 0.25,
+        "ci95": [
+          0.08894003962896138,
+          0.53231033912066
+        ]
+      },
+      "compare_trend": {
+        "n": 10,
+        "passed": 4,
+        "verdicts": {
+          "correct": 4,
+          "error": 3,
+          "abstained_wrongly": 3
+        },
+        "rate": 0.4,
+        "ci95": [
+          0.16817758120350962,
+          0.6873304525498136
+        ]
+      },
+      "as_of": {
+        "n": 8,
+        "passed": 3,
+        "verdicts": {
+          "wrong_abstain_reason": 4,
+          "correct_text_only": 3,
+          "error": 1
+        },
+        "rate": 0.375,
+        "ci95": [
+          0.13684175946152105,
+          0.6942621454161981
+        ]
+      },
+      "narrative": {
+        "n": 15,
+        "passed": 10,
+        "verdicts": {
+          "correct": 10,
+          "abstained_wrongly": 1,
+          "error": 2,
+          "wrong_value": 2
+        },
+        "rate": 0.6666666666666666,
+        "ci95": [
+          0.4171312515121297,
+          0.8482389930530876
+        ]
+      },
+      "abstain": {
+        "n": 10,
+        "passed": 8,
+        "verdicts": {
+          "correct_abstain": 8,
+          "error": 1,
+          "wrong_abstain_reason": 1
+        },
+        "rate": 0.8,
+        "ci95": [
+          0.49015684672072335,
+          0.9433190520193067
+        ]
+      }
+    },
+    "flags": {
+      "uncited_number": 18
+    }
+  },
+  "llm": {
+    "by_role": {
+      "generator": {
+        "calls": 60,
+        "tokens": 3954213,
+        "latency_s": 69.3826,
+        "cached": 14
+      }
+    },
+    "total_calls": 60,
+    "total_tokens": 3954213,
+    "latency_p50": 5.2188,
+    "latency_p95": 14.6413,
+    "latency_max": 21.379,
+    "cost_usd": 0.0,
+    "cost_note": "free-tier providers only (D18); no per-token price applies"
+  },
+  "paired_subset": {
+    "n_total": 80,
+    "n_paired": 69,
+    "n_excluded": 11,
+    "excluded_ids": [
+      "N-BAC-REVENUE-2024",
+      "N-WFC-REVENUE-2024",
+      "N-WFC-STOCKHOLDERSEQUITY-2024",
+      "N-BAC-TOTALLIABILITIES-2024",
+      "N-STT-NETINCOME-2024",
+      "N-TROW-REVENUE-2024",
+      "N-IVZ-CASHANDEQUIVALENTS-2024",
+      "M-JPM-BAC-NETINCOME-2024",
+      "M-BLK-TROW-REVENUE-2024",
+      "M-JPM-NETINCOME-TREND-2022-2024",
+      "M-WFC-REVENUE-TREND-2023-2025"
+    ],
+    "missing_filings": {
+      "BAC": [
+        "FY2024"
+      ],
+      "IVZ": [
+        "FY2024"
+      ],
+      "JPM": [
+        "FY2022"
+      ],
+      "STT": [
+        "FY2024"
+      ],
+      "TROW": [
+        "FY2024"
+      ],
+      "WFC": [
+        "FY2023",
+        "FY2024",
+        "FY2025"
+      ]
+    },
+    "scores": {
+      "n": 69,
+      "passed": 40,
+      "rate": 0.5797101449275363,
+      "ci95": [
+        0.4620719307661217,
+        0.6889406774138196
+      ],
+      "by_category": {
+        "numeric": {
+          "n": 18,
+          "passed": 12,
+          "verdicts": {
+            "correct_text_only": 12,
+            "wrong_value": 2,
+            "error": 4
+          },
+          "rate": 0.6666666666666666,
+          "ci95": [
+            0.4374906934425036,
+            0.8372144563633714
+          ]
+        },
+        "computed": {
+          "n": 12,
+          "passed": 3,
+          "verdicts": {
+            "abstained_wrongly": 4,
+            "wrong_value": 3,
+            "correct": 3,
+            "error": 2
+          },
+          "rate": 0.25,
+          "ci95": [
+            0.08894003962896138,
+            0.53231033912066
+          ]
+        },
+        "compare_trend": {
+          "n": 6,
+          "passed": 4,
+          "verdicts": {
+            "correct": 4,
+            "error": 1,
+            "abstained_wrongly": 1
+          },
+          "rate": 0.6666666666666666,
+          "ci95": [
+            0.29998832134152864,
+            0.9032306674407831
+          ]
+        },
+        "as_of": {
+          "n": 8,
+          "passed": 3,
+          "verdicts": {
+            "wrong_abstain_reason": 4,
+            "correct_text_only": 3,
+            "error": 1
+          },
+          "rate": 0.375,
+          "ci95": [
+            0.13684175946152105,
+            0.6942621454161981
+          ]
+        },
+        "narrative": {
+          "n": 15,
+          "passed": 10,
+          "verdicts": {
+            "correct": 10,
+            "abstained_wrongly": 1,
+            "error": 2,
+            "wrong_value": 2
+          },
+          "rate": 0.6666666666666666,
+          "ci95": [
+            0.4171312515121297,
+            0.8482389930530876
+          ]
+        },
+        "abstain": {
+          "n": 10,
+          "passed": 8,
+          "verdicts": {
+            "correct_abstain": 8,
+            "error": 1,
+            "wrong_abstain_reason": 1
+          },
+          "rate": 0.8,
+          "ci95": [
+            0.49015684672072335,
+            0.9433190520193067
+          ]
+        }
+      },
+      "flags": {
+        "uncited_number": 18
+      }
+    }
+  }
+}

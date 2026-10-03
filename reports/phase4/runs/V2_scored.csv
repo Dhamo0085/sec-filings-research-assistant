@@ -1,0 +1,81 @@
+variant,item_id,category,verdict,passed,flags,section_rank,detail
+V2,N-AAPL-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-AAPL-EPSDILUTED-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-MSFT-NETINCOME-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-MSFT-REVENUE-2026,numeric,correct,True,,,fact citation carries the exact value
+V2,N-MSFT-GROSSPROFIT-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-GOOGL-RDEXPENSE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-AMZN-OPERATINGCASHFLOW-2024,numeric,wrong_metric,False,,,"answered with ['cash_and_equivalents'], expected operating_cash_flow"
+V2,N-AMZN-CAPEX-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-AMZN-TOTALASSETS-2023,numeric,correct,True,,,fact citation carries the exact value
+V2,N-JPM-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-JPM-NETINCOME-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-BAC-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-GS-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-GS-TOTALASSETS-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-WFC-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-WFC-STOCKHOLDERSEQUITY-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-BAC-TOTALLIABILITIES-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-BLK-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-BLK-REVENUE-2023,numeric,correct,True,,,fact citation carries the exact value
+V2,N-STT-NETINCOME-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-TROW-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-IVZ-CASHANDEQUIVALENTS-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-NFLX-REVENUE-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-NFLX-OPERATINGINCOME-2024,numeric,correct,True,,,fact citation carries the exact value
+V2,N-NFLX-NETINCOME-2023,numeric,correct,True,,,fact citation carries the exact value
+V2,C-AAPL-OPERATINGMARGIN-2024,computed,correct,True,,,matched '31.51%'
+V2,C-AAPL-NETMARGIN-2024,computed,correct,True,,,matched '23.97%'
+V2,C-MSFT-GROSSMARGIN-2024,computed,correct,True,,,matched '69.76%'
+V2,C-NFLX-OPERATINGMARGIN-2024,computed,correct,True,,,matched '26.71%'
+V2,C-AAPL-REVENUEGROWTH-2024,computed,correct,True,,,matched '2.02%'
+V2,C-JPM-NETINCOMEGROWTH-2024,computed,correct,True,,,matched '18.00%'
+V2,C-NFLX-REVENUEGROWTH-2024,computed,correct,True,,,matched '15.65%'
+V2,C-MSFT-REVENUECAGR-2025,computed,correct,True,,,matched '12.42%'
+V2,C-GOOGL-REVENUECAGR-2025,computed,correct,True,,,matched '12.51%'
+V2,C-AAPL-DEBTEQUITY-2024,computed,wrong_value,False,,,"nearest number stated was '-09' (-9), expected 5.4088"
+V2,C-AMZN-FCF-2024,computed,wrong_value,False,,,"nearest number stated was '2024' (2024), expected 32878000000"
+V2,C-GS-NETMARGIN-2024,computed,correct,True,,,matched '26.68%'
+V2,M-AAPL-MSFT-REVENUE-2024,compare_trend,correct,True,,,all 2 values present and attributed
+V2,M-JPM-BAC-NETINCOME-2024,compare_trend,correct,True,,,all 2 values present and attributed
+V2,M-NFLX-GOOGL-REVENUE-2024,compare_trend,correct,True,,,all 2 values present and attributed
+V2,M-BLK-TROW-REVENUE-2024,compare_trend,correct,True,,,all 2 values present and attributed
+V2,M-GS-MSFT-TOTALASSETS-2024,compare_trend,correct,True,,,all 2 values present and attributed
+V2,M-AAPL-REVENUE-TREND-2023-2025,compare_trend,correct,True,,,all 3 values present and attributed
+V2,M-NFLX-REVENUE-TREND-2023-2025,compare_trend,correct,True,,,all 3 values present and attributed
+V2,M-JPM-NETINCOME-TREND-2022-2024,compare_trend,correct,True,,,all 3 values present and attributed
+V2,M-MSFT-OPERATINGINCOME-TREND-2024-2026,compare_trend,correct,True,,,all 3 values present and attributed
+V2,M-WFC-REVENUE-TREND-2023-2025,compare_trend,correct,True,,,all 3 values present and attributed
+V2,A-AAPL-REVENUE-2024-LOOKAHEAD,as_of,answered_wrongly,False,look_ahead,,answered something that should have been refused (period_not_filed_as_of)
+V2,A-MSFT-NETINCOME-2025-LOOKAHEAD,as_of,answered_wrongly,False,look_ahead,,answered something that should have been refused (period_not_filed_as_of)
+V2,A-JPM-REVENUE-2024-LOOKAHEAD,as_of,answered_wrongly,False,look_ahead,,answered something that should have been refused (period_not_filed_as_of)
+V2,A-NFLX-REVENUE-2025-LOOKAHEAD,as_of,answered_wrongly,False,look_ahead,,answered something that should have been refused (period_not_filed_as_of)
+V2,A-AAPL-REVENUE-2023-ASOF,as_of,correct,True,,,fact citation carries the exact value
+V2,A-MSFT-NETINCOME-2024-ASOF,as_of,correct,True,,,fact citation carries the exact value
+V2,A-GS-REVENUE-2024-ASOF,as_of,correct,True,,,fact citation carries the exact value
+V2,A-BLK-REVENUE-2023-ASOF,as_of,correct,True,,,fact citation carries the exact value
+V2,R-AAPL-SUPPLY-2024,narrative,correct,True,,1,section hit at rank 1
+V2,R-AAPL-CYBER-2024,narrative,correct,True,,1,section hit at rank 1
+V2,R-AMZN-COMPETE-2024,narrative,correct,True,,1,section hit at rank 1
+V2,R-MSFT-SEGMENTS-2025,narrative,abstained_wrongly,False,,,refused (insufficient_evidence)
+V2,R-GOOGL-REGULATION-2024,narrative,correct,True,,1,section hit at rank 1
+V2,R-GS-SEGMENTS-2024,narrative,correct,True,,1,section hit at rank 1
+V2,R-JPM-CREDITRISK-2024,narrative,error,False,,,llm_rate_limited
+V2,R-NFLX-CONTENT-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1a_risk_factors', 'item_7_mda']; cited ['fs_income_stmt', 'fs_income_stmt', 'fs_income_stmt']"
+V2,R-BLK-BUSINESS-2023,narrative,correct,True,,1,section hit at rank 1
+V2,R-AAPL-RISK-GENERIC,narrative,correct,True,,1,section hit at rank 1
+V2,R-AMZN-AWS-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1_business', 'item_7_mda']; cited ['fs_cash_flow']"
+V2,R-MSFT-AI-2026,narrative,correct,True,,1,section hit at rank 1
+V2,R-GS-MARKETRISK-2024,narrative,error,False,,,llm_rate_limited
+V2,R-JPM-CAPITAL-2025,narrative,correct,True,,1,section hit at rank 1
+V2,R-NFLX-COMPETE-2025,narrative,correct,True,,1,section hit at rank 1
+V2,X-COMPANY-NOT-FOUND,abstain,wrong_abstain_reason,False,,,"refused with period_not_covered, expected company_not_found"
+V2,X-INSUFFICIENT-EVIDENCE,abstain,correct_abstain,True,,,refused with insufficient_evidence
+V2,X-PERIOD-NOT-COVERED,abstain,wrong_abstain_reason,False,,,"refused with metric_not_found_in_filing, expected period_not_covered"
+V2,X-FUTURE-PERIOD,abstain,wrong_abstain_reason,False,,,"refused with insufficient_evidence, expected future_period"
+V2,X-METRIC-NOT-SUPPORTED,abstain,answered_wrongly,False,,,answered something that should have been refused (metric_not_supported)
+V2,X-METRIC-NOT-IN-FILING,abstain,correct_abstain,True,,,refused with metric_not_found_in_filing
+V2,X-UNSUPPORTED-PERIOD-TYPE,abstain,wrong_abstain_reason,False,,,"refused with insufficient_evidence, expected unsupported_period_type"
+V2,X-OUT-OF-SCOPE-ADVICE,abstain,wrong_abstain_reason,False,,,"refused with insufficient_evidence, expected out_of_scope"
+V2,X-OUT-OF-SCOPE-PRICE,abstain,wrong_abstain_reason,False,,,"refused with insufficient_evidence, expected out_of_scope"
+V2,X-NO-ENTITY,abstain,wrong_abstain_reason,False,,,"refused with None, expected company_not_found"

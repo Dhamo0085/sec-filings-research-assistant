@@ -5,6 +5,46 @@ Newest first.
 
 ---
 
+## 2026-10-03 — D4-06 The owner signed the gold verification sheet; it is applied at P4-15
+
+**The sign-off.** The owner signed `reports/phase4/gold_verification_signed.csv`
+on 2026-10-03: **all 37 rows OK**, covering **25 of 25 core rows** and 12 of 12
+extra by the assisted sheet's own `priority` column. The owner opened the five
+seeded spot-check filings on EDGAR and checked each against its snippet. The
+file is `gold_verification_assisted.csv` with the `verdict` column filled and
+nothing else touched — 37 differing cells, all in `verdict`, verified by
+comparison before the commit. sha256
+`ae80f98beac71f7249bec9a28791ca2f5cae3fa29e69b6b1c3ba1af45ebfc571`.
+
+**How it was read.** Only `gold_id`, `verdict` and `owner_note`, with rows
+matched by `gold_id` — the owner's instruction, and what D29 requires of a
+sheet Claude Code must not author any part of. Checks run first, all by
+`gold_id`: 37 rows, no duplicate id, the id set and row order identical to the
+assisted sheet, every id present in `eval/gold/gold_v1.jsonl`, no blank
+verdict.
+
+**Context for the timing.** The sheet arrived in the working tree during a
+session, unannounced and with `verified_by` still reading `companyfacts` on
+every row. Under D29's tiers (`owner` > `companyfacts` > `auto`) a filled
+`verdict` column is not by itself a signature, so it was not counted, not
+committed and not used to lift "provisional" from anything until the owner
+confirmed it in writing. A file appearing on disk is not an owner decision.
+
+**Options for applying it.** (a) Set `verified_by=owner` on the OK rows now.
+(b) Apply it at P4-15, with the rest of the finalization.
+
+**Choice.** (b), as the owner directed. Numeric and computed items are
+therefore **not** described as owner-verified before P4-15 runs, and narrative
+items stay provisional regardless — they rest on the P4-14 rating sheet, which
+is a separate gate the owner has not reached. Two gates, two artifacts, and
+neither one lifts the other's caveat.
+
+**What would change it.** Nothing about this sheet. A later gold set would need
+its own sheet and its own signature; a signature does not transfer across a
+change to the items it was given for.
+
+---
+
 ## 2026-10-03 — D4-05 The expanded narrative set is a separate retrieval file, not more gold
 
 **Context.** P4-13 expands the narrative items from 15 to at least 40 so D27's

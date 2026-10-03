@@ -480,3 +480,44 @@ def test_the_pinned_section_titles_match_the_parser():
     for title, section_id in _FALLBACK_SECTION_TITLES.items():
         if title in parser_titles:
             assert parser_titles[title] == section_id, title
+
+
+def test_a_date_is_not_read_as_a_quantity():
+    """Every answer carries "year ended 2024-09-28"; its parts are not figures.
+
+    The first live run reported "nearest number stated was '-09'" for a ratio
+    question — a detail string that says nothing true about the answer and
+    sends a failure analysis looking in the wrong place.
+    """
+    found = numerals_in(
+        "Apple Inc.'s total liabilities for fiscal 2024 "
+        "(year ended 2024-09-28) was $308.03 billion ($308,030,000,000). [1]"
+    )
+    assert Decimal("-9") not in [n.value for n in found]
+    assert Decimal("308030000000") in [n.value for n in found]
+
+
+def test_an_abstain_item_can_accept_a_clarification_when_it_says_so():
+    """"What was the revenue in fiscal 2024?" names no company.
+
+    Asking which one is better than refusing, and spec 6.5 has a clarification
+    path for exactly that. The item opts in explicitly, because for most
+    abstain items a clarification would be the wrong outcome — which the second
+    half of this test pins.
+    """
+    base = {
+        "id": "X-NO-ENTITY", "category": "abstain",
+        "question": "What was the revenue in fiscal 2024?", "as_of": None,
+        "source": {}, "verified_by": "auto",
+    }
+    view = OutcomeView(status="clarification_needed",
+                       answer="Which company did you mean?")
+
+    allowed = dict(base, expected={"type": "abstain",
+                                   "abstain_reason": "company_not_found",
+                                   "allow_clarification": True})
+    assert score_item(allowed, view).verdict == "correct_abstain"
+
+    not_allowed = dict(base, expected={"type": "abstain",
+                                       "abstain_reason": "company_not_found"})
+    assert score_item(not_allowed, view).verdict == "wrong_abstain_reason"

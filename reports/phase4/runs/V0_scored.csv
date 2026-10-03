@@ -1,0 +1,81 @@
+variant,item_id,category,verdict,passed,flags,section_rank,detail
+V0,N-AAPL-REVENUE-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$391,035\u202fmillion'"
+V0,N-AAPL-EPSDILUTED-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,matched '$6.08'
+V0,N-MSFT-NETINCOME-2024,numeric,wrong_value,False,citation_invalid,,"nearest number stated was '$88.3\u202fbillion' (88300000000.0), expected 88136000000"
+V0,N-MSFT-REVENUE-2026,numeric,wrong_value,False,,,"nearest number stated was '10' (10), expected 331839000000"
+V0,N-MSFT-GROSSPROFIT-2024,numeric,wrong_value,False,,,"nearest number stated was '10' (10), expected 171008000000"
+V0,N-GOOGL-RDEXPENSE-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$49,326\u202fmillion'"
+V0,N-AMZN-OPERATINGCASHFLOW-2024,numeric,wrong_value,False,,,"nearest number stated was '10' (10), expected 115877000000"
+V0,N-AMZN-CAPEX-2024,numeric,wrong_value,False,,,"nearest number stated was '10' (10), expected 82999000000"
+V0,N-AMZN-TOTALASSETS-2023,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$527,854\u202fmillion'"
+V0,N-JPM-REVENUE-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$177,556\u202fmillion'"
+V0,N-JPM-NETINCOME-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$58,471\u202fmillion'"
+V0,N-BAC-REVENUE-2024,numeric,not_run,False,,,
+V0,N-GS-REVENUE-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,matched '$53.51\u202fbillion'
+V0,N-GS-TOTALASSETS-2024,numeric,wrong_value,False,citation_invalid,,"nearest number stated was '$34.2\u202fbillion)' (34200000000.0), expected 1675972000000"
+V0,N-WFC-REVENUE-2024,numeric,not_run,False,,,
+V0,N-WFC-STOCKHOLDERSEQUITY-2024,numeric,not_run,False,,,
+V0,N-BAC-TOTALLIABILITIES-2024,numeric,not_run,False,,,
+V0,N-BLK-REVENUE-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$20,407\u202fmillion'"
+V0,N-BLK-REVENUE-2023,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$17,859\u202fmillion'"
+V0,N-STT-NETINCOME-2024,numeric,not_run,False,,,
+V0,N-TROW-REVENUE-2024,numeric,not_run,False,,,
+V0,N-IVZ-CASHANDEQUIVALENTS-2024,numeric,not_run,False,,,
+V0,N-NFLX-REVENUE-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$39,001\u202fmillion'"
+V0,N-NFLX-OPERATINGINCOME-2024,numeric,correct_text_only,True,"citation_invalid,uncited_number",,matched '$10.4\u202fbillion'
+V0,N-NFLX-NETINCOME-2023,numeric,scale_error,False,citation_invalid,,"'$5,407,990\u202fmillion' is 10^3 times the expected 5407990000"
+V0,C-AAPL-OPERATINGMARGIN-2024,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 31.51"
+V0,C-AAPL-NETMARGIN-2024,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 23.97"
+V0,C-MSFT-GROSSMARGIN-2024,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 69.76"
+V0,C-NFLX-OPERATINGMARGIN-2024,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 26.71"
+V0,C-AAPL-REVENUEGROWTH-2024,computed,correct,True,"citation_invalid,uncited_number",,matched '2'
+V0,C-JPM-NETINCOMEGROWTH-2024,computed,wrong_value,False,citation_invalid,,"nearest number stated was '19' (19), expected 18.00"
+V0,C-NFLX-REVENUEGROWTH-2024,computed,wrong_value,False,citation_invalid,,"nearest number stated was '1' (1), expected 15.65"
+V0,C-MSFT-REVENUECAGR-2025,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 12.42"
+V0,C-GOOGL-REVENUECAGR-2025,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 12.51"
+V0,C-AAPL-DEBTEQUITY-2024,computed,correct,True,"citation_invalid,uncited_number",,matched '5.4'
+V0,C-AMZN-FCF-2024,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 32878000000"
+V0,C-GS-NETMARGIN-2024,computed,wrong_value,False,,,"nearest number stated was '10' (10), expected 26.68"
+V0,M-AAPL-MSFT-REVENUE-2024,compare_trend,partial_multi,False,citation_invalid,,1 of 2 correct; MSFT FY2024: wrong_entity
+V0,M-JPM-BAC-NETINCOME-2024,compare_trend,not_run,False,,,
+V0,M-NFLX-GOOGL-REVENUE-2024,compare_trend,partial_multi,False,citation_invalid,,1 of 2 correct; NFLX FY2024: scale_error
+V0,M-BLK-TROW-REVENUE-2024,compare_trend,not_run,False,,,
+V0,M-GS-MSFT-TOTALASSETS-2024,compare_trend,wrong_value,False,citation_invalid,,GS FY2024: wrong_value; MSFT FY2024: wrong_value
+V0,M-AAPL-REVENUE-TREND-2023-2025,compare_trend,partial_multi,False,citation_invalid,,2 of 3 correct; AAPL FY2024: wrong_entity
+V0,M-NFLX-REVENUE-TREND-2023-2025,compare_trend,partial_multi,False,citation_invalid,,2 of 3 correct; NFLX FY2024: wrong_entity
+V0,M-JPM-NETINCOME-TREND-2022-2024,compare_trend,not_run,False,,,
+V0,M-MSFT-OPERATINGINCOME-TREND-2024-2026,compare_trend,wrong_value,False,,,MSFT FY2024: wrong_value; MSFT FY2025: wrong_value; MSFT FY2026: wrong_value
+V0,M-WFC-REVENUE-TREND-2023-2025,compare_trend,not_run,False,,,
+V0,A-AAPL-REVENUE-2024-LOOKAHEAD,as_of,answered_wrongly,False,citation_invalid,,answered something that should have been refused (period_not_filed_as_of)
+V0,A-MSFT-NETINCOME-2025-LOOKAHEAD,as_of,answered_wrongly,False,citation_invalid,,answered something that should have been refused (period_not_filed_as_of)
+V0,A-JPM-REVENUE-2024-LOOKAHEAD,as_of,answered_wrongly,False,citation_invalid,,answered something that should have been refused (period_not_filed_as_of)
+V0,A-NFLX-REVENUE-2025-LOOKAHEAD,as_of,answered_wrongly,False,citation_invalid,,answered something that should have been refused (period_not_filed_as_of)
+V0,A-AAPL-REVENUE-2023-ASOF,as_of,correct_text_only,True,"citation_invalid,uncited_number",,matched '$383.3\u202fbillion'
+V0,A-MSFT-NETINCOME-2024-ASOF,as_of,wrong_value,False,citation_invalid,,"nearest number stated was '$88.3\u202fbillion)' (88300000000.0), expected 88136000000"
+V0,A-GS-REVENUE-2024-ASOF,as_of,correct_text_only,True,"citation_invalid,uncited_number",,"matched '$53,512\u202fmillion'"
+V0,A-BLK-REVENUE-2023-ASOF,as_of,wrong_value,False,,,"nearest number stated was '10' (10), expected 17859000000"
+V0,R-AAPL-SUPPLY-2024,narrative,wrong_value,False,,,no citation in the top 5 came from ['item_1a_risk_factors']; cited []
+V0,R-AAPL-CYBER-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1a_risk_factors', 'item_1c_cyber']; cited []"
+V0,R-AMZN-COMPETE-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1_business', 'item_1a_risk_factors']; cited []"
+V0,R-MSFT-SEGMENTS-2025,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1_business', 'item_7_mda']; cited []"
+V0,R-GOOGL-REGULATION-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1a_risk_factors', 'item_3_legal']; cited []"
+V0,R-GS-SEGMENTS-2024,narrative,correct,True,citation_invalid,1,section hit at rank 1
+V0,R-JPM-CREDITRISK-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1a_risk_factors', 'item_7_mda']; cited []"
+V0,R-NFLX-CONTENT-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1a_risk_factors', 'item_7_mda']; cited []"
+V0,R-BLK-BUSINESS-2023,narrative,correct,True,citation_invalid,1,section hit at rank 1
+V0,R-AAPL-RISK-GENERIC,narrative,correct,True,citation_invalid,1,section hit at rank 1
+V0,R-AMZN-AWS-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1_business', 'item_7_mda']; cited []"
+V0,R-MSFT-AI-2026,narrative,correct,True,citation_invalid,1,section hit at rank 1
+V0,R-GS-MARKETRISK-2024,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_7_mda', 'item_7a_market_risk']; cited []"
+V0,R-JPM-CAPITAL-2025,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1_business', 'item_7_mda']; cited []"
+V0,R-NFLX-COMPETE-2025,narrative,wrong_value,False,,,"no citation in the top 5 came from ['item_1_business', 'item_1a_risk_factors']; cited []"
+V0,X-COMPANY-NOT-FOUND,abstain,answered_wrongly,False,,,answered something that should have been refused (company_not_found)
+V0,X-INSUFFICIENT-EVIDENCE,abstain,answered_wrongly,False,,,answered something that should have been refused (insufficient_evidence)
+V0,X-PERIOD-NOT-COVERED,abstain,answered_wrongly,False,,,answered something that should have been refused (period_not_covered)
+V0,X-FUTURE-PERIOD,abstain,answered_wrongly,False,,,answered something that should have been refused (future_period)
+V0,X-METRIC-NOT-SUPPORTED,abstain,answered_wrongly,False,citation_invalid,,answered something that should have been refused (metric_not_supported)
+V0,X-METRIC-NOT-IN-FILING,abstain,answered_wrongly,False,,,answered something that should have been refused (metric_not_found_in_filing)
+V0,X-UNSUPPORTED-PERIOD-TYPE,abstain,answered_wrongly,False,citation_invalid,,answered something that should have been refused (unsupported_period_type)
+V0,X-OUT-OF-SCOPE-ADVICE,abstain,answered_wrongly,False,,,answered something that should have been refused (out_of_scope)
+V0,X-OUT-OF-SCOPE-PRICE,abstain,answered_wrongly,False,,,answered something that should have been refused (out_of_scope)
+V0,X-NO-ENTITY,abstain,answered_wrongly,False,,,answered something that should have been refused (company_not_found)

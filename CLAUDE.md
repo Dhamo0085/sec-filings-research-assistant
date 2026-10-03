@@ -19,7 +19,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
 | 1 | Foundation, hardening, catalog, true baseline | COMPLETE (PR #2 merged; report in `reports/phase1/REPORT.md`; baseline partial 9 of 25, D21) |
 | 2 | Facts engine (extract, store, resolve, calculate) | COMPLETE (`reports/phase2/REPORT.md`). PR #3 and PR #4 both merged into `main` (`4013664`). All T2 tests and T2-10 thresholds met; spot-check 20/20 OK |
 | 3 | Routing, answers, `as_of`, abstention, UI | COMPLETE — awaiting owner approval (`reports/phase3/REPORT.md`). All T3 tests pass; smoke eval 30/30; D3-00 documents the section-boundary limit. P3-10 (OPTIONAL) not built. Owner UI walkthrough outstanding |
-| 4 | Evaluation, ablations, documentation | NOT STARTED |
+| 4 | Evaluation, ablations, documentation | COMPLETE — awaiting owner approval (`reports/phase4/REPORT.md`). V3 60/69 (87.0%) vs V0 19/69 (27.5%) on the D21 paired subset; 0 look-ahead violations in V3, 4 in V2. P4-00 adopted with the Item 7 miss recorded (D4-00). **Outstanding owner gates: sign `gold_verification.csv`, rate 15 narrative answers.** P4-00 step 4 (overnight re-index) deferred by the owner |
 | 5 | Productization and release | NOT STARTED |
 
 ## Standing rules

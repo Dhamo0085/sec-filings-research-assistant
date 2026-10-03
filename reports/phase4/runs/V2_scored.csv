@@ -33,7 +33,7 @@ V2,C-JPM-NETINCOMEGROWTH-2024,computed,correct,True,,,matched '18.00%'
 V2,C-NFLX-REVENUEGROWTH-2024,computed,correct,True,,,matched '15.65%'
 V2,C-MSFT-REVENUECAGR-2025,computed,correct,True,,,matched '12.42%'
 V2,C-GOOGL-REVENUECAGR-2025,computed,correct,True,,,matched '12.51%'
-V2,C-AAPL-DEBTEQUITY-2024,computed,wrong_value,False,,,"nearest number stated was '-09' (-9), expected 5.4088"
+V2,C-AAPL-DEBTEQUITY-2024,computed,wrong_value,False,,,"nearest number stated was '2024' (2024), expected 5.4088"
 V2,C-AMZN-FCF-2024,computed,wrong_value,False,,,"nearest number stated was '2024' (2024), expected 32878000000"
 V2,C-GS-NETMARGIN-2024,computed,correct,True,,,matched '26.68%'
 V2,M-AAPL-MSFT-REVENUE-2024,compare_trend,correct,True,,,all 2 values present and attributed
@@ -78,4 +78,4 @@ V2,X-METRIC-NOT-IN-FILING,abstain,correct_abstain,True,,,refused with metric_not
 V2,X-UNSUPPORTED-PERIOD-TYPE,abstain,wrong_abstain_reason,False,,,"refused with insufficient_evidence, expected unsupported_period_type"
 V2,X-OUT-OF-SCOPE-ADVICE,abstain,wrong_abstain_reason,False,,,"refused with insufficient_evidence, expected out_of_scope"
 V2,X-OUT-OF-SCOPE-PRICE,abstain,wrong_abstain_reason,False,,,"refused with insufficient_evidence, expected out_of_scope"
-V2,X-NO-ENTITY,abstain,wrong_abstain_reason,False,,,"refused with None, expected company_not_found"
+V2,X-NO-ENTITY,abstain,correct_abstain,True,,,"asked for clarification, which this item allows"

@@ -124,6 +124,13 @@ MAGNITUDES: Dict[str, Decimal] = {
 #: it can be tested at the position a number match started.
 _CITATION_MARKER_RE = re.compile(r"\d{1,3}\]")
 
+#: An ISO date. Every answer carries one ("year ended 2024-09-28"), and its
+#: parts are not quantities: the first live run reported "nearest number stated
+#: was '-09'" for a question about a ratio, which says nothing true about the
+#: answer. Matched from the start of the date so a candidate beginning anywhere
+#: inside one can be rejected.
+_ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
 _NUMBER_RE = re.compile(
     r"""
     (?P<cur_outer>[$€£])?\s*            # "$(10,959)" — the symbol can sit
@@ -160,6 +167,16 @@ class Numeral:
         return abs(self.value - expected) <= self.displayed_step / 2
 
 
+def _inside_a_date(text: str, position: int) -> bool:
+    """Is the number starting at ``position`` part of an ISO date?"""
+    window = text[max(0, position - 8): position + 10]
+    for match in _ISO_DATE_RE.finditer(window):
+        start = max(0, position - 8) + match.start()
+        if start <= position < start + len(match.group(0)):
+            return True
+    return False
+
+
 def _displayed_step(digits: str, multiplier: Decimal) -> Decimal:
     """The size of the last digit the answer actually showed."""
     _, _, fraction = digits.partition(".")
@@ -182,6 +199,8 @@ def numerals_in(text: str) -> List[Numeral]:
         # 115,877,000,000, which hid an actual routing defect behind a label
         # that pointed at the extractor.
         if _CITATION_MARKER_RE.match(text, match.start()):
+            continue
+        if _inside_a_date(text, match.start()):
             continue
         digits = match.group("digits").replace(",", "")
         try:
@@ -644,6 +663,16 @@ def score_abstain(item: Mapping, view: OutcomeView) -> Scored:
         return Scored(item["id"], item["category"], "answered_wrongly",
                       f"answered something that should have been refused "
                       f"({expected_reason})", frozenset(flags))
+
+    # Some questions are correctly met with a clarification rather than a
+    # refusal: "What was the revenue in fiscal 2024?" names no company, and
+    # asking which one is better behaviour than refusing. The item says so
+    # explicitly rather than the scorer guessing, because for most abstain
+    # items a clarification WOULD be wrong.
+    if item["expected"].get("allow_clarification") and view.status == "clarification_needed":
+        return Scored(item["id"], item["category"], "correct_abstain",
+                      "asked for clarification, which this item allows",
+                      frozenset(flags))
 
     if refusal_states_a_figure(view.answer):
         flags.add("abstention_with_number")

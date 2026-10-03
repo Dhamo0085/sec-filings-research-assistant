@@ -2,11 +2,11 @@
   "variant": "V3",
   "scores": {
     "n": 80,
-    "passed": 68,
-    "rate": 0.85,
+    "passed": 71,
+    "rate": 0.8875,
     "ci95": [
-      0.7558657249889396,
-      0.9120604596258579
+      0.7998158913432244,
+      0.9396738130517298
     ],
     "by_category": {
       "numeric": {
@@ -62,30 +62,30 @@
       },
       "narrative": {
         "n": 15,
-        "passed": 8,
+        "passed": 10,
         "verdicts": {
-          "correct": 8,
+          "correct": 10,
           "abstained_wrongly": 1,
-          "error": 4,
+          "error": 2,
           "wrong_value": 2
         },
-        "rate": 0.5333333333333333,
+        "rate": 0.6666666666666666,
         "ci95": [
-          0.3011663015105079,
-          0.7519077474025355
+          0.4171312515121297,
+          0.8482389930530876
         ]
       },
       "abstain": {
         "n": 10,
-        "passed": 8,
+        "passed": 9,
         "verdicts": {
-          "correct_abstain": 8,
-          "wrong_abstain_reason": 2
+          "correct_abstain": 9,
+          "wrong_abstain_reason": 1
         },
-        "rate": 0.8,
+        "rate": 0.9,
         "ci95": [
-          0.49015684672072335,
-          0.9433190520193067
+          0.5958436145024278,
+          0.9821242504842788
         ]
       }
     },
@@ -95,16 +95,16 @@
     "by_role": {
       "generator": {
         "calls": 16,
-        "tokens": 856066,
-        "latency_s": 22.0074,
-        "cached": 1
+        "tokens": 1057394,
+        "latency_s": 22.0947,
+        "cached": 3
       }
     },
     "total_calls": 16,
-    "total_tokens": 856066,
+    "total_tokens": 1057394,
     "latency_p50": 0.03,
-    "latency_p95": 8.5611,
-    "latency_max": 13.5992,
+    "latency_p95": 9.0162,
+    "latency_max": 16.162,
     "cost_usd": 0.0,
     "cost_note": "free-tier providers only (D18); no per-token price applies"
   },
@@ -149,11 +149,11 @@
     },
     "scores": {
       "n": 69,
-      "passed": 57,
-      "rate": 0.8260869565217391,
+      "passed": 60,
+      "rate": 0.8695652173913043,
       "ci95": [
-        0.7201615375755637,
-        0.89761731406965
+        0.7703148508859572,
+        0.9298345143119515
       ],
       "by_category": {
         "numeric": {
@@ -209,30 +209,30 @@
         },
         "narrative": {
           "n": 15,
-          "passed": 8,
+          "passed": 10,
           "verdicts": {
-            "correct": 8,
+            "correct": 10,
             "abstained_wrongly": 1,
-            "error": 4,
+            "error": 2,
             "wrong_value": 2
           },
-          "rate": 0.5333333333333333,
+          "rate": 0.6666666666666666,
           "ci95": [
-            0.3011663015105079,
-            0.7519077474025355
+            0.4171312515121297,
+            0.8482389930530876
           ]
         },
         "abstain": {
           "n": 10,
-          "passed": 8,
+          "passed": 9,
           "verdicts": {
-            "correct_abstain": 8,
-            "wrong_abstain_reason": 2
+            "correct_abstain": 9,
+            "wrong_abstain_reason": 1
           },
-          "rate": 0.8,
+          "rate": 0.9,
           "ci95": [
-            0.49015684672072335,
-            0.9433190520193067
+            0.5958436145024278,
+            0.9821242504842788
           ]
         }
       },

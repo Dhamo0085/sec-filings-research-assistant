@@ -2,7 +2,8 @@
 
 Seeded from `reports/phase1/REPORT.md` and the Phase 0/Step 0 reports at the end of Phase 1 (2026-10-02);
 carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure, at P3-00, and at the
-Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 on 2026-10-03 against spec v1.6.
+Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at the Phase 4 gate
+(2026-10-03) against spec v1.6.
 **Read this at the start of every session and after any `/compact`. Update it at every commit batch, at every gate, and *before* running `/compact`.** If this file and the code disagree, trust the code, then fix this file. Facts here that you have not re-verified are marked (seed).
 
 ## 1. Where we are
@@ -13,11 +14,53 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 on 2026-10-03 
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
-| Phase 4 | IN PROGRESS on `phase-4-evaluation`, spec v1.6. P4-00 measured and committed (`63516cb`); awaiting the owner's decision on D25's exit rule and on the overnight re-index before P4-01 |
-| Current task | P4-01 (gold set). P4-00 closed at the owner gate on 2026-10-03: rewrite **adopted** with the Item 7 miss recorded, audit thresholds **unchanged**, overnight re-index **deferred** until P4-01–P4-04 are built |
-| Tests | `make test` → **1,060 passed, 0 xfailed, 0 skipped**; ruff clean. Artifacts now land in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+| Phase 4 | COMPLETE on `phase-4-evaluation`, awaiting owner approval and merge (`reports/phase4/REPORT.md`). All 10 MUST tasks done |
+| Current task | none — awaiting the owner's two gates (sign `reports/phase4/gold_verification.csv`; rate 15 narrative answers), the PR merge, and "Approved: start Phase 5" |
+| Tests | `make test` → **1,172 passed, 0 failed, 0 skipped**; ruff clean; `./scripts/ci_local.sh` green. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+
+## 1b. Phase 3 facts (measured, 2026-10-02)
+- **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.
+- **G1–G4 are validators on `answering/outcome.py`, not conventions.** An Outcome with an untraceable number, a citation newer than `as_of`, a reasonless or citation-carrying refusal, or an outage shaped like a clarification raises on construction. Citation indices must be exactly 1..n (kills K1).
+- **Routing costs nothing.** All 30 smoke questions route with **zero** LLM calls (`eval/phase3/smoke.py --dry-run`). In the live run only the 6 narrative questions called a model.
+- **Smoke eval (P3-11): 30/30 expected status.** 0 look-ahead violations, 0 answered rows missing a fact citation or definition note, 0 refusals carrying a citation or figure. Latency p50 0.03 s (facts, no model) / p95 7.59 s (narrative generation). Transcripts: `reports/phase3/smoke/`.
+- **Section quality (P3-00, D3-00): 238 of 429 audited slices usable; Item 1A missing from 17 of 39 filings.** Three candidate parser fixes ablated over 13 filings moved the corpus +1 of 143, so the parser is **unchanged** (byte-identical to `main`) and the two fixable classes are pinned as `xfail(strict=True)` in `tests/unit/test_parser_sections.py`.
+- **Indexed collections: 25** (BLK_2023 added — 1,037 chunks, 286.5 s, 3.62 chunks/s). **`catalog.collection_name` is now populated for all 25**; before P3-06 it was null on all 483 rows, which would have left the text path's `as_of` scope empty on real data. Re-run `python -m ingestion.catalog_ingest --link` after any indexing.
+- **D24 proved**: BLK's filing list spans CIKs [1364742, 2012383]; with `as_of=2025-01-01` the BLK scope is `[BLK_2023]` alone.
+- Coverage: facts 88.8%, catalog 95.5%, llm 90.5%, answering 97.2%, routing/entities 95.5%, routing/periods 98.8%; lowest new file 73.6%.
 
 ## 1c. Phase 4 facts (measured, 2026-10-03)
+- **Variant results, D21 paired subset (69 of 80 items)**: V3 **60/69 (87.0%, CI 77.0–93.0)** ·
+  V2 50/69 (72.5%) · V1 41/69 (59.4%) · V0 **19/69 (27.5%)**. Look-ahead violations: **V3 = 0, V2 = 4**.
+  Numeric: V3 17/18, V1 12/18, V0 11/18. Abstain: V3 9/10, **V0 0/10** (v1 cannot refuse).
+  **36 of V0's answers carry citations with no accession and no filing date.**
+- **The 11 excluded items** name BAC, IVZ, STT, TROW or WFC filings, or JPM FY2022 — in the facts
+  store, not in the text index.
+- **Rate limits**: 13 V1 items and 2 each in V2/V3 remain `error` after a paced re-run
+  (`--retry-rate-limited --sleep 25`). V1's 59.4% is a floor.
+- **Cost/latency**: V3 16 model calls over 80 questions (all narrative; the facts path calls none),
+  p50 **0.03 s**, p95 9.0 s. V1 60 calls, p50 5.2 s. V0's token counts are **not captured** (it runs
+  in a worktree subprocess and v1's client is not instrumented).
+- **Retrieval ablations** (no generation tokens, 15 narrative + 22 numeric): dense-only 12/15,
+  MRR **0.747**, **1.6 s**; the shipped `hybrid_rerank_focus` 12/15, MRR 0.717, **206 s**;
+  `hybrid_rerank` *loses* a hit (11/15). **Parent context off drops number-in-context 95% → 82%**
+  with section hit unchanged. n=15, so the intervals are wide — recorded, not acted on.
+- **`number_in_context` is 95% on every arm**: when the text path gets a number wrong it is almost
+  never because retrieval missed the figure.
+- **P4-00**: usable pairs 245 → **298 of 440**; Item 1 and Item 1A **40/40**; Item 7 25/40 (target 33,
+  miss accepted, D4-00). Both strict `xfail` tests now pass as ordinary tests.
+- **D25 old-vs-new index arm**: both stores hold the same pre-rewrite parse (re-index deferred), and
+  the arms agree — a check on the backup, not a result about the parser. One unexplained difference:
+  `hybrid` MRR 0.578 vs 0.544 on byte-identical content, most likely RRF tie-break order.
+- **Open product defects** (none fixed; P4-07's one cycle was not spent on them): the router does not
+  route "ratio of X to Y" or "A less B" though `facts/calc.py` implements both; "cash flow from
+  operating activities" resolves to `cash_and_equivalents`; `X-PERIOD-NOT-COVERED` refuses with the
+  wrong reason; one over-refusal on MSFT segments.
+- **`eval/mini_eval.py`** is what CI enforces: real gold items, real pipeline, committed fixtures,
+  no network — numeric+computed 9/9, look-ahead 0. The BAC fixture gained `us-gaap:Liabilities` so
+  the 100% threshold did not have to be weakened around a hole in the test data.
+
+
+### P4-00 section-boundary rewrite, in detail
 - **P4-00 section-boundary rewrite (D25 / D4-00)**: `ingestion/parser.py` now scores every candidate
   heading and picks the maximum-weight subsequence with strictly increasing line AND Item priority,
   instead of "first past a 15 % TOC zone" plus a greedy monotonic filter. Measured offline over all
@@ -41,16 +84,6 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 on 2026-10-03 
   `python scripts/audit_sections.py --parsed-dir /tmp/after --out-dir /tmp/after_audit` →
   `python scripts/compare_section_audits.py reports/phase4/section_audit_before.json /tmp/after_audit/section_audit.json`.
   The re-parse is offline, makes zero LLM calls, and takes ~3 minutes for 40 filings.
-
-## 1b. Phase 3 facts (measured, 2026-10-02)
-- **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.
-- **G1–G4 are validators on `answering/outcome.py`, not conventions.** An Outcome with an untraceable number, a citation newer than `as_of`, a reasonless or citation-carrying refusal, or an outage shaped like a clarification raises on construction. Citation indices must be exactly 1..n (kills K1).
-- **Routing costs nothing.** All 30 smoke questions route with **zero** LLM calls (`eval/phase3/smoke.py --dry-run`). In the live run only the 6 narrative questions called a model.
-- **Smoke eval (P3-11): 30/30 expected status.** 0 look-ahead violations, 0 answered rows missing a fact citation or definition note, 0 refusals carrying a citation or figure. Latency p50 0.03 s (facts, no model) / p95 7.59 s (narrative generation). Transcripts: `reports/phase3/smoke/`.
-- **Section quality (P3-00, D3-00): 238 of 429 audited slices usable; Item 1A missing from 17 of 39 filings.** Three candidate parser fixes ablated over 13 filings moved the corpus +1 of 143, so the parser is **unchanged** (byte-identical to `main`) and the two fixable classes are pinned as `xfail(strict=True)` in `tests/unit/test_parser_sections.py`.
-- **Indexed collections: 25** (BLK_2023 added — 1,037 chunks, 286.5 s, 3.62 chunks/s). **`catalog.collection_name` is now populated for all 25**; before P3-06 it was null on all 483 rows, which would have left the text path's `as_of` scope empty on real data. Re-run `python -m ingestion.catalog_ingest --link` after any indexing.
-- **D24 proved**: BLK's filing list spans CIKs [1364742, 2012383]; with `as_of=2025-01-01` the BLK scope is `[BLK_2023]` alone.
-- Coverage: facts 88.8%, catalog 95.5%, llm 90.5%, answering 97.2%, routing/entities 95.5%, routing/periods 98.8%; lowest new file 73.6%.
 
 ## 1a. Phase 2 facts (measured, 2026-10-02)
 - **Facts store built**: `data/derived/facts.sqlite`, **29,002 facts**, 94 submissions, 18 tickers (13 bundled + the 5 cross-check-only filers), 3,492 distinct concepts, newest 5 originals per ticker plus amendments. `make facts` is idempotent: a second run reports all 94 `unchanged` and `--rebuild` reproduces the byte-identical content hash (T2-08) — re-verified after the D22 change.
@@ -109,17 +142,45 @@ Closed at P2-13: P2-00(e) indexing (all 8 core tickers), T2-10's exact threshold
 
 Closed in Phase 3: the section-quality audit (now measured and decided as D3-00), the SEC error-page cache guard, and the BLK FY2023 text-index hole (D24, now indexed).
 
-Carried into Phase 4:
-1. **v1's section boundaries are broken for the text path too, and are staying that way in Phase 3 (D3-00).** Measured by `scripts/audit_sections.py` over 39 filings: 238 of 429 (filing, audited section) pairs usable, 122 missing, 24 heading-only, 45 oversized. **Item 1A Risk Factors is missing from 17 of 39 filings**, including AMZN, GS, JPM and NFLX; Item 3 Legal is usable in 3. Three candidate parser fixes were ablated and moved the corpus by +1 of 143 pairs, so the limit is documented instead (full reasoning and the ablation table in D3-00; raw counts in `reports/phase3/section_audit_ablation.json`). The two fixable defect classes are pinned as `xfail(strict=True)` in `tests/unit/test_parser_sections.py`, so a future fix cannot land silently. **Consequence for P3-05: a narrative citation names the filing and the section title only — nothing user-visible may assert that a section slice is complete (D23).**
-2. **Follow-up questions no longer resolve.** `/chat` used to prepend conversation history to the question; with a rules-first router that turned a repeated question into a trend over every year the previous answer named. History now goes to the text generator only. A deterministic follow-up rewriter is proposed in the Phase 3 report section 9.
-3. **Text coverage is far narrower than facts coverage**: 25 indexed collections against 483 catalogued filings. WFC, STT, TROW and IVZ have facts and **no** indexed text, so they answer numbers and refuse narrative (the refusal says which capability is missing). Four tickers x 3 years is about one overnight run at 3.62 chunks/s.
-4. `.cache/company_tickers.json` still holds the SEC error page on disk. Nothing reads it (v1 uses `data/company_tickers.json`, which is valid) and both SEC fetchers now refuse to write or trust such a page (`ingestion/sec_cache.py`), so it is inert — but the owner may delete it.
-5. **Four v1 modules are off the answer path but kept**: `routing/classifier.py`, `routing/resolver.py`, `generation/generator.py`, `generation/synthesizer.py`. `eval/phase0/run_baseline.py` patches into them and the baseline must stay reproducible (D21). Propose deleting in Phase 5.
-4. Phase 0 scorer mislabels passing numeric answers `retrieval_found_llm_misread` (rewritten in P4-03).
-5. Runner instruments only the generator; P4-04 must instrument every LLM role.
-6. `llm/__init__.py` coverage 50% (shim); ignore unless it grows.
-7. Rate limiter is per-process, in memory (fine for local-first).
-8. The old project's handle/repo name belongs in the gitignored `.hygiene_local` only, never in a committed file.
+Closed in Phase 4: the section-boundary defects (rewritten in P4-00; both strict `xfail` tests now
+pass — D3-00 is superseded by D4-00), the Phase 0 scorer (replaced by `eval/scorers.py`), and
+generator-only instrumentation (`RecordingLLM` records every role).
+
+Carried into Phase 5:
+1. **Two owner gates are outstanding and every headline figure is provisional until they close**:
+   sign `reports/phase4/gold_verification.csv` (37 rows, 25 core), and rate 15 sampled narrative
+   answers. A rating-sheet generator does not exist yet — proposed in the Phase 4 report section 9.
+2. **The overnight re-index (P4-00 step 4) is deferred by the owner.** Until it runs, `data/parsed/`,
+   `data/chunks/` and `data/qdrant/` hold the **pre-rewrite** parse, so every narrative number in
+   Phase 4 describes the old parser and D25's old-vs-new comparison cannot be made. It also closes
+   O-3: WFC, STT, TROW and IVZ would gain text coverage.
+3. **Open product defects, none fixed** (P4-07's one fix-and-rerun cycle was not spent; each is 1–2
+   items of 80): the router does not route "ratio of X to Y" or "A less B" although `facts/calc.py`
+   implements both; "cash flow from operating activities" resolves to `cash_and_equivalents`
+   (`wrong_metric`); `X-PERIOD-NOT-COVERED` refuses with `metric_not_found_in_filing`; and MSFT
+   segments is an over-refusal. Defects 1 and 2 are the right first work for Phase 5.
+4. **Free-tier limits bound what was measured**: 13 V1 items and 2 each in V2/V3 are still `error`
+   after a paced re-run. V1's 59.4% is a floor, not its capability.
+5. **The ablation says the cross-encoder earns nothing** (12/15 → 11/15 section hit, 200 s) and that
+   dense-only beats the shipped default on MRR. n=15 narrative items, so the intervals are too wide
+   to act on — a larger narrative set is proposed before touching the pipeline.
+6. **Text coverage is still far narrower than facts coverage**: 25 indexed collections against 483
+   catalogued filings. 11 of 80 gold items are outside the D21 paired subset for this reason.
+7. **V0's token accounting is absent**: it runs as a worktree subprocess and v1's client is not
+   instrumented. Its latencies are comparable, its token counts are not available.
+8. **Four v1 modules are off the answer path but kept**: `routing/classifier.py`,
+   `routing/resolver.py`, `generation/generator.py`, `generation/synthesizer.py`. `eval/phase4/run_v0.py`
+   drives them from the `v1-baseline` tag, and the V0 baseline must stay reproducible. P5-12 deletes
+   them after V0 is frozen in `reports/final/`.
+9. **Follow-up questions do not resolve** ("and last year?"). History reaches the text generator as
+   context only, deliberately. P5-10.
+10. `.cache/company_tickers.json` still holds the SEC error page on disk; inert (both fetchers refuse
+    to write or trust such a page) but the owner may delete it.
+11. `llm/__init__.py` coverage 50% (shim); ignore unless it grows.
+12. Rate limiter is per-process, in memory (fine for local-first). Qdrant local mode takes an
+    exclusive lock, so one evaluation at a time — this cost a run once (section 6 defect 7).
+13. The old project's handle/repo name belongs in the gitignored `.hygiene_local` only, never in a
+    committed file.
 
 ## 8. Gotchas that already cost time (do not repeat)
 - **Driving the real UI found four defects no test could.** Every unit and integration test called `ask()` directly, so none of them saw that `/chat` prepended conversation history to the routed question. Walk the UI by hand before claiming a phase is done.
@@ -135,4 +196,7 @@ Carried into Phase 4:
 - A test that asserts a COUNT of extracted facts goes stale the moment extraction changes. Assert the values and the per-concept cardinality instead.
 
 ## 9. Resume commands
-`make setup` · `make test` · `make lint` · `make hygiene` · `python scripts/check_repo_hygiene.py --self-test` · `make catalog` · `make up` · `python scripts/smoke.py --base-url http://localhost:8000` · resumable indexing: `python eval/phase1/index_per_ticker.py --only AAPL,AMZN` (run from the v1 worktree).
+`make test` · `make lint` · `./scripts/ci_local.sh` (the CI mirror) · `python -m eval.mini_eval` ·
+`python -m eval.gold.build_gold --check` · `python -m eval.runner --variant V3 --report-only` ·
+`python -m eval.ablations` · `python eval/phase4/run_v0.py --worktree <v1-baseline checkout>` ·
+`make setup` · `make hygiene` · `python scripts/check_repo_hygiene.py --self-test` · `make catalog` · `make facts` · `make up` · `python scripts/smoke.py --base-url http://localhost:8000` · resumable indexing: `python eval/phase1/index_per_ticker.py --only AAPL,AMZN` (run from the v1 worktree) · section audit: `python scripts/audit_sections.py` then `python scripts/compare_section_audits.py <before> <after>`.

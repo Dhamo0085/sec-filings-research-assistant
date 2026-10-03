@@ -1,0 +1,2146 @@
+{
+  "label": "current index",
+  "qdrant_path": "/Users/dhamo_85/Downloads/Financial_RAG-main/data/qdrant",
+  "k": 5,
+  "n_items": 37,
+  "arms": [
+    {
+      "arm": "bm25",
+      "errors": 0,
+      "narrative_n": 15,
+      "section_hit": 9,
+      "section_hit_rate": 0.6,
+      "mrr": 0.43333333333333335,
+      "numeric_n": 22,
+      "number_in_context": 21,
+      "number_in_context_rate": 0.9545454545454546,
+      "latency_s_total": 5.94
+    },
+    {
+      "arm": "dense",
+      "errors": 0,
+      "narrative_n": 15,
+      "section_hit": 12,
+      "section_hit_rate": 0.8,
+      "mrr": 0.7466666666666666,
+      "numeric_n": 22,
+      "number_in_context": 21,
+      "number_in_context_rate": 0.9545454545454546,
+      "latency_s_total": 1.63
+    },
+    {
+      "arm": "hybrid",
+      "errors": 0,
+      "narrative_n": 15,
+      "section_hit": 12,
+      "section_hit_rate": 0.8,
+      "mrr": 0.5777777777777777,
+      "numeric_n": 22,
+      "number_in_context": 21,
+      "number_in_context_rate": 0.9545454545454546,
+      "latency_s_total": 3.08
+    },
+    {
+      "arm": "hybrid_rerank",
+      "errors": 0,
+      "narrative_n": 15,
+      "section_hit": 11,
+      "section_hit_rate": 0.7333333333333333,
+      "mrr": 0.5555555555555556,
+      "numeric_n": 22,
+      "number_in_context": 21,
+      "number_in_context_rate": 0.9545454545454546,
+      "latency_s_total": 203.19
+    },
+    {
+      "arm": "hybrid_rerank_focus",
+      "errors": 0,
+      "narrative_n": 15,
+      "section_hit": 12,
+      "section_hit_rate": 0.8,
+      "mrr": 0.7166666666666667,
+      "numeric_n": 22,
+      "number_in_context": 21,
+      "number_in_context_rate": 0.9545454545454546,
+      "latency_s_total": 205.93
+    },
+    {
+      "arm": "hybrid_rerank_focus_nopar",
+      "errors": 0,
+      "narrative_n": 15,
+      "section_hit": 12,
+      "section_hit_rate": 0.8,
+      "mrr": 0.7166666666666667,
+      "numeric_n": 22,
+      "number_in_context": 18,
+      "number_in_context_rate": 0.8181818181818182,
+      "latency_s_total": 187.77
+    }
+  ],
+  "per_item": {
+    "bm25": [
+      {
+        "item_id": "N-AAPL-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AAPL-EPSDILUTED-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-MSFT-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-REVENUE-2026",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-GROSSPROFIT-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GOOGL-RDEXPENSE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-OPERATINGCASHFLOW-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-CAPEX-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-TOTALASSETS-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-TOTALASSETS-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-OPERATINGINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-NETINCOME-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-AAPL-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-MSFT-NETINCOME-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-GS-REVENUE-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-BLK-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "R-AAPL-SUPPLY-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-CYBER-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1c_cyber",
+          "item_1c_cyber",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-COMPETE-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-SEGMENTS-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_income_stmt",
+          "fs_balance_sheet",
+          "fs_balance_sheet"
+        ]
+      },
+      {
+        "item_id": "R-GOOGL-REGULATION-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_8_financials",
+          "item_8_financials",
+          "item_8_financials",
+          "item_7_mda",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-GS-SEGMENTS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 3,
+        "sections": [
+          "fs_equity",
+          "fs_equity",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CREDITRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_1_business",
+          "fs_income_stmt",
+          "item_1_business",
+          "fs_income_stmt",
+          "fs_cash_flow"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-CONTENT-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "fs_notes",
+          "fs_notes",
+          "fs_notes",
+          "fs_notes",
+          "fs_notes"
+        ]
+      },
+      {
+        "item_id": "R-BLK-BUSINESS-2023",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_7_mda",
+          "fs_cash_flow",
+          "fs_income_stmt",
+          "item_7_mda",
+          "fs_income_stmt"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-RISK-GENERIC",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 2,
+        "sections": [
+          "fs_notes",
+          "item_1a_risk_factors",
+          "fs_notes",
+          "fs_notes",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-AWS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-AI-2026",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_1c_cyber",
+          "item_1c_cyber",
+          "item_7_mda",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-GS-MARKETRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CAPITAL-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 3,
+        "sections": [
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "item_1_business",
+          "fs_balance_sheet",
+          "fs_balance_sheet"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-COMPETE-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 3,
+        "sections": [
+          "item_9b_other",
+          "item_9b_other",
+          "item_1_business",
+          "item_9b_other",
+          "item_1_business"
+        ]
+      }
+    ],
+    "dense": [
+      {
+        "item_id": "N-AAPL-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AAPL-EPSDILUTED-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-MSFT-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-REVENUE-2026",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-GROSSPROFIT-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GOOGL-RDEXPENSE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-OPERATINGCASHFLOW-2024",
+        "category": "numeric",
+        "n_chunks": 3,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-CAPEX-2024",
+        "category": "numeric",
+        "n_chunks": 4,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-TOTALASSETS-2023",
+        "category": "numeric",
+        "n_chunks": 3,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 3,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 3,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-TOTALASSETS-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-OPERATINGINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-NETINCOME-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-AAPL-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-MSFT-NETINCOME-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-GS-REVENUE-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-BLK-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "R-AAPL-SUPPLY-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-CYBER-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1c_cyber",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1c_cyber",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-COMPETE-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-SEGMENTS-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "fs_income_stmt",
+          "item_1_business",
+          "item_1_business",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-GOOGL-REGULATION-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_8_financials",
+          "item_8_financials",
+          "item_1_business",
+          "item_8_financials"
+        ]
+      },
+      {
+        "item_id": "R-GS-SEGMENTS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "fs_notes",
+          "fs_notes",
+          "fs_notes",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CREDITRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-CONTENT-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_1_business",
+          "fs_income_stmt",
+          "fs_notes",
+          "item_1_business",
+          "fs_income_stmt"
+        ]
+      },
+      {
+        "item_id": "R-BLK-BUSINESS-2023",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 5,
+        "sections": [
+          "fs_balance_sheet",
+          "item_7_mda",
+          "fs_income_stmt",
+          "item_7_mda",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-RISK-GENERIC",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "fs_notes",
+          "item_7a_market_risk"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-AWS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_cash_flow"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-AI-2026",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1_business",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-GS-MARKETRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CAPITAL-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_balance_sheet",
+          "fs_cash_flow",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-COMPETE-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "fs_notes",
+          "fs_notes"
+        ]
+      }
+    ],
+    "hybrid": [
+      {
+        "item_id": "N-AAPL-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AAPL-EPSDILUTED-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-MSFT-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-REVENUE-2026",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-GROSSPROFIT-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GOOGL-RDEXPENSE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-OPERATINGCASHFLOW-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-CAPEX-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-TOTALASSETS-2023",
+        "category": "numeric",
+        "n_chunks": 4,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-TOTALASSETS-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-OPERATINGINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-NETINCOME-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-AAPL-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-MSFT-NETINCOME-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-GS-REVENUE-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-BLK-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "R-AAPL-SUPPLY-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "fs_notes",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-CYBER-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1c_cyber",
+          "fs_notes",
+          "item_1a_risk_factors",
+          "fs_notes",
+          "fs_notes"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-COMPETE-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-SEGMENTS-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "fs_income_stmt",
+          "item_7_mda",
+          "item_7_mda",
+          "fs_balance_sheet"
+        ]
+      },
+      {
+        "item_id": "R-GOOGL-REGULATION-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 4,
+        "sections": [
+          "item_8_financials",
+          "item_8_financials",
+          "item_8_financials",
+          "item_1a_risk_factors",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-GS-SEGMENTS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 3,
+        "sections": [
+          "item_governance",
+          "item_governance",
+          "item_1_business",
+          "item_governance",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CREDITRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "fs_income_stmt",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "fs_income_stmt"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-CONTENT-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "fs_income_stmt",
+          "fs_notes",
+          "fs_income_stmt",
+          "fs_notes",
+          "fs_income_stmt"
+        ]
+      },
+      {
+        "item_id": "R-BLK-BUSINESS-2023",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_balance_sheet",
+          "fs_income_stmt",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-RISK-GENERIC",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "fs_notes",
+          "item_1a_risk_factors",
+          "fs_notes",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-AWS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-AI-2026",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 2,
+        "sections": [
+          "item_1_business",
+          "item_1a_risk_factors",
+          "item_7_mda",
+          "item_1c_cyber",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-GS-MARKETRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CAPITAL-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 3,
+        "sections": [
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_balance_sheet"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-COMPETE-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 4,
+        "sections": [
+          "fs_notes",
+          "fs_notes",
+          "fs_notes",
+          "item_1_business",
+          "item_1_business"
+        ]
+      }
+    ],
+    "hybrid_rerank": [
+      {
+        "item_id": "N-AAPL-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AAPL-EPSDILUTED-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-MSFT-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-REVENUE-2026",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-GROSSPROFIT-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GOOGL-RDEXPENSE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-OPERATINGCASHFLOW-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-CAPEX-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-TOTALASSETS-2023",
+        "category": "numeric",
+        "n_chunks": 4,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-TOTALASSETS-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-OPERATINGINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-NETINCOME-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-AAPL-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-MSFT-NETINCOME-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-GS-REVENUE-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-BLK-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "R-AAPL-SUPPLY-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-CYBER-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1c_cyber",
+          "item_1c_cyber",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "fs_notes"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-COMPETE-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 3,
+        "sections": [
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-SEGMENTS-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 2,
+        "sections": [
+          "fs_income_stmt",
+          "item_1_business",
+          "fs_balance_sheet",
+          "item_1_business",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-GOOGL-REGULATION-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 4,
+        "sections": [
+          "item_8_financials",
+          "item_8_financials",
+          "item_8_financials",
+          "item_1a_risk_factors",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-GS-SEGMENTS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_governance",
+          "fs_equity"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CREDITRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_income_stmt",
+          "fs_income_stmt"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-CONTENT-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "fs_income_stmt",
+          "fs_income_stmt",
+          "fs_income_stmt",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-BLK-BUSINESS-2023",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "fs_balance_sheet",
+          "fs_income_stmt",
+          "item_7_mda",
+          "item_7_mda",
+          "fs_cash_flow"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-RISK-GENERIC",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "fs_notes",
+          "item_7a_market_risk"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-AWS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 4,
+        "sections": [
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-AI-2026",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1c_cyber",
+          "item_7_mda",
+          "item_1a_risk_factors",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-GS-MARKETRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CAPITAL-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "fs_cash_flow"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-COMPETE-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      }
+    ],
+    "hybrid_rerank_focus": [
+      {
+        "item_id": "N-AAPL-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AAPL-EPSDILUTED-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-MSFT-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-REVENUE-2026",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-GROSSPROFIT-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GOOGL-RDEXPENSE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-OPERATINGCASHFLOW-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-CAPEX-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-TOTALASSETS-2023",
+        "category": "numeric",
+        "n_chunks": 4,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-TOTALASSETS-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-OPERATINGINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-NETINCOME-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-AAPL-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-MSFT-NETINCOME-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-GS-REVENUE-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-BLK-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "R-AAPL-SUPPLY-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-CYBER-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1c_cyber",
+          "item_1a_risk_factors",
+          "item_1c_cyber"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-COMPETE-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-SEGMENTS-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 2,
+        "sections": [
+          "fs_income_stmt",
+          "item_1_business",
+          "fs_balance_sheet",
+          "item_1_business",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-GOOGL-REGULATION-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_8_financials"
+        ]
+      },
+      {
+        "item_id": "R-GS-SEGMENTS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_governance",
+          "fs_equity"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CREDITRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_income_stmt",
+          "fs_income_stmt"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-CONTENT-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "fs_income_stmt",
+          "fs_income_stmt",
+          "fs_income_stmt",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-BLK-BUSINESS-2023",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "fs_balance_sheet",
+          "fs_income_stmt",
+          "item_7_mda",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-RISK-GENERIC",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-AWS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 4,
+        "sections": [
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-AI-2026",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1c_cyber",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-GS-MARKETRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CAPITAL-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "fs_cash_flow"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-COMPETE-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      }
+    ],
+    "hybrid_rerank_focus_nopar": [
+      {
+        "item_id": "N-AAPL-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-AAPL-EPSDILUTED-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-MSFT-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-REVENUE-2026",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-MSFT-GROSSPROFIT-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GOOGL-RDEXPENSE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-OPERATINGCASHFLOW-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-AMZN-CAPEX-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "N-AMZN-TOTALASSETS-2023",
+        "category": "numeric",
+        "n_chunks": 4,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-JPM-NETINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-GS-TOTALASSETS-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-BLK-REVENUE-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-REVENUE-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-OPERATINGINCOME-2024",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "N-NFLX-NETINCOME-2023",
+        "category": "numeric",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-AAPL-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": false
+      },
+      {
+        "item_id": "A-MSFT-NETINCOME-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-GS-REVENUE-2024-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "A-BLK-REVENUE-2023-ASOF",
+        "category": "as_of",
+        "n_chunks": 5,
+        "number_in_context": true
+      },
+      {
+        "item_id": "R-AAPL-SUPPLY-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-CYBER-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1c_cyber",
+          "item_1a_risk_factors",
+          "item_1c_cyber"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-COMPETE-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-SEGMENTS-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 2,
+        "sections": [
+          "fs_income_stmt",
+          "item_1_business",
+          "fs_balance_sheet",
+          "item_1_business",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-GOOGL-REGULATION-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_8_financials"
+        ]
+      },
+      {
+        "item_id": "R-GS-SEGMENTS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_governance",
+          "fs_equity"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CREDITRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_income_stmt",
+          "fs_income_stmt"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-CONTENT-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "fs_income_stmt",
+          "fs_income_stmt",
+          "fs_income_stmt",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-BLK-BUSINESS-2023",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "fs_balance_sheet",
+          "fs_income_stmt",
+          "item_7_mda",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-AAPL-RISK-GENERIC",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors"
+        ]
+      },
+      {
+        "item_id": "R-AMZN-AWS-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 4,
+        "sections": [
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "item_1_business",
+          "item_1_business"
+        ]
+      },
+      {
+        "item_id": "R-MSFT-AI-2026",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1a_risk_factors",
+          "item_1c_cyber",
+          "item_7_mda"
+        ]
+      },
+      {
+        "item_id": "R-GS-MARKETRISK-2024",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": false,
+        "rank": null,
+        "sections": [
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance",
+          "item_governance"
+        ]
+      },
+      {
+        "item_id": "R-JPM-CAPITAL-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "fs_cash_flow",
+          "fs_cash_flow",
+          "fs_cash_flow"
+        ]
+      },
+      {
+        "item_id": "R-NFLX-COMPETE-2025",
+        "category": "narrative",
+        "n_chunks": 5,
+        "hit": true,
+        "rank": 1,
+        "sections": [
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business",
+          "item_1_business"
+        ]
+      }
+    ]
+  }
+}

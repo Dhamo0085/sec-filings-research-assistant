@@ -53,6 +53,10 @@ Thumbs.db
 ehthumbs.db
 desktop.ini
 
+# CI writes its junit.xml here. Transient: the phase reports keep their own
+# committed test artifacts under reports/phaseN/tests/.
+reports/ci/
+
 # ── Logs ─────────────────────────────────────────────────
 *.log
 logs/

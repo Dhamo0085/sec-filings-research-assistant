@@ -72,12 +72,41 @@ items = json.loads(sys.stdin.read())
 # Neutralise v1's on-demand ingestion before anything imports it. Not a source
 # edit: the module is patched at runtime, the way eval/phase0/run_baseline.py
 # instrumented this same pipeline.
+#
+# The replacement keeps v1's CONTRACT exactly — return (company_name,
+# fiscal_year) when the filing is available, raise YearNotAvailable when the
+# ticker is known but that year is not, return None when nothing is there — and
+# only removes the fetch. A stub that returned a bare True instead produced
+# "TypeError: cannot unpack non-iterable bool object" on the first three items,
+# which is the right kind of failure: a shim that does not match the contract
+# should break loudly, not quietly answer from the wrong year.
 import routing.resolver as R
+from retrieval.vector_store import list_collections
+
+def _indexed_years(ticker):
+    years = []
+    for name in list_collections():
+        base, _, year = name.rpartition("_")
+        if base.upper() == ticker.upper() and year.isdigit():
+            years.append(int(year))
+    return sorted(years)
+
+def _ensure_no_fetch(ticker, company_name, target_year=None):
+    years = _indexed_years(ticker)
+    if not years:
+        return None
+    if target_year is None:
+        return (company_name, years[-1])
+    if target_year in years:
+        return (company_name, target_year)
+    raise R.YearNotAvailable(ticker, target_year, years) if hasattr(
+        R, "YearNotAvailable") else ValueError(
+        f"{ticker} FY{target_year} not indexed")
+
 _patched = []
-for name in ("ensure_ticker_indexed",):
-    if hasattr(R, name):
-        setattr(R, name, lambda *a, **k: True)
-        _patched.append(name)
+if hasattr(R, "ensure_ticker_indexed"):
+    R.ensure_ticker_indexed = _ensure_no_fetch
+    _patched.append("ensure_ticker_indexed")
 print(json.dumps({"_meta": {"patched": _patched}}), flush=True)
 
 import query as Q

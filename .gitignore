@@ -11,6 +11,16 @@ data/parsed/
 data/chunks/
 data/pending_index/
 data/*.log
+# P4-12: the re-indexed corpus, staged beside the live one until the owner runs
+# scripts/activate_reindex.py. Same sizes as the three above.
+data/parsed_v2/
+data/chunks_v2/
+data/qdrant_v2/
+# What that swap renames aside instead of deleting, plus its undo journals.
+data/parsed_retired_*/
+data/chunks_retired_*/
+data/qdrant_retired_*/
+data/activation/
 
 # SEC company-ticker registry cache (auto-refreshed weekly, see ingestion/registry.py)
 data/company_tickers.json

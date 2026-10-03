@@ -57,6 +57,9 @@ if str(REPO_ROOT) not in sys.path:
 
 from eval.gold.schema import read_jsonl  # noqa: E402
 from eval.scorers import OutcomeView, Scored, score_item, summarize  # noqa: E402
+from eval.subsets import describe as describe_subset  # noqa: E402
+from eval.subsets import ids as subset_ids  # noqa: E402
+from eval.subsets import indexed_pairs, split  # noqa: E402
 
 VARIANTS_PATH = REPO_ROOT / "eval" / "variants.yaml"
 GOLD_PATH = REPO_ROOT / "eval" / "gold" / "gold_v1.jsonl"
@@ -515,7 +518,30 @@ def _display(path: Path) -> str:
         return str(path)
 
 
-def _write_reports(variant_id: str, scored, totals, runs_dir: Path) -> List[Path]:
+def paired_subset(gold: Sequence[Mapping]) -> Optional[Dict]:
+    """The D21 subset, or None if the catalog cannot be read.
+
+    Returning None rather than raising: a scorer re-run (``--report-only``) on a
+    machine without the catalog should still produce the full-set table. The
+    report then says the paired column is absent, instead of showing a number
+    that quietly means something else.
+    """
+    try:
+        from catalog.store import CatalogStore
+        from config import settings
+
+        catalog = CatalogStore(Path(settings.data_dir) / "derived" / "catalog.sqlite")
+        pairs = indexed_pairs(catalog)
+    except Exception:
+        return None
+    if not pairs:
+        return None
+    inside, _outside = split(gold, pairs)
+    return {"ids": subset_ids(inside), "describe": describe_subset(gold, pairs)}
+
+
+def _write_reports(variant_id: str, scored, totals, runs_dir: Path,
+                   subset: Optional[Dict] = None) -> List[Path]:
     import csv as csv_module
 
     written: List[Path] = []
@@ -534,11 +560,15 @@ def _write_reports(variant_id: str, scored, totals, runs_dir: Path) -> List[Path
     written.append(md_path)
 
     json_path = runs_dir / f"{variant_id}_summary.json"
-    json_path.write_text(
-        json.dumps({"variant": variant_id, "scores": summarize(scored),
-                    "llm": totals}, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    payload = {"variant": variant_id, "scores": summarize(scored), "llm": totals}
+    if subset:
+        paired = [s for s in scored if s.item_id in subset["ids"]]
+        payload["paired_subset"] = {
+            **subset["describe"],
+            "scores": summarize(paired),
+        }
+    json_path.write_text(json.dumps(payload, indent=2, default=list) + "\n",
+                         encoding="utf-8")
     written.append(json_path)
     return written
 
@@ -606,9 +636,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rows = list(load_existing(path).values())
     scored = score_run(gold, rows)
     totals = llm_totals(rows)
+    subset = paired_subset(gold)
+
     print()
     print(markdown_table(variant.id, scored, totals))
-    for written in _write_reports(variant.id, scored, totals, args.runs_dir):
+
+    if subset:
+        paired = [s for s in scored if s.item_id in subset["ids"]]
+        info = subset["describe"]
+        print(f"#### {variant.id}, paired subset (D21)")
+        print()
+        print(f"{info['n_paired']} of {info['n_total']} items; "
+              f"{info['n_excluded']} excluded because their filings are not in "
+              f"the text index: "
+              + ", ".join(f"{k} {'/'.join(v)}" for k, v in
+                          info["missing_filings"].items()))
+        print()
+        print(markdown_table(f"{variant.id} (paired)", paired, totals))
+
+    for written in _write_reports(variant.id, scored, totals, args.runs_dir, subset):
         print(f"wrote {_display(written)}")
     return 0
 

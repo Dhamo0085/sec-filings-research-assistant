@@ -63,6 +63,25 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
   assisted sheet, rate 15 narrative answers **from the post-re-index run** (P4-14 builds the
   sheet), and the re-index itself.
 
+### Pre-P4-12 baseline, measured 2026-10-03 (P4-12 requires the before/after)
+- `data/qdrant` — **25 collections, 14,557 points**. `data/qdrant_v1_backup` — **25 collections,
+  14,557 points** (identical). Both must still read 14,557 after the re-index; the new index goes
+  to a **new directory**.
+- On disk: `data/parsed` 40 filings, `data/chunks` **36** files / **36,875 chunks** —
+  **NFLX_2023..2025 and TSLA_2025 have no chunk file** although NFLX is indexed (it arrived
+  through auto-ingest). A re-chunk from a fresh parse fixes that.
+- `PARSED_DIR`, `CHUNKS_DIR` and `QDRANT_PATH` are all honoured as environment variables
+  (verified), so the whole re-index is a configuration change with no code change.
+- **`run_ingestion.py --skip-download` is NOT a safe parse step for P4-12.** It parses
+  `data/raw/manifest.json`, which has **39** entries and is missing **BLK FY2023** — the filing
+  D24 exists to cover. `scripts/reparse_corpus.py --parsed-dir data/parsed` works from the
+  existing parses and covers all **40**.
+- **P4-12 has no chunk-step CLI.** `chunk_all_documents()` is a library function with no
+  `__main__`, and `run_ingestion.py` only reaches it through the manifest path above. A small
+  driver (chunk a parsed dir, then orchestrate relink → smoke → V1/V2/V3) is the first work of
+  P4-12.
+- Disk: 16 GiB free (92% full). The run needs roughly 0.5 GB.
+
 ## 1c. Phase 4 facts (measured, 2026-10-03)
 - **Variant results, D21 paired subset (69 of 80 items)**: V3 **60/69 (87.0%, CI 77.0–93.0)** ·
   V2 50/69 (72.5%) · V1 41/69 (59.4%) · V0 **19/69 (27.5%)**. Look-ahead violations: **V3 = 0, V2 = 4**.

@@ -5,6 +5,53 @@ Newest first.
 
 ---
 
+## 2026-10-03 — D4-01 The assisted sheet is a second file, not an edit of the first
+
+**Context.** P4-02b adds `assist_*` columns to `reports/phase4/gold_verification.csv`.
+D29 says Claude Code never writes `verdict`, `owner_note` or `verified_by=owner`.
+The spec's wording ("adds, for every row of `gold_verification.csv`, separate
+columns") can be read as rewriting that file in place.
+
+**Options.** (a) Rewrite `gold_verification.csv` in place, carrying the owner's
+columns through unchanged. (b) Write a second file and leave the first alone.
+(c) Write in place but refuse once any `verdict` is non-empty.
+
+**Choice.** (b). `scripts/make_gold_verification_assist.py` writes
+`reports/phase4/gold_verification_assisted.csv` and **refuses** to run with
+`--out` equal to `--in`. The assisted sheet is the one the owner signs; the
+P4-02 sheet stays as the generator produced it.
+
+**Reason.** (a) and (c) both mean a script with D29's prohibition in its
+docstring opening the owner's signed file for writing. The prohibition is only
+as strong as the narrowest thing the code can do, and the narrowest thing is
+never to open that file for writing at all. The cost is one extra file; the
+benefit is that a bug, an interrupted run or a stale re-run cannot destroy a
+signature. `assert_unchanged()` additionally compares every original column of
+every row against the input before anything is written, and
+`tests/unit/test_gold_verification_assist.py` plants a filled-in `verdict` as a
+negative control to show that guard fires.
+
+**Also decided here, because the spec leaves it open:**
+- **A computed row has no printed value** — a margin is not on the page — so
+  its **operands** are located instead, each in its own filing, and the row is
+  `found_exact` only when every operand was found.
+- **Matching is on magnitude, not sign.** A cash-flow statement prints capital
+  expenditure as `(82,999)` while the facts store holds the positive value.
+  `assist_value_as_printed` is the cell verbatim, parentheses included, so the
+  owner still sees the sign.
+- **`found_scaled`** means the value was found only at a scale other than the
+  one the filer declared for that fact. It is not a failure; it is a flag that
+  the sheet's `filing_value_as_printed` may send the owner looking for the
+  wrong numeral.
+
+**What would change it.** The owner preferring one file. Then (c), with the
+refuse-if-signed guard, is the next safest.
+
+**Measured.** All 37 rows located, 37 `found_exact`, 25 of 25 core rows located;
+byte-identical on a re-run; `verdict` and `owner_note` empty on every row.
+
+---
+
 ## 2026-10-03 — D4-00 The boundary rewrite is adopted; Item 7 misses its target
 
 **Context.** D25 opened Phase 4 with a time-boxed rewrite of section-boundary

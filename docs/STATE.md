@@ -2,7 +2,7 @@
 
 Seeded from `reports/phase1/REPORT.md` and the Phase 0/Step 0 reports at the end of Phase 1 (2026-10-02);
 carried into Phase 2 on 2026-10-02 against spec v1.4; updated at P2-13 closure, at P3-00, and at the
-Phase 3 gate (2026-10-02) against spec v1.5.
+Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 on 2026-10-03 against spec v1.6.
 **Read this at the start of every session and after any `/compact`. Update it at every commit batch, at every gate, and *before* running `/compact`.** If this file and the code disagree, trust the code, then fix this file. Facts here that you have not re-verified are marked (seed).
 
 ## 1. Where we are
@@ -12,9 +12,35 @@ Phase 3 gate (2026-10-02) against spec v1.5.
 | Step 0 | COMPLETE (PR #1 merged) |
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
-| Phase 3 | COMPLETE on `phase-3-answers`, awaiting owner approval and merge (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL and not built |
-| Current task | none — awaiting the owner's UI walkthrough, PR merge, and "Approved: start Phase 4" |
-| Tests | `make test` → **1,052 passed, 2 xfailed (strict, documented under D3-00), 0 skipped**; ruff and hygiene clean. Artifacts in `reports/phase3/tests/` |
+| Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
+| Phase 4 | IN PROGRESS on `phase-4-evaluation`, spec v1.6. P4-00 measured and committed (`63516cb`); awaiting the owner's decision on D25's exit rule and on the overnight re-index before P4-01 |
+| Current task | P4-00 gate — owner decision pending (see D4-00) |
+| Tests | `make test` → **1,060 passed, 0 xfailed, 0 skipped**; ruff clean. Artifacts now land in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+
+## 1c. Phase 4 facts (measured, 2026-10-03)
+- **P4-00 section-boundary rewrite (D25 / D4-00)**: `ingestion/parser.py` now scores every candidate
+  heading and picks the maximum-weight subsequence with strictly increasing line AND Item priority,
+  instead of "first past a 15 % TOC zone" plus a greedy monotonic filter. Measured offline over all
+  **40** parsed filings: usable pairs **245 → 298 of 440**; **Item 1 33 → 40 of 40**, **Item 1A
+  20 → 40 of 40**, **Item 7 20 → 25 of 40** (D25's target was ≥ 33, so Item 7 is MISSED). 65 pairs
+  gained, 12 lost. Both strict `xfail` tests now pass and are ordinary tests.
+- **The 12 regressions are 4 classes × 3 years and 3 of them are the audit penalising a *better*
+  parse**: BAC Item 7A really is a 149-char cross-reference (the old 22 kB slice was that sentence
+  plus the next section's tables); JPM Item 7 really is a 300-char pointer; GS/BAC/STT Item 7 are now
+  the genuine MD&A (395–653 kB) and exceed the audit's 250 kB narrative cap; WFC `fs_notes` now
+  resolves to the EX-13's real 859 kB notes instead of a 15 kB stub. **The audit thresholds were not
+  touched** — that is an owner decision, raised at the gate.
+- **Nothing is re-indexed.** The new parse exists only in a scratch dir; `data/parsed/`,
+  `data/chunks/` and `data/qdrant/` are untouched, so Phase 3's retrieval numbers still describe the
+  artifacts they were measured on. P4-00 step 4 (re-parse, re-chunk, re-index 13 tickers + NFLX,
+  overnight) is gated on the owner.
+- **`data/qdrant_v1_backup/`** exists: 163 MB, 25 collections, 14,557 points, verified equal to the
+  live store. `QDRANT_PATH=<path>` repoints the store **by configuration, no code change** (pinned by
+  T4-07 in `tests/unit/test_v0_index_isolation.py`). Gitignored.
+- Reproduce the measurement: `python scripts/reparse_corpus.py --out-dir /tmp/after` →
+  `python scripts/audit_sections.py --parsed-dir /tmp/after --out-dir /tmp/after_audit` →
+  `python scripts/compare_section_audits.py reports/phase4/section_audit_before.json /tmp/after_audit/section_audit.json`.
+  The re-parse is offline, makes zero LLM calls, and takes ~3 minutes for 40 filings.
 
 ## 1b. Phase 3 facts (measured, 2026-10-02)
 - **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.
@@ -67,6 +93,10 @@ D1 facts from iXBRL · D2 `as_of` via catalog · D5 headline total net revenue �
 
 ## 6a. Phase 2 decisions
 D2-00 keep bge-base at 512 tokens, batch 8 (the >=4 chunks/s bar was a proxy; 4.2 h for the full corpus is still an overnight job) · D2-02 tiered candidate concepts plus "candidates that agree are not ambiguous" (took coverage from 69.7% to 81.3% and ambiguity from 90 rows to 0; **now part of spec 6.4 rule 3 rather than a deviation from it**) · D2-03 precision preference (D22), which took corpus-wide exactness from 99.1347% to 99.9787%.
+
+## 6b. Phase 4 decisions
+**D4-00** the boundary rewrite is adopted although Item 7 misses D25's target; the exit rule's literal
+action (revert) is put to the owner with the numbers. **The audit's size thresholds stay as committed.**
 
 Spec v1.5 also carries **D23** (v1's parsed statement sections are not trusted; `validation_status` is informational only and must never affect an answer — guarded by two tests in `test_facts_resolve.py`; P3-00 audits section quality) and **D24** (ingestion resolves filings through the catalog across every CIK a ticker has filed under; P3-06 uses BLK FY2023 as the proof case).
 

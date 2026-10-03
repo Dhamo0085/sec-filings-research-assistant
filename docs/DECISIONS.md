@@ -5,6 +5,113 @@ Newest first.
 
 ---
 
+## 2026-10-03 — D4-00 The boundary rewrite is adopted; Item 7 misses its target
+
+**Context.** D25 opened Phase 4 with a time-boxed rewrite of section-boundary
+selection (P4-00) and an exit rule: if the targets are not met in one focused
+session, revert `ingestion/parser.py`, keep D3-00 as the final position, and
+continue with P4-01.
+
+**What was built.** The three defect classes D3-00 diagnosed were all treated as
+symptoms of one cause — the selection *rule*, not the patterns. `parse_filing`
+now collects every matching line in a segment as a scored candidate, rejects
+cross-references and mid-sentence mentions outright, and picks the
+maximum-weight subsequence whose line number and Item priority both increase.
+A candidate with no prose behind it is worth 1, so a bank's mid-document
+cross-reference index cannot outrank real sections. The unsuffixed section id
+goes to the longest instance, not the first. Full rationale is in the block
+comment above `_Candidate`.
+
+**Measured** over all 40 parsed filings with `scripts/audit_sections.py`,
+offline, before anything was re-indexed
+(`reports/phase4/section_audit_{before,after}.json`, delta reproduced by
+`python scripts/compare_section_audits.py` — which has its own `--self-test`):
+
+| | before | after | target (D25) |
+|---|---|---|---|
+| usable (filing, section) pairs | 245 of 440 | **298 of 440** | — |
+| Item 1 Business | 33 | **40 of 40** | >= 33 of 39 ✓ |
+| Item 1A Risk Factors | 20 | **40 of 40** | >= 33 of 39 ✓ |
+| Item 7 MD&A | 20 | **25 of 40** | >= 33 of 39 ✗ |
+| Item 1A misses needing a per-filing diagnosis | 17 | **0** | all diagnosed ✓ |
+| the two strict `xfail` tests | fail by design | **pass, now ordinary tests** | ✓ |
+
+65 pairs gained, 12 lost. For comparison, the three local fixes D3-00 rejected
+moved the corpus by +1 of 143.
+
+**The 12 regressions, each read first-hand rather than inferred from a count.**
+Three of the four classes are the audit penalising a *more* correct parse:
+
+1. **BAC Item 7A, 3 filings, 22,058 -> 149 characters.** BAC's Item 7A is one
+   sentence: "See Market Risk Management on page 74 in the MD&A...". The old
+   22,055-character slice was that sentence plus 22 kB of tables belonging to
+   the *next* section, which the old boundary failed to cut. The new slice is
+   the section. The audit calls 149 characters `too_small`, and it is right
+   that the slice is useless — but the parser is not what makes it useless.
+2. **JPM Item 7, 3 filings, 9,449 -> 300 characters.** Same shape: JPM satisfies
+   Item 7 by pointing at pages 44-115, and the old slice was that pointer plus
+   the Item 7A-9A pointers that follow it.
+3. **GS Item 7, 3 filings, 6,189 -> 404,262 characters.** The reverse: the old
+   "ok" slice was a 6 kB cross-reference stub and the new one is the real MD&A.
+   Checked directly — it opens on GS's "Introduction ... a leading global
+   financial institution", ends inside risk-management prose, and contains no
+   auditor's report and no "Notes to consolidated financial statements"
+   heading, so it has not run into Item 8. It exceeds the audit's 250,000-char
+   narrative cap. BAC (653 kB), STT (535 kB) and WFC (537 kB) Item 7 are the
+   same case and were already not `ok` before.
+4. **WFC notes, 3 filings, 15,772 -> 858,960 characters.** The canonical
+   `fs_notes` id now resolves to the EX-13's real notes instead of the 10-K
+   wrapper's 15 kB pointer stub, which is the intended effect of "longest
+   instance keeps the canonical id". It exceeds the 600,000-char notes cap.
+
+**Why Item 7 cannot reach 33 without a different change.** All 15 misses are
+five banks x three years. Three of them (BAC, GS, STT) are slices the parser now
+places correctly and the audit caps; the other two (JPM, WFC) are filings whose
+Item 7 genuinely is a pointer, with the MD&A printed elsewhere in the same
+document under the filer's own heading rather than under an Item number. A
+one-line change makes the second case usable — let the second-chance pass also
+reconsider ids the first chain could only fill with a content-free entry — and
+it was implemented and measured: Item 7 goes 25 -> 28 and Item 1A goes 40 -> 37,
+for the same corpus total of 298, because the recovered BAC boundary produces a
+longer slice and the "longest wins" rule then prefers it. It was reverted; the
+reasoning is recorded in `_assign_sections_with_second_chance`'s docstring so
+the next attempt starts from the measurement rather than from the idea.
+
+**What was NOT done, deliberately.** The audit's thresholds were not touched.
+Twelve of the fifteen Item 7 misses would become `ok` under a cap that fits a
+large bank's MD&A, and the cap's stated premise ("even a bank's run well under
+that") is now refuted by measurement. Moving it would also change the
+denominator of every number above after the fact. That is a change to the
+measuring instrument and it belongs to the owner, not to the run being measured.
+
+**Options at the gate.** (a) Apply D25's exit rule literally: revert the parser,
+keep D3-00. (b) Adopt the rewrite, record Item 7 as missed, and proceed. (c)
+Adopt, and separately decide whether the audit's narrative cap should fit a
+bank MD&A.
+
+**Choice.** (b), put to the owner at the P4-00 gate, with (c) raised as a
+separate question. **Reason.** The exit rule exists to stop unbounded effort on
+a parser that cannot be fixed; the measurement says the opposite happened —
+usable pairs went from 245 to 298, Item 1 and Item 1A are complete at 40 of 40,
+and the two strict `xfail` tests pass. Reverting that to honour the letter of a
+rule written before the result was known would discard a 53-pair improvement to
+satisfy a threshold on one section of eleven. The miss is recorded here and in
+the phase report rather than argued away.
+
+**Consequence.** Nothing is re-indexed by this decision. The new parse exists
+only in a scratch directory; `data/parsed/`, `data/chunks/` and the Qdrant store
+are untouched, so every Phase 3 retrieval number still describes the artifacts
+it was measured on. `data/qdrant_v1_backup/` (163 MB, 25 collections, 14,557
+points, byte-verified against the live store) is in place so V0 stays a true v1
+measurement whenever the re-index does happen. Step 4 of P4-00 — re-parse,
+re-chunk and re-index 13 bundled tickers plus NFLX overnight — is an owner
+decision at this gate.
+
+**What would change it.** The owner applying the exit rule; or a Phase 4 failure
+analysis tracing narrative misses to boundaries that survive this rewrite.
+
+---
+
 ## 2026-10-02 — D3-00 v1's section boundaries are documented, not fixed, in Phase 3
 
 **Context.** D23 recorded that v1's parsed *statement* sections are unreliable and demoted

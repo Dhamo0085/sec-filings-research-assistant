@@ -15,8 +15,8 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
 | Phase 4 | **REOPENED by the owner against spec v1.8** (2026-10-03). P4-00 to P4-10 are done (`reports/phase4/REPORT.md`); P4-02b and P4-11 are now done too; **P4-12 to P4-15 remain**. PR #6 is open on `phase-4-evaluation` and must not be merged |
-| Current task | none in flight. Next is **P4-12** (the overnight re-index), which the owner starts. P4-13, P4-14 and P4-15 wait for the owner's go-ahead |
-| Tests | `make test` → **1,277 passed, 0 failed, 0 skipped** (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+| Current task | **P4-12 tooling is built, rehearsed and committed; the full overnight run is the owner's to start** (see section 1d). P4-13, P4-14 and P4-15 wait for the owner's go-ahead |
+| Tests | `make test` → **1,327 passed, 0 failed, 0 skipped** (1,277 before the P4-12 tooling) (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
 
 ## 1b. Phase 3 facts (measured, 2026-10-02)
 - **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.
@@ -77,10 +77,52 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
   D24 exists to cover. `scripts/reparse_corpus.py --parsed-dir data/parsed` works from the
   existing parses and covers all **40**.
 - **P4-12 has no chunk-step CLI.** `chunk_all_documents()` is a library function with no
-  `__main__`, and `run_ingestion.py` only reaches it through the manifest path above. A small
-  driver (chunk a parsed dir, then orchestrate relink → smoke → V1/V2/V3) is the first work of
-  P4-12.
-- Disk: 16 GiB free (92% full). The run needs roughly 0.5 GB.
+  `__main__`, and `run_ingestion.py` only reaches it through the manifest path above.
+  **CLOSED 2026-10-03** — `scripts/rechunk_corpus.py` is that CLI, and
+  `scripts/reindex_v2.py` is the one resumable command that drives all three steps.
+- Disk: 16 GiB free (92% full; 19.3 GiB when re-measured 2026-10-03). The run needs roughly 0.5 GB.
+
+### P4-12 tooling, built and rehearsed 2026-10-03 (the owner runs the full job)
+- **The one command** (run it in a terminal, plugged in, with no server up):
+  `caffeinate -i .venv/bin/python scripts/reindex_v2.py`
+  It writes `data/parsed_v2`, `data/chunks_v2`, `data/qdrant_v2`,
+  `reports/phase4/reindex_run.json` and `reports/phase4/reindex_run.log`, then runs T4-09.
+  **Re-run the identical command to resume**; `--dry-run` is a seconds-long preflight.
+- **Scope is 39 filings / 13 tickers** (the 12 bundled + NFLX; BLK_2023 included, TSLA_2025
+  excluded). Preflight refuses if BLK_2023 or any NFLX year is missing from `data/parsed`.
+- **Measured on the rehearsal** (AAPL_2025 + AAPL_2024, scratch dirs, real embedder):
+  **2.2–2.4 chunks/s, peak RSS 1.0–1.1 GB**. Extrapolating to ~37–38k chunks: **about 4.5–5
+  hours**. A resumed run that has nothing to do finishes in **0.7 s**.
+  **Not measured at full scale**: Qdrant local mode keeps every existing collection in RAM
+  (P2-00d), so RSS will climb above the rehearsal's 1.1 GB as the 39th collection is written.
+  P2-00d measured 1.34 GB at batch 8 against a full existing index, so there should be room on
+  8 GB — but the real number only comes from the real run, and the report records it.
+- **Refuses to start** on: an output path equal to, inside, or containing any of
+  `data/parsed`, `data/chunks`, `data/qdrant`, `data/qdrant_v1_backup`; a held Qdrant lock on
+  the target, the live store or the backup; less than 2 GB free; a missing required filing.
+  Each refusal was demonstrated with a planted fault (CLAUDE.md rule 15).
+- **Resume is read from disk, not a state file.** Parse: readable with sections. Chunk: right
+  `doc_id` **and** not older than the parse — `doc_id` is `f"{ticker}_{fiscal_year}"`, so it is
+  unchanged by a re-parse and cannot witness one on its own (D4-03, point 2). Index: the
+  indexer's own point-id skip, after dropping any collection holding points today's chunk files
+  do not claim (`Chunk.chunk_id` is a fresh uuid4 per chunking run).
+  Verified by `kill -9` at 96 of 192 points: the resumed run re-embedded 96, not 192.
+- **`data/qdrant` and `data/qdrant_v1_backup` are never opened with a client.**
+  `count_points_readonly()` reads `meta.json` plus each collection's `storage.sqlite` over a
+  read-only URI; cross-checked against the client on the backup — 25 collections / 14,557
+  points and AAPL_2024 = 197, both ways. All four protected directories are fingerprinted
+  before and after and the run fails if one moved.
+- **The catalog relink is dry-run inside the re-index** and is the activation script's last
+  step instead (D4-03): writing `collection_name` while the new store is staged would point the
+  live `as_of` scope at collections the live store does not hold.
+- **Activation is separate and not run**: `.venv/bin/python scripts/activate_reindex.py`
+  prints the plan; `--yes` performs six renames (the three live dirs → `data/<name>_retired_<stamp>`,
+  then the three `_v2` dirs → live) and relinks the catalog; **undo is one command**,
+  `.venv/bin/python scripts/activate_reindex.py --undo`, driven by a journal written before and
+  after every rename so a crash mid-swap is still reversible. Nothing is ever deleted.
+  It refuses unless `reindex_run.json` reports `status=ok` with T4-09 passed.
+- **Tests**: `tests/unit/test_reindex_v2.py` (35) and `tests/unit/test_activate_reindex.py` (15),
+  every guard paired with a planted-fault control. Suite is **1,327 passed, 0 failed**; ruff clean.
 
 ## 1c. Phase 4 facts (measured, 2026-10-03)
 - **Variant results, D21 paired subset (69 of 80 items)**: V3 **60/69 (87.0%, CI 77.0–93.0)** ·
@@ -263,4 +305,5 @@ Carried into Phase 5:
 `make test` · `make lint` · `./scripts/ci_local.sh` (the CI mirror) · `python -m eval.mini_eval` ·
 `python -m eval.gold.build_gold --check` · `python -m eval.runner --variant V3 --report-only` ·
 `python -m eval.ablations` · `python scripts/make_gold_verification_assist.py` (P4-02b; offline, ~30 s) · `python eval/phase4/run_v0.py --worktree /Users/dhamo_85/Downloads/FinancialRAG_v1_baseline` (an existing v1-baseline worktree; the driver symlinks `.env` into it and never reads the key) ·
+P4-12: `caffeinate -i .venv/bin/python scripts/reindex_v2.py` (the overnight re-index; re-run verbatim to resume, `--dry-run` for a seconds-long preflight) · `.venv/bin/python scripts/activate_reindex.py` (plan only; `--yes` swaps, `--undo` reverses) ·
 `make setup` · `make hygiene` · `python scripts/check_repo_hygiene.py --self-test` · `make catalog` · `make facts` · `make up` · `python scripts/smoke.py --base-url http://localhost:8000` · resumable indexing: `python eval/phase1/index_per_ticker.py --only AAPL,AMZN` (run from the v1 worktree) · section audit: `python scripts/audit_sections.py` then `python scripts/compare_section_audits.py <before> <after>`.

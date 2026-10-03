@@ -5,6 +5,65 @@ Newest first.
 
 ---
 
+## 2026-10-03 — D4-03 The P4-12 re-index writes to new directories and is swapped in separately
+
+**Context.** P4-12 re-parses, re-chunks and re-indexes 39 filings — an overnight
+job on this 8 GB machine, measured at ~2.2 chunks/s against ~37,000 chunks. It
+has to produce artifacts the whole of Phase 5 builds on, while `data/parsed`,
+`data/chunks`, `data/qdrant` and `data/qdrant_v1_backup` stay exactly as they
+are until the owner decides otherwise.
+
+**Options.** (a) Re-index in place, with the v1 backup as the only way back.
+(b) Write to new directories and copy over afterwards. (c) Write to new
+directories and swap by rename, keeping the old ones.
+
+**Choice.** (c). `scripts/reindex_v2.py` writes only to `data/parsed_v2`,
+`data/chunks_v2` and `data/qdrant_v2`, selected through `PARSED_DIR`,
+`CHUNKS_DIR` and `QDRANT_PATH` — a configuration change, no code change, as
+T4-07 requires. `scripts/activate_reindex.py`
+performs the swap as six renames with a journal, and `--undo` reverses it.
+
+**Four things this forced, each of which is the reason for a guard.**
+
+1. **The three directories are one artifact.** A chunk's `parent_id` names a
+   section in the parsed document, and retrieval fetches that parent to build
+   the context a narrative answer cites. P4-00 rewrote the section boundaries,
+   so a v2 index beside a v1 parse would cite passages whose parent sections
+   hold something else — a wrong answer carrying a real citation. The
+   activation moves all three or none.
+
+2. **"The chunk file exists" is not a resume rule.** `ParsedDocument.doc_id` is
+   `f"{ticker}_{fiscal_year}"` and `ParsedSection.section_id` is a slug: both
+   are identical before and after a re-parse, so neither can witness one. The
+   first version of the driver used `doc_id` alone and was caught by its own
+   rehearsal — a forced re-parse reported the stale chunks as "reused". The
+   rule is now doc_id **and** mtime no older than the parse.
+
+3. **`Chunk.chunk_id` is a fresh `uuid4` every time.** The indexer resumes by
+   skipping stored point ids, so a re-chunk would leave a collection holding
+   both the old points and a full set of new ones. Before indexing, any
+   collection holding a point today's chunk files do not claim is dropped and
+   rebuilt; a merely *partial* collection (the crash case) is still resumed.
+
+4. **The retired directories are `_retired_<stamp>`, not `_v1_<stamp>`.** A
+   test glob for `qdrant_v1_*` matched `data/qdrant_v1_backup`, which is how
+   the naming collision was found: the obvious cleanup `rm -rf
+   data/qdrant_v1_*` would have deleted the frozen store the V0 arm and D25
+   read.
+
+**The catalog relink is deliberately dry-run during the re-index.**
+`catalog.filings.collection_name` is what the text path's `as_of` scope reads.
+Writing it while the new store is still staged would point every scoped query
+at collections the live store does not hold. T4-09 therefore checks the link
+(orphans must be 0) without performing it; the real link is the activation
+script's last step.
+
+**What would change it.** A remote Qdrant (`QDRANT_URL`), where collections are
+named rather than stored in a directory, would make the swap a rename of
+collections instead of directories.
+
+---
+
 ## 2026-10-03 — D4-02 The three router defects, and what each fix turned out to be
 
 **Context.** P4-11 (D28) spends Phase 4's one fix-and-rerun cycle on the three

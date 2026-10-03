@@ -1,6 +1,6 @@
 # Financial_RAG v2 — Project Specification
 
-Version 1.5 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
+Version 1.6 · Authoritative for Phases 1–5 · Changes require owner approval and a `docs/DECISIONS.md` entry.
 
 ---
 
@@ -80,6 +80,8 @@ Validated for reuse: iXBRL extraction matched SEC `companyfacts` on 105/105 (fil
 | D22 | Phase 2 closure: implement the precision-preference fix (when a filing tags one concept twice and the values agree within the coarser declared `decimals`, keep the instance with the larger `decimals`), rebuild the facts store, re-run the oracle cross-check, and report **before and after** corpus-wide exactness. Values that disagree beyond the coarser precision are never merged. T2-10 stays "not met" in the record if the re-measurement still falls short. | DECIDED |
 | D23 | v1's parsed statement sections are unreliable (one filer's income-statement section is 106 characters of heading, another's is empty, another's is over 1 MB). Nothing user-visible may depend on them. `validation_status` is informational only and never affects an answer or its confidence wording. Phase 3 first measures section quality for the narrative sections the text path uses (P3-00), then fixes or documents. | DECIDED |
 | D24 | Ingestion resolves a ticker's filings through the catalog, covering every CIK the ticker has filed under. This closes the BlackRock FY2023 hole (filed under the old CIK; in the facts store, absent from the text index). | DECIDED |
+| D25 | Phase 3 outcome (D3-00 revisited): the local parser patches were rightly rejected, but the narrative text path cannot be demonstrated on a parser that loses Item 1A in 17 of 39 filings. Phase 4 therefore opens with a **time-boxed rewrite of section-boundary selection** (P4-00): candidate scoring plus a global assignment instead of one-occurrence-per-id with a greedy filter. The audit tool and the two strict `xfail` tests are the acceptance criteria. If the targets are not met within the time box, revert to the current parser and keep D3-00 as the final position. A backup of the v1 index is kept so V0 stays a true v1 measurement. | DECIDED |
+| D26 | Product-polish items move to Phase 5: the deterministic follow-up rewriter (SHOULD) and mixed numeric + narrative answers (OPTIONAL, formerly P3-10). Retired v1 modules are deleted only after V0 is frozen. | DECIDED |
 | O1 | Free-tier keys: **created** (Groq, Gemini). Gemini limits are recorded in Appendix A. Groq free-plan limits are measured in P1-04 (response headers) and may be added to `llm/limits.local.yaml`. | PARTIALLY RESOLVED |
 | O2 | Whether and where to host a free public demo (verify current free terms at signup), and how derived DBs and Qdrant data reach it. | OPEN (decide at P5-02) |
 
@@ -408,12 +410,13 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 
 | ID | Task | Level |
 |---|---|---|
+| P4-00 | **Section-boundary rewrite (D25), time-boxed.** (1) Back up the current index to `data/qdrant_v1_backup/` and keep the current parsed/chunk files, so V0 can run against true v1 chunks (point V0 at the backup by configuration, not by code change). (2) Replace one-occurrence-per-id plus greedy monotonic filtering in `ingestion/parser.py` with candidate scoring (heading-shaped line; followed by prose; sentinel points at it; Item priority) and a global assignment over all occurrences (for example a longest-increasing-subsequence on line order and Item priority). Also address the two other diagnosed classes: the TOC skip zone as a fraction, and headings destroyed inside table rows. (3) Measure with `scripts/audit_sections.py` on all 39 parsed filings before re-indexing anything. **Targets:** Item 1A ok in at least 33 of 39 (from 19); Items 1 and 7 ok in at least 33 of 39 each; no filing loses a section that was ok before, except cases listed and explained one by one; every remaining Item 1A miss diagnosed per filing (some filers legitimately place risk factors in an annual-report exhibit); the two strict `xfail` tests pass and become ordinary tests. (4) Only if the targets are met: re-parse, re-chunk, and re-index **all 13 bundled tickers and NFLX once** (overnight; closes O-3: WFC, STT, TROW, IVZ get text coverage), refresh the catalog link, and re-run the Phase 3 smoke evaluation. (5) **Exit rule:** if the targets are not met after one focused working session, revert `ingestion/parser.py` to the committed version, record the attempt and numbers in `docs/DECISIONS.md` (D3-00 stands), and continue with P4-01. | MUST |
 | P4-01 | Build `eval/gold/gold_v1.jsonl` (section 11): a generator script for oracle-sourced numeric/computed/multi items; `as_of` items from catalog filing dates; hand-drafted narrative and abstain items (owner approves). Schema validator. | MUST |
 | P4-02 | Owner verification sheet `reports/phase4/gold_verification.csv` (≥ 25 numeric/computed items, stratified by sector and category). Headline metrics are published only after the gate. | MUST |
 | P4-03 | `eval/scorers.py` (successor to Phase 0's): numeric (displayed-precision-aware), computed, multi-value attribution, abstention (by reason), look-ahead, citation validity, scale/period errors, narrative section hit@k. | MUST |
 | P4-04 | `eval/runner.py` + `eval/variants.yaml`: resumable, cached, token/latency/cost accounting; **instruments every LLM role** (router, decomposer, generator, judge) in the trace, not only the generator; outputs JSONL, CSV summary, Markdown table. | MUST |
 | P4-05 | Run V0–V3 on the gold set (LLM budget per O1; resumable across days). V0 covers the gold items whose corpus is indexed with v1's embedding (D21) and reports its N explicitly; V1–V3 are also reported on that same subset so the comparison is paired. | MUST |
-| P4-06 | Retrieval ablations (flags in `retrieval/`, defaults unchanged); no generation tokens. | MUST |
+| P4-06 | Retrieval ablations (flags in `retrieval/`, defaults unchanged); no generation tokens. When P4-00 succeeded, add one more arm: the same narrative questions against the **v1 backup index** versus the rewritten index, which isolates the parser effect from every other change. | MUST |
 | P4-07 | Failure analysis: categorize every failure (router, retrieval, reading, resolution, abstention, scoring); at most one fix-and-rerun cycle for high-impact bugs. | MUST |
 | P4-08 | CI (`.github/workflows/ci.yml`): lint + offline tests + offline mini-eval (facts-path gold subset on committed fixtures with recorded LLM cache); thresholds: numeric subset 100%, look-ahead violations 0. | MUST |
 | P4-09 | Docs: README rewrite (what/why, architecture, results table linked to logs, reproduction commands, honest limitations), `docs/EVAL.md`, `docs/LIMITATIONS.md`. | MUST |
@@ -428,6 +431,8 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | T4-03 | Runner determinism with `FakeLLM`; resume after interruption yields identical results. |
 | T4-04 | CI workflow executes locally (script mirror) and enforces thresholds. |
 | T4-05 | Table renderer: every number in `reports/phase4/results.md` is regenerable from raw JSONL by one command. |
+| T4-06 | Boundary selection (P4-00): the two strict `xfail` cases now pass; on planted multi-heading fixtures the global assignment keeps every section while the old greedy rule loses one (negative control); selection is deterministic; the audit's per-filing numbers are reproduced by one command. |
+| T4-07 | V0 isolation: with the backup index configured, the V0 runner reads v1 chunks (a known v1-only chunk id is retrievable); the rewritten index and the backup never share a storage path. |
 
 **Exit criteria:** results table with n/N and Wilson intervals; ablation tables; failure analysis; CI green; docs written.
 **Owner gate:** verify ≥ 25 gold items; rate ≥ 15 sampled narrative answers (rating sheet generated); approve the published results.
@@ -449,6 +454,9 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | P5-07 | `docs/RUNBOOK.md`: env vars, run/deploy steps, key rotation, data rebuild, failure modes mapped to `/health` states. | MUST |
 | P5-08 | Final regression: full tests, full gold eval frozen into `reports/final/`, `scripts/smoke.py` against the local stack (and the hosted instance, if any), tag `v2.0.0`. | MUST |
 | P5-09 | `docs/explainers/phase5.md` (interview Q&A pack: design choices, failures found, results, limits) and the final report. | MUST |
+| P5-10 | **Follow-up rewriter (D26).** Deterministic: resolve "and last year?", "what about Microsoft?", "same for 2023" by rewriting against the previous turn's *resolved* entities, metric, period and `as_of` **before** routing. Never hand history prose to the router. When the previous turn has no resolved entity, or the follow-up is ambiguous, ask for clarification instead of guessing. | SHOULD |
+| P5-11 | Mixed numeric + narrative questions in labeled sections, one of each (formerly P3-10). | OPTIONAL |
+| P5-12 | Delete the retired v1 modules (`routing/classifier.py`, `routing/resolver.py`, `generation/generator.py`, `generation/synthesizer.py`) after V0 is frozen in `reports/final/`; keep the Phase 0/1 baseline artifacts reproducible from tag `v1-baseline`. | SHOULD |
 | — | Stretch (owner approval required, not part of Definition of Done): portfolio/trade-review demo on synthetic data; 10-Q support; segment facts; price data tool. | OPTIONAL |
 
 **Tests**
@@ -462,6 +470,8 @@ Each phase ends with the report protocol in section 13. Owner gates are listed p
 | T5-05 | `pip-audit` clean or exceptions documented; no secrets detected. |
 | T5-06 | Compose e2e: `make up`, ten demo queries, expected statuses. |
 | T5-07 | Smoke: `scripts/smoke.py --base-url` passes against the local stack (and the hosted demo, if one exists). |
+| T5-08 | Follow-up rewriter: at least 25 phrase cases; a follow-up with no resolved previous entity asks for clarification; a rewrite never changes the previous turn's `as_of` unless the user gives a new one; the rewritten question is shown to the user. |
+| T5-09 | After P5-12 the suite is green, no import of a removed module remains, and `git show v1-baseline:<path>` still reproduces the V0 runner inputs. |
 
 **Exit criteria:** all tests green; image builds; runs from a clean clone; smoke-tested; documents complete; `v2.0.0` tagged.
 **Owner gates:** choose O2 (host or not); if hosting, deploy per the runbook; rotate keys; record the demo video; run the demo end to end once.
@@ -529,6 +539,7 @@ O1 Groq free-plan limits (measured in P1-04). O2 whether and where to host a fre
 ### 17.3 Changelog
 - v1.0 — initial specification after Phase 0.
 - v1.1 — new repository (D17); free-tier-only multi-provider LLM client (D11); no paid services, local-first delivery (D18); hosted-platform dependency removed.
+- v1.6 — Phase 3 reviewed; D25 (time-boxed section-boundary rewrite as P4-00 with an exit rule, v1 index backup for V0, full re-index once; T4-06, T4-07), D26 (follow-up rewriter, mixed questions, retired-module removal move to Phase 5; P5-10 to P5-12, T5-08, T5-09); P4-06 gains the old-index versus new-index arm.
 - v1.5 — Phase 2 reviewed; D22 (precision-preference closure, P2-13, T2-13), D23 (v1 statement sections not trusted; P3-00 audit, T3-12), D24 (catalog-driven, multi-CIK ingestion; P3-06, T3-11); 6.4 rule 3 aligned with D2-02.
 - v1.4 — Phase 1 reviewed; D20 (citation normalization), D21 (baseline scope); P2-00 (housekeeping, streaming indexer, throughput profile, core-ticker indexing, `docs/STATE.md`); T2-11, T2-12, T3-10; P4-04 instruments every role; P4-05 paired V0 subset.
 - v1.3 — Step 0 closed; `v2-dev` retired, one PR per phase into `main` (section 14); D19 commit trailer; P1-01 closes the Step 0 items; P1-13 hygiene script; `.cache/` reuse.

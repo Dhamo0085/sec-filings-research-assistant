@@ -38,8 +38,11 @@ the owner has verified at least 25 gold items against the filings themselves.
   section hit unchanged.
 * Three defects were found by the evaluation and fixed inside it; two product
   defects and one capability gap are left open and named in section 6.
-* 1,172 offline tests pass. CI runs lint, hygiene, the suite and an offline
-  mini-evaluation with two thresholds, all with no network and no key.
+* 1,173 offline tests pass. CI runs lint, hygiene, the suite and an offline
+  mini-evaluation with two thresholds, all with no network and no key — **and
+  its first run failed 15 tests that pass locally**, all three causes being
+  tests or code that silently depended on the developer's machine (defects
+  10–12). That is the clearest argument for the workflow existing.
 
 ---
 
@@ -70,7 +73,7 @@ New modules: `eval/gold/` (plan, builder, schema, seeds), `eval/scorers.py`,
 
 ## 3. Tests
 
-`make test` — 1,172 passed, 0 failed, 0 skipped, 32.0s. Artifacts in
+`make test` — 1,173 passed, 0 failed, 0 skipped, 32.0s. Artifacts in
 `reports/phase4/tests/`.
 
 | id | what it covers | result |
@@ -295,6 +298,9 @@ D4-00. The owner accepted the Item 7 miss and left the audit's thresholds alone.
 | 7 | **An ablation arm that scored nothing printed `0/0 (0%)`** as though it were a measurement. Qdrant's local mode takes an exclusive lock, an evaluation held it, and every retrieval raised. | the first ablation run |
 | 8 | **The Makefile still wrote test artifacts to `reports/phase3/`**, overwriting Phase 3's committed junit and coverage — the exact hazard the Makefile's own comment warns about. | `make test` at the Phase 4 start |
 | 9 | **CIKs keyed by ticker** sent BlackRock's FY2024 oracle lookup to the wrong companyfacts document (BLK files under two CIKs, D24), so the item was silently written as `auto` — a verification skipped rather than failed. | the gold builder |
+| 10 | **`generation/generator.py` downloaded a tokenizer at import.** `tiktoken.get_encoding("cl100k_base")` at module scope fetches the BPE file when it is not cached, so *importing* the module was a network call. Invisible on any machine that has the file. Now lazy. | the first CI run |
+| 11 | **Seven tests needed `edgar_email` from the developer's `.env`.** `DocumentFetcher` builds its User-Agent even when the session is faked and no request is made, so T1-05 ("the suite passes with no `.env`") quietly did not hold. | the first CI run |
+| 12 | **`test_cli_runs_offline` was reading the developer's real `.cache/edgar`.** `EdgarFetcher`'s `cache_dir` default was bound at import, so `monkeypatch.setattr("catalog.build._CACHE_DIR", ...)` had no effect. The test passed for three phases for the wrong reason. It now has a negative control: with an empty patched cache the build must find nothing. | the first CI run |
 
 ### Open
 
@@ -343,7 +349,7 @@ are the right first work for Phase 5.
 - [x] `docs/EVAL.md`, `docs/LIMITATIONS.md`, README rewritten
 - [x] Results table with n/N and Wilson intervals
 - [ ] **Owner narrative rating** — outstanding
-- [x] All phase tests pass (1,172, 0 failed, 0 skipped)
+- [x] All phase tests pass (1,173, 0 failed, 0 skipped), locally and under CI's isolation (no `.env`, no warm caches)
 
 Every number in this report is regenerable (T4-05):
 
@@ -376,7 +382,7 @@ python scripts/compare_section_audits.py \
 
 | command | exit |
 |---|---|
-| `make test` | 0 — 1,172 passed |
+| `make test` | 0 — 1,173 passed |
 | `make lint` | 0 |
 | `./scripts/ci_local.sh` | 0 |
 | `python -m eval.gold.build_gold --check` | 0 — matches a fresh build |
@@ -390,5 +396,6 @@ python scripts/compare_section_audits.py \
 | `python scripts/audit_sections.py --parsed-dir <re-parse>` | 1 — findings, as designed |
 | `python scripts/compare_section_audits.py --self-test` | 0 |
 | `python scripts/make_gold_verification_sheet.py` | 0 |
+| the suite under CI's isolation (empty cwd, `PYTHONPATH`, fresh `HOME`) | 0 — 1,173 passed |
 
 Raw logs: `logs/phase4/` (gitignored).

@@ -16,7 +16,21 @@ from llm import get_client as get_llm
 from models import QueryResult, RetrievedChunk
 from retrieval.reranker import _compress_xbrl
 
-_ENCODER     = tiktoken.get_encoding("cl100k_base")
+# Loaded on first use, not at import. `tiktoken.get_encoding` DOWNLOADS the BPE
+# file when it is not already cached, so doing it at module scope made importing
+# this module a network call — invisible on any machine that has the file, and a
+# hard failure everywhere else. CI found it: seven tests that patch every
+# boundary they use still failed with SocketBlockedError, before a single line
+# of their own code ran.
+_ENCODER = None
+
+
+def _encoder():
+    global _ENCODER
+    if _ENCODER is None:
+        _ENCODER = tiktoken.get_encoding("cl100k_base")
+    return _ENCODER
+
 MAX_CTX_TOKS = 1500   # per source — Groq free-tier 100K TPD budget; raised from 600
                       # since large sections (Notes, MD&A) were getting chopped
                       # before reaching the relevant table/paragraph. Re-lower if
@@ -73,10 +87,10 @@ Example from a filing:
 
 
 def _truncate(text: str, max_tokens: int = MAX_CTX_TOKS) -> str:
-    tokens = _ENCODER.encode(text)
+    tokens = _encoder().encode(text)
     if len(tokens) <= max_tokens:
         return text
-    return _ENCODER.decode(tokens[:max_tokens]) + "\n[... truncated ...]"
+    return _encoder().decode(tokens[:max_tokens]) + "\n[... truncated ...]"
 
 
 def _build_context(retrieved: List[RetrievedChunk]) -> tuple[str, List[dict]]:
@@ -122,7 +136,7 @@ def _build_context(retrieved: List[RetrievedChunk]) -> tuple[str, List[dict]]:
         # key metric rows (like "Research and development | $ | 29510") are
         # not pushed past the truncation point by noisy XBRL preamble.
         all_chunks_text = "\n\n".join(_compress_xbrl(rc.chunk.text) for rc in group)
-        all_toks        = len(_ENCODER.encode(all_chunks_text))
+        all_toks        = len(_encoder().encode(all_chunks_text))
         remaining       = MAX_CTX_TOKS - all_toks - 30
 
         if best_rc.parent_text and remaining > 300:
@@ -132,7 +146,7 @@ def _build_context(retrieved: List[RetrievedChunk]) -> tuple[str, List[dict]]:
             body = _truncate(all_chunks_text)
 
         piece = f"{header}\n{'─'*60}\n{body}"
-        piece_toks = len(_ENCODER.encode(piece))
+        piece_toks = len(_encoder().encode(piece))
 
         # Sources arrive pre-ranked (reranker + focus boost + diversity
         # dedup already ran) — once the running total would exceed budget,

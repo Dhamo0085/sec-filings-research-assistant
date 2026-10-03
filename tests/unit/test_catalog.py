@@ -426,6 +426,32 @@ def test_cli_runs_offline(tmp_path, monkeypatch, capsys):
     assert "edgar_requests" in out
 
 
+def test_the_offline_cli_reads_the_patched_cache_and_nothing_else(tmp_path, monkeypatch, capsys):
+    """Negative control for the test above.
+
+    `EdgarFetcher`'s `cache_dir` default used to be bound at import, so patching
+    `catalog.build._CACHE_DIR` did nothing and the build read the developer's
+    real `.cache/edgar`. The test passed for the wrong reason and failed the
+    first time CI ran it on a machine with no cache. With an EMPTY patched cache
+    the offline build must find nothing — if it finds filings, it is reading
+    something this test did not give it.
+    """
+    from catalog.build import main as build_main
+
+    empty = tmp_path / "empty-edgar"
+    empty.mkdir()
+    monkeypatch.setattr("catalog.build._CACHE_DIR", empty)
+    rc = build_main(["--ticker", "AAPL", "--offline",
+                     "--catalog-path", str(tmp_path / "c.sqlite")])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "filings              0" in out, out
+    assert "AAPL" not in out.split("LATEST FILED")[-1], (
+        "the offline build found filings with an empty cache, so it is reading "
+        "a directory this test did not provide"
+    )
+
+
 def test_cli_reports_a_failure(tmp_path, monkeypatch):
     from catalog.build import main as build_main
     monkeypatch.setattr("catalog.build.build",

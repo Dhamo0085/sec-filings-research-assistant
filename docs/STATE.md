@@ -16,7 +16,7 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
 | Phase 4 | COMPLETE on `phase-4-evaluation`, awaiting owner approval and merge (`reports/phase4/REPORT.md`). All 10 MUST tasks done |
 | Current task | none — awaiting the owner's two gates (sign `reports/phase4/gold_verification.csv`; rate 15 narrative answers), the PR merge, and "Approved: start Phase 5" |
-| Tests | `make test` → **1,172 passed, 0 failed, 0 skipped**; ruff clean; `./scripts/ci_local.sh` green. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+| Tests | `make test` → **1,173 passed, 0 failed, 0 skipped** (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `./scripts/ci_local.sh` green. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
 
 ## 1b. Phase 3 facts (measured, 2026-10-02)
 - **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.
@@ -55,6 +55,15 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
   route "ratio of X to Y" or "A less B" though `facts/calc.py` implements both; "cash flow from
   operating activities" resolves to `cash_and_equivalents`; `X-PERIOD-NOT-COVERED` refuses with the
   wrong reason; one over-refusal on MSFT segments.
+- **CI's first run failed 15 tests that pass locally** — and all three causes were real:
+  `generation/generator.py` called `tiktoken.get_encoding` **at import**, which downloads the BPE
+  file on a cold machine; seven `test_facts_documents.py` tests needed `edgar_email` from the
+  developer's `.env` (T1-05 quietly did not hold); and `test_cli_runs_offline` was reading the real
+  `.cache/edgar`, because `EdgarFetcher`'s `cache_dir` default was bound at import so
+  `monkeypatch.setattr("catalog.build._CACHE_DIR", ...)` did nothing. All fixed, with a negative
+  control on the last. **`./scripts/ci_local.sh` cannot catch this class** — it runs in the repo with
+  `.env` present and caches warm. Reproduce CI's isolation with:
+  `cd "$(mktemp -d)" && PYTHONPATH=<repo> HOME="$(mktemp -d)" <repo>/.venv/bin/python -m pytest <repo>/tests/unit <repo>/tests/integration -m "not live and not slow" --disable-socket --allow-unix-socket`
 - **`eval/mini_eval.py`** is what CI enforces: real gold items, real pipeline, committed fixtures,
   no network — numeric+computed 9/9, look-ahead 0. The BAC fixture gained `us-gaap:Liabilities` so
   the 100% threshold did not have to be weakened around a hole in the test data.

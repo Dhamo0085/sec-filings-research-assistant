@@ -171,6 +171,15 @@ still looked like a measurement.
 `.github/workflows/ci.yml`, mirrored by `scripts/ci_local.sh`. No network, no
 API key, no `data/` directory.
 
+That isolation is the point, and it paid for itself on the first run: 15 tests
+that pass locally failed, because seven needed `edgar_email` from a developer's
+`.env`, seven imported a module that downloads a tokenizer at import time, and
+one was reading the developer's real `.cache/edgar` because a monkeypatch had no
+effect against a default bound at import. The local mirror cannot catch any of
+those — it runs in the repository, where `.env` exists and the caches are warm —
+so a green mirror means "probably green in CI", not a guarantee. The script says
+so, and gives the command that does reproduce CI's isolation.
+
 `eval/mini_eval.py` answers real gold items with the real pipeline against the
 committed iXBRL fixtures. The facts path makes no model call, so this is a
 genuine end-to-end check of routing, resolution, calculation, the abstention

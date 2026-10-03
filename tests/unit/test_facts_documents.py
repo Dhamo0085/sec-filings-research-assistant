@@ -18,6 +18,22 @@ from facts.documents import (
 
 pytestmark = pytest.mark.unit
 
+
+@pytest.fixture(autouse=True)
+def _contact_email(monkeypatch):
+    """A contact email for the SEC User-Agent header, from the test, not the machine.
+
+    ``DocumentFetcher`` builds its User-Agent through ``require_edgar_email()``,
+    which raises when nothing is configured. These tests inject a fake session
+    and make no request, but the header is still built — so without this they
+    passed only on a machine with a populated ``.env``, and failed in CI, where
+    there is none. That is the T1-05 guarantee ("the suite passes with no
+    .env") quietly not holding.
+    """
+    import config
+
+    monkeypatch.setattr(config.settings, "edgar_email", "tests@example.invalid")
+
 # The real FilingSummary.xml block for Wells Fargo FY2024 (two iXBRL documents
 # plus the linkbases). This shape is why the module reads FilingSummary at all.
 WFC_SUMMARY = """<?xml version="1.0"?>

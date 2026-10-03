@@ -75,12 +75,20 @@ class EdgarFetcher:
 
     def __init__(
         self,
-        cache_dir: Path = _CACHE_DIR,
+        cache_dir: Optional[Path] = None,
         *,
         offline: bool = False,
         session: Optional[requests.Session] = None,
     ) -> None:
-        self.cache_dir = Path(cache_dir)
+        # Resolved at call time, not bound as a default at import. The default
+        # used to be `_CACHE_DIR` itself, which meant a test patching
+        # `catalog.build._CACHE_DIR` had no effect and the build read the
+        # developer's real `.cache/edgar` instead of its own fixtures.
+        # test_cli_runs_offline passed that way for three phases and failed the
+        # moment CI ran it on a machine with no cache — a test reading real
+        # on-disk data without saying so, which is the gotcha docs/STATE.md
+        # already records for `None`-as-default.
+        self.cache_dir = Path(cache_dir if cache_dir is not None else _CACHE_DIR)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.offline = offline
         self._session = session or requests.Session()

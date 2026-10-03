@@ -8,6 +8,20 @@
 #   ./scripts/ci_local.sh
 #
 # Uses .venv if it exists, like the Makefile.
+#
+# ONE THING THIS MIRROR CANNOT REPRODUCE: it runs in the repository, where your
+# .env exists and your model caches are warm, so a test that silently depends on
+# either still passes here. CI has neither. That gap is not theoretical — the
+# first CI run failed 15 tests that pass locally: seven needed `edgar_email`
+# from .env, seven imported a module that DOWNLOADS a tokenizer at import, and
+# one read the developer's real .cache/edgar because a monkeypatch had no effect
+# against a default bound at import. All three are fixed; the gap remains, so
+# treat a green mirror as "probably green in CI", not as a guarantee.
+#
+# To reproduce CI's isolation locally:
+#   cd "$(mktemp -d)" && PYTHONPATH=<repo> HOME="$(mktemp -d)" \
+#     <repo>/.venv/bin/python -m pytest <repo>/tests/unit <repo>/tests/integration \
+#     -m "not live and not slow" --disable-socket --allow-unix-socket
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

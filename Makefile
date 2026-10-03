@@ -13,7 +13,7 @@ RUFF    := $(VENV)/bin/ruff
 # each phase so a later run cannot overwrite an earlier phase's committed
 # junit.xml/coverage.xml (a Phase 1 runner overwrote a committed Phase 0
 # artifact that way; see reports/phase1/REPORT.md section 6).
-PHASE   ?= phase2
+PHASE   ?= phase3
 comma   := ,
 HOST    ?= 127.0.0.1
 PORT    ?= 8000

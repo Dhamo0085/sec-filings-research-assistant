@@ -23,10 +23,12 @@ def _app(monkeypatch, *, rate_limit=20, max_chars=500):
     return api.app.app
 
 
-def _fake_result(question):
-    from models import QueryResult
-    return QueryResult(query=question, answer="stub", citations=[],
-                       chunks_used=[], query_type="single_doc")
+def _fake_result(question, as_of=None):
+    """Stand in for the pipeline: these tests are about the limits, not the
+    answer. Returns the P3-01 Outcome the route now expects."""
+    from answering.outcome import AbstainReason, Outcome
+    return Outcome.abstain(AbstainReason.OUT_OF_SCOPE, "stub", query=question,
+                           as_of=as_of)
 
 
 def test_question_over_the_cap_is_rejected(monkeypatch):

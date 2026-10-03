@@ -5,6 +5,96 @@ Newest first.
 
 ---
 
+## 2026-10-02 — D3-00 v1's section boundaries are documented, not fixed, in Phase 3
+
+**Context.** D23 recorded that v1's parsed *statement* sections are unreliable and demoted
+`validation_status` to informational. P3-00 was to measure the same question for the sections
+the **text path** actually reads, then fix the parser or document the limit.
+
+`scripts/audit_sections.py` measured 39 parsed filings against the 11 sections
+`retrieval/retriever.py` scrolls by id or serves as parent context. Result: **238 of 429
+(filing, section) pairs usable; 122 missing, 24 heading-only, 45 oversized.** The damage is not
+confined to statements — **Item 1A Risk Factors is missing from 17 of 39 filings**, including
+4 of the 8 evaluation-core tickers (AMZN, GS, JPM, NFLX), and Item 3 Legal Proceedings is
+usable in 3.
+
+Three defect classes, each diagnosed to a line:
+
+1. **The TOC skip zone is a fraction, not a bound.** `parse_filing` ignores the first 15% of a
+   document's lines. For filers whose primary document *is* the whole annual report, Part I
+   starts well inside that: JPM FY2024's real `Item 1A. Risk Factors.` heading is at line 229
+   of 6,897 (3.3%), GS FY2024's at 490 of 5,370 (9.1%), STT FY2024's at 405 of 3,715 (10.9%).
+   The heading is never a candidate, so the preceding section absorbs the text — GS FY2024's
+   Item 1 is 295,735 characters and JPM FY2024's `fs_income_stmt` is 1,525,489.
+2. **The heading is destroyed before any scan.** Amazon renders each item heading as a two-cell
+   table row (`Item 1A.` | `Risk Factors`); `_extract_tables` decomposes the table, and the
+   audit found **zero** occurrences of the heading anywhere in AMZN's parsed text.
+   `_annotate_fs_header_tables` already joins a row's cells, but
+   `_ITEM_RECOVERY_PATTERNS` listed only `Item 1. Business`.
+3. **One sentinel per table.** Already recorded in the parser's own comments: AAPL/GOOGL/MSFT
+   list every statement title in one index table, the annotation loop takes the first match and
+   stops, so the rest merge. Fixing it needs per-row sentinel insertion.
+
+**Options.** (a) Fix the parser now. (b) Document the limit, keep D23's prohibition, and scope
+a proper fix. (c) Do nothing and leave the measurement unrecorded.
+
+**Choice.** (b).
+
+**Reason.** (a) was implemented and measured before being rejected, which is why this entry
+exists rather than a guess. Three candidate changes — cap the skip zone at 250 absolute lines,
+anchor the Item-N patterns at line start, extend `_ITEM_RECOVERY_PATTERNS` — were ablated over
+all 8 subsets on 13 filings (143 pairs), re-parsing with `scripts/reparse_corpus.py` and
+scoring with the audit. Raw counts in `reports/phase3/section_audit_ablation.json`:
+
+| variant | usable pairs (of 143) | usable text-path pairs (of 65) |
+|---|---|---|
+| none (committed parser) | 80 | 35 |
+| A extend recovery patterns | 81 | 36 |
+| B anchor Item-N patterns | 79 | 34 |
+| C cap the TOC skip zone | 80 | 36 |
+| A+C | **81** | **37** |
+| A+B+C | 80 | 36 |
+
+The best subset moves the corpus by **+1 of 143 pairs** (+2 of 65 on the text-path sections),
+and anchoring is net negative on its own. Individual filings move a lot in both directions:
+C recovers GS's real 74,825-character Risk Factors section and takes GS's Item 1 from 295,735
+characters to 152,354, and in the same run STT loses Item 1C and Item 3 and STT's MD&A grows
+from 534,742 to 738,937 characters. The cause is structural: `_select_and_validate` keeps one
+occurrence per section id and then applies a greedy monotonic priority filter, so a single new
+early candidate both misplaces its own section and blocks every lower-priority section after
+it. Local heuristics cannot be made net-positive against that.
+
+Against a gain inside the noise, the cost of (a) is concrete: the parse feeds `data/chunks/`
+and Qdrant, so adopting it means re-parsing, re-chunking and **re-indexing** the corpus (1.6 h
+for the 24 indexed collections, per D2-00's measured 1.86 chunks/s), and every retrieval number
+measured before it becomes incomparable. Paying that for +1 pair would be churn.
+
+**What this does not do.** It does not leave the finding unrecorded or unguarded:
+
+* The audit is a committed, negative-controlled command (`--self-test` plants an empty, a
+  heading-only and an oversized section and asserts each is flagged), so the "after" of any
+  future fix is measurable the same way.
+* The two fixable defect classes are pinned as **`xfail(strict=True)`** tests in
+  `tests/unit/test_parser_sections.py`. Strict matters: if the parser is fixed, the unexpected
+  pass fails the suite and forces this entry to be revisited, so the code and this decision
+  cannot silently diverge.
+* D23's prohibition stands and widens in scope: nothing user-visible may depend on these
+  sections. For Phase 3 that constrains P3-05 — a narrative citation names the filing and the
+  section *title*, and the answer's correctness rests on the retrieved chunk text, never on a
+  claim that a section slice is complete.
+
+**Proper fix (proposed, not built).** Replace one-occurrence-per-id plus greedy monotonic
+filtering with candidate scoring (is the line heading-shaped, is it followed by prose, does a
+sentinel point at it) and a global assignment over all occurrences — a longest-increasing
+subsequence on (line, Item priority) — then re-parse, re-chunk and re-index once. Sized in
+`reports/phase3/REPORT.md` section 9.
+
+**What would change it.** A measurement showing a boundary change that moves the audit by a
+margin worth a re-index, or a Phase 4 failure analysis that traces narrative misses to section
+boundaries rather than to retrieval.
+
+---
+
 ## 2026-10-01 — D0.5 Phase 0 ran without git
 
 **Context.** The working copy at `/Users/dhamo_85/Downloads/Financial_RAG-main` has no `.git`

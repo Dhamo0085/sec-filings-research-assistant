@@ -15,16 +15,17 @@ import shutil
 import tarfile
 import threading
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from api.auth import ADMIN_DEPENDENCY, ADMIN_TOKEN_HEADER
+from api.auth import ADMIN_DEPENDENCY, ADMIN_TOKEN_HEADER, is_admin
 from api.chat import router as chat_router
 from api.ratelimit import check_rate_limit
 from config import settings
@@ -89,35 +90,99 @@ app.add_middleware(
 app.include_router(chat_router)
 
 
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """Give every request an id, in the logs, the response and the trace (P3-08).
+
+    An inbound ``X-Request-Id`` is honoured so a caller can correlate across
+    services, but it is length-capped and stripped of anything but
+    URL-safe characters: it is echoed in a response header, and an
+    unsanitised value from the client is how a header-injection or a log-
+    forging bug gets in.
+    """
+    import re
+    import uuid
+
+    supplied = request.headers.get("X-Request-Id", "")
+    cleaned = re.sub(r"[^A-Za-z0-9._-]", "", supplied)[:64]
+    request_id = cleaned or uuid.uuid4().hex[:16]
+    request.state.request_id = request_id
+
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = request_id
+    return response
+
+
 # ---------------------------------------------------------------------------
 # Request / response schemas
 # ---------------------------------------------------------------------------
 
 class QueryRequest(BaseModel):
     question: str = Field(..., min_length=5, description="Your financial question")
+    # P3-08. An explicit field rather than only a phrase in the question: a
+    # client that wants point-in-time answers should not have to write English
+    # to get them, and the router treats this as the stronger signal (D2, G2).
+    as_of: Optional[str] = Field(
+        default=None,
+        description="ISO date (YYYY-MM-DD). Only filings public on or before "
+                    "it are used.",
+    )
 
-    model_config = {"json_schema_extra": {"example": {"question": "How did JPMorgan net income trend from 2023 to 2025?"}}}
+    model_config = {"json_schema_extra": {"example": {
+        "question": "How did JPMorgan net income trend from 2023 to 2025?",
+        "as_of": None,
+    }}}
+
+    @field_validator("as_of")
+    @classmethod
+    def _as_of_is_a_date(cls, v: Optional[str]) -> Optional[str]:
+        if v in (None, ""):
+            return None
+        try:
+            date.fromisoformat(v)
+        except ValueError as exc:
+            raise ValueError("as_of must be an ISO date, e.g. 2024-03-01") from exc
+        return v
 
 
 class CitationOut(BaseModel):
+    """Spec 6.5 citation, plus the field names the v1 UI reads.
+
+    ``model_config`` allows extras because a fact citation and a text citation
+    carry different fields and the response lists both kinds (6.5).
+    """
+
+    model_config = {"extra": "allow"}
+
     index:       int
-    company:     str
+    kind:        str
     ticker:      str
-    fiscal_year: int
-    section:     str
-    score:       float
+    accession:   str
+    filing_date: str
+    fiscal_label: int
+    # v1 UI compatibility (P3-01); replaced when the UI is rewritten.
+    company:     Optional[str] = None
+    fiscal_year: Optional[int] = None
+    section:     Optional[str] = None
+    score:       Optional[float] = None
 
 
 class QueryResponse(BaseModel):
-    query:       str
-    answer:      str
-    query_type:  str
-    citations:   List[CitationOut]
-    chunks_used: int
-    # D9 status taxonomy (P1-05). The UI uses it to tell an answer from an
-    # abstention, a clarification, or a dependency failure.
-    status:      str = "answered_text"
-    error_code:  Optional[str] = None
+    """Spec 6.5, plus `query` and `chunks_used` for the UI."""
+
+    status:          str
+    answer:          str
+    abstain_reason:  Optional[str] = None
+    error_code:      Optional[str] = None
+    query_type:      str
+    as_of:           Optional[str] = None
+    definition_note: Optional[str] = None
+    citations:       List[CitationOut] = []
+    # Admin-only (X-Admin-Token + ?debug=1); null for everyone else.
+    trace:           Optional[dict] = None
+
+    query:           str = ""
+    chunks_used:     int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -476,7 +541,12 @@ def ingest(background_tasks: BackgroundTasks):
 
 
 @app.post("/query", response_model=QueryResponse, tags=["rag"])
-def query(req: QueryRequest, request: Request):
+def query(
+    req: QueryRequest,
+    request: Request,
+    debug: int = Query(default=0, description="Admin only: include the trace"),
+    x_admin_token: Optional[str] = Header(default=None, alias=ADMIN_TOKEN_HEADER),
+):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
@@ -499,41 +569,36 @@ def query(req: QueryRequest, request: Request):
             headers={"Retry-After": str(retry_after)},
         )
 
-    logger.info(f"Incoming query: {req.question[:80]}")
+    request_id = getattr(request.state, "request_id", "")
+    logger.info(f"[{request_id}] query: {req.question[:80]!r} as_of={req.as_of}")
 
     try:
-        result = ask(req.question)
+        outcome = ask(req.question, as_of=req.as_of)
     except Exception as exc:
-        logger.exception("Pipeline error")
-        raise HTTPException(status_code=500, detail="Something went wrong while answering your question. Please try again.") from exc
+        # ask() already maps every failure it knows about to status=error; a
+        # throw from here is a bug in the dispatcher itself.
+        logger.exception(f"[{request_id}] pipeline error")
+        raise HTTPException(
+            status_code=500,
+            detail="Something went wrong while answering your question. Please try again.",
+        ) from exc
+
+    # The trace is privileged: a public caller passing ?debug=1 gets a normal
+    # response, not an error and not the trace (D13 fail-closed — with no
+    # ADMIN_TOKEN configured, nobody is an admin).
+    include_trace = bool(debug) and is_admin(x_admin_token)
+    body = outcome.to_ui_response(include_trace=include_trace)
+    if include_trace:
+        body["trace"] = {**(body["trace"] or {}), "request_id": request_id}
 
     # A dependency failure is a 503 with its error_code, not a 200 carrying an
     # apology (D7, G4). v1 had no way to express this: every failure became a
     # 200 with the "Which company are you asking about?" text.
-    if result.status == "error":
+    if outcome.status == "error":
         raise HTTPException(
             status_code=503,
-            detail={"error_code": result.error_code, "message": result.answer},
+            detail={"error_code": outcome.error_code, "message": outcome.answer,
+                    "request_id": request_id},
         )
 
-    citations = [
-        CitationOut(
-            index=c["index"],
-            company=c["company"],
-            ticker=c["ticker"],
-            fiscal_year=c["fiscal_year"],
-            section=c["section"],
-            score=c.get("score", 0.0),
-        )
-        for c in result.citations
-    ]
-
-    return QueryResponse(
-        query=result.query,
-        answer=result.answer,
-        query_type=result.query_type,
-        citations=citations,
-        chunks_used=len(result.chunks_used),
-        status=result.status,
-        error_code=result.error_code,
-    )
+    return QueryResponse(**body)

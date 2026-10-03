@@ -42,6 +42,7 @@ import requests
 from loguru import logger
 
 from config import require_edgar_email, settings
+from ingestion.sec_cache import SecResponseError, validated_document
 
 # The spec caps us at 5 requests/second; the SEC's own guidance is 10.
 _MIN_REQUEST_INTERVAL = 1.0 / 5.0
@@ -131,9 +132,17 @@ class DocumentFetcher:
         if resp.status_code != 200:
             logger.error(f"facts.documents: {url} -> HTTP {resp.status_code}")
             return None
+        # Validate before writing (P3-00b). SEC serves its rate-limit page with
+        # HTTP 200; cached as a filing document it would only fail much later,
+        # inside iXBRL extraction, with nothing pointing back at the cause.
+        try:
+            body = validated_document(resp.content, url=url)
+        except SecResponseError as exc:
+            logger.error(f"facts.documents: {exc}")
+            return None
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(resp.content)
-        self.bytes_fetched += len(resp.content)
+        dest.write_bytes(body)
+        self.bytes_fetched += len(body)
         return dest
 
     def filing_dir(self, ticker: str, accession: str) -> Path:

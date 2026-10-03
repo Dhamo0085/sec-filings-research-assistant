@@ -17,8 +17,8 @@ explain every component, so prefer simple, explicit designs and write the briefi
 | Step 0 | Bootstrap: new private GitHub repo via `gh`, root cleanup (`docs/BOOTSTRAP.md`) | COMPLETE (PR #1 merged; report in `reports/bootstrap/REPORT.md`) |
 | 0 | Audit and baseline | COMPLETE (report in `reports/phase0/REPORT.md`) |
 | 1 | Foundation, hardening, catalog, true baseline | COMPLETE (PR #2 merged; report in `reports/phase1/REPORT.md`; baseline partial 9 of 25, D21) |
-| 2 | Facts engine (extract, store, resolve, calculate) | COMPLETE through P2-13 closure (`reports/phase2/REPORT.md`). PR #3 merged (the 12 pre-closure commits); the P2-13 closure is in a follow-up PR awaiting merge. All T2 tests and T2-10 thresholds met; spot-check 20/20 OK |
-| 3 | Routing, answers, `as_of`, abstention, UI | NOT STARTED |
+| 2 | Facts engine (extract, store, resolve, calculate) | COMPLETE (`reports/phase2/REPORT.md`). PR #3 and PR #4 both merged into `main` (`4013664`). All T2 tests and T2-10 thresholds met; spot-check 20/20 OK |
+| 3 | Routing, answers, `as_of`, abstention, UI | COMPLETE — awaiting owner approval (`reports/phase3/REPORT.md`). All T3 tests pass; smoke eval 30/30; D3-00 documents the section-boundary limit. P3-10 (OPTIONAL) not built. Owner UI walkthrough outstanding |
 | 4 | Evaluation, ablations, documentation | NOT STARTED |
 | 5 | Productization and release | NOT STARTED |
 

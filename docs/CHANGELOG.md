@@ -1,5 +1,82 @@
 # Changelog
 
+## Phase 3 — routing, answers, `as_of`, abstention, UI (2026-10-02)
+
+Report: `reports/phase3/REPORT.md` · Owner explainer: `docs/explainers/phase3.md`
+
+**The headline: the system now decides what a question is asking without a
+model, answers it from the right place, refuses clearly when it cannot, and
+cannot cite a filing that was not public on the date you asked about.** On a
+30-question smoke run against the real stack, every question reached the status
+it should, with zero look-ahead violations — and every one of them *routed*
+without an LLM call.
+
+### Added
+- `answering/outcome.py` — one response type for every path (spec 6.5), with
+  the four guarantees enforced as validators rather than conventions. An
+  `Outcome` with a number and no traceable source (G1), a citation newer than
+  the as-of date (G2), a refusal with no reason or with citations (G3), or an
+  outage shaped like a question back to the user (G4) **cannot be
+  constructed**. Citation indices must be exactly 1..n, which makes the Phase 0
+  renumbering bug (K1) unrepresentable.
+- `routing/entities.py`, `routing/periods.py` — deterministic company and
+  period resolution, 143 phrase cases, injectable clock. Keeps three things
+  apart that one date regex would collapse: an `as_of` cutoff, the period being
+  asked about, and a fiscal label versus a calendar year.
+- `routing/router.py` — rules first, the model only for genuine ambiguity, with
+  `used_llm` recorded so a Phase 4 failure analysis can tell a routing mistake
+  from a retrieval one. Metric aliases come from `facts/concepts.yaml` itself,
+  so a metric the router can name is one the resolver can resolve.
+- `answering/facts_answer.py` — deterministic templates. No model writes these
+  sentences, so the number in the text is the number in the citation. Every
+  answer states the period-end date (D6), the definition used (D5), the exact
+  figure beside the readable one, and any restatement (D14).
+- `answering/text_answer.py` — the narrative path: the catalog chooses which
+  collections may be searched at the as-of date, the model returns
+  `{found, answer}` instead of prose we have to interpret, and citations carry
+  the accession and filing date.
+- `answering/abstain.py` — one table from condition to reason to message. A
+  test asserts the table covers the whole enum and that no message contains a
+  figure.
+- `generation/normalize.py` — citation markers normalized at the generator
+  boundary and counted in the trace (D20).
+- `ingestion/sec_cache.py` — SEC serves its rate-limit page with HTTP 200, and
+  two fetchers were caching it as data. Both now validate before writing.
+- `ingestion/catalog_ingest.py` — filing lists come from the catalog, covering
+  every CIK a ticker has filed under (D24), plus the catalog/index join that
+  nothing was performing.
+- `scripts/audit_sections.py` — section-quality audit with its own negative
+  control; `scripts/reparse_corpus.py` — offline re-parse, including filings
+  that exist only in the SEC cache.
+- `eval/phase3/` — the 30-question smoke evaluation and its transcripts.
+
+### Changed
+- `query.ask()` returns an `Outcome` and is a dispatcher over the above;
+  `routing/classifier.py` is off the answer path.
+- `POST /query` accepts `as_of`, returns the 6.5 body, echoes a sanitised
+  request id, and reveals the trace only to an admin passing `?debug=1`.
+- The UI gained an as-of date input, D9 status badges, the definition line,
+  refusal and error states, and citation chips that link to the EDGAR filing.
+- `/chat` no longer prepends conversation history to the routed question —
+  with a rules-first router that turned a repeated question into a trend over
+  every year the previous answer mentioned.
+
+### Measured
+- **Section quality (the uncomfortable number).** 238 of 429 audited section
+  slices are usable; Item 1A Risk Factors is missing from 17 of 39 filings.
+  Three candidate parser fixes were implemented and ablated over 13 filings and
+  moved the corpus by **+1 of 143**, so the limit is documented rather than
+  patched (**D3-00**), with the two fixable defect classes pinned as strict
+  `xfail` tests.
+- **BlackRock FY2023**, filed under the pre-reorganisation CIK 1364742, is
+  parsed, indexed (1,037 chunks) and answerable — the D24 proof case.
+- `make test` → 1,052 passed, 2 xfailed (documented), 0 skipped. Coverage:
+  facts 88.8%, catalog 95.5%, llm 90.5%, answering 97.2%.
+
+### Fixed
+Twelve defects, listed in the report's section 6. Four were visible only by
+driving the real UI, including the conversation-history one above.
+
 ## Phase 2 — facts engine (2026-10-02)
 
 Report: `reports/phase2/REPORT.md` · Owner explainer: `docs/explainers/phase2.md`

@@ -34,7 +34,7 @@ different code path from the one that ships.
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from loguru import logger
@@ -536,11 +536,9 @@ def _ask_inner(
         logger.warning(f"catalog unavailable for ticker resolution: {exc}")
 
     # V2 removes point-in-time scoping: the question is answered from whatever
-    # the corpus holds, which is what a system without `as_of` does. The date
-    # is dropped before routing rather than ignored afterwards, so nothing
-    # downstream can quietly still honour it and make the ablation look like a
-    # smaller change than it is.
-    if not deps.flag("enable_asof"):
+    # the corpus holds, which is what a system without `as_of` does.
+    scoped = deps.flag("enable_asof")
+    if not scoped:
         as_of = None
 
     route_ = route(
@@ -553,6 +551,15 @@ def _ask_inner(
         force_tickers=tickers,
         force_years=years,
     )
+    # ...and the date has to be removed from the ROUTE as well, not only from
+    # the parameter. The first V2 run looked identical to V3 on every
+    # point-in-time item, because the gold questions carry the date in the
+    # sentence ("As of 2024-10-31, what was Apple's revenue...") and the router
+    # parses it from there. Dropping only the parameter ablated nothing and
+    # would have been reported as "the guard makes no difference".
+    if not scoped and route_.as_of:
+        route_ = replace(route_, period=replace(route_.period, as_of=None))
+
     logger.info(f"route: {route_.trace()}")
 
     # V1 removes the facts path. The question still routes normally — the

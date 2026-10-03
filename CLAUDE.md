@@ -42,6 +42,11 @@ explain every component, so prefer simple, explicit designs and write the briefi
 15. **Checks you can trust.** Prefer small Python scripts over nested shell pipelines for scans and checks. Before relying on a "no matches" or "all clear" result, show that the check can fail (a negative control that plants a known match). Report any check you had to redo, as Step 0 did.
 16. **Session continuity.** Durable facts live in files, not in the conversation. At the start of every session, and after any `/compact`, re-read `CLAUDE.md`, `docs/PROJECT_SPEC.md`, `docs/STATE.md`, and `docs/DECISIONS.md`, then state the current phase and task ID before continuing. Update `docs/STATE.md` at every commit batch, at every gate, and **before** running `/compact` or ending a session. Never rely on a remembered detail that the files do not contain.
 
+17. **Owner-only fields (D29).** Never fill a column the owner signs: `verdict`, `notes`, and
+    `verified_by=owner` in any verification or rating sheet. Assistance goes in separate `assist_*`
+    columns and never edits an existing column. Verification tiers are `owner` > `companyfacts` > `auto`.
+    Until the owner signs a sheet, every headline metric that depends on it is reported as provisional.
+
 ## Commands (the Makefile is created in P1-02; keep these targets working afterwards)
 `make setup` · `make test` (offline unit + integration) · `make test-live` · `make lint` · `make ingest` ·
 `make catalog` · `make facts` · `make eval-smoke` · `make eval-full` · `make up`

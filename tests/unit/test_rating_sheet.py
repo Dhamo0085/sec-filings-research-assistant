@@ -16,6 +16,8 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+import pytest
+
 from scripts.make_rating_sheet import (
     COLUMNS,
     OWNER_COLUMNS,
@@ -24,6 +26,8 @@ from scripts.make_rating_sheet import (
     sample_ids,
     write_sheet,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def run_row(item_id: str, *, citations=None, answer="Apple says things [1].",
@@ -177,3 +181,62 @@ def test_an_uncited_answer_is_still_flagged_no_citation():
         ["R-A"], passage_chars=1500, recover=False)
     assert "no_citation" in rows[0]["assist_flags"]
     assert "refused:" not in rows[0]["assist_flags"]
+
+
+def test_a_passage_is_matched_to_its_citation_by_identity_not_by_position():
+    """The bug this sheet shipped with for one build.
+
+    `answering/text_answer.prune_to_cited` drops the sources the answer never
+    referred to and renumbers what is left 1..n (G4/K1). So final citation 1
+    is NOT necessarily the first chunk retrieval returned. Looking passages up
+    by position therefore showed the owner a passage the answer had not cited
+    — caught because an AAPL FY2024 row carried text footed "2025 Form 10-K".
+
+    Rating an answer against the wrong passage is worse than showing none: it
+    manufactures both false hallucination reports and false clean bills.
+    """
+    from scripts.make_rating_sheet import passage_for
+
+    retrieved = {
+        ("AAPL", 2025, "Item 1C: Cybersecurity"): "FY2025 cybersecurity text",
+        ("AAPL", 2024, "Item 1C: Cybersecurity"): "FY2024 cybersecurity text",
+    }
+    citation = {"ticker": "AAPL", "fiscal_label": 2024,
+                "section": "Item 1C: Cybersecurity", "index": 1}
+
+    assert passage_for(citation, retrieved) == "FY2024 cybersecurity text"
+
+
+def test_a_citation_with_no_matching_passage_returns_nothing_rather_than_a_guess():
+    from scripts.make_rating_sheet import passage_for
+
+    retrieved = {("AAPL", 2024, "Item 1A: Risk Factors"): "risk text"}
+    citation = {"ticker": "MSFT", "fiscal_label": 2024,
+                "section": "Item 1A: Risk Factors", "index": 1}
+    assert passage_for(citation, retrieved) == ""
+
+
+def test_the_committed_sheet_never_shows_a_passage_from_another_filing():
+    """The artifact itself. A passage recovered for FY2024 must not be the
+    FY2025 document; the filings print their own year in a page footer."""
+    import csv
+    import re
+
+    path = REPO_ROOT / "reports/phase4/narrative_rating_sheet.csv"
+    if not path.is_file():
+        pytest.skip("the rating sheet has not been generated")
+    with path.open(encoding="utf-8") as handle:
+        rows = list(csv.reader(handle))
+    header = next(i for i, r in enumerate(rows) if r and r[0] == "item_id")
+    data = [dict(zip(rows[header], r, strict=False)) for r in rows[header + 1:] if r]
+
+    mismatches = []
+    for row in data:
+        passage = row["assist_passage"]
+        label = row["cited_fiscal_label"]
+        if not passage or passage == "PASSAGE NOT RECOVERED" or not label:
+            continue
+        years = set(re.findall(r"(20\d\d) Form 10-K", passage))
+        if years and label not in years:
+            mismatches.append((row["item_id"], label, sorted(years)))
+    assert not mismatches, f"passage from another filing: {mismatches}"

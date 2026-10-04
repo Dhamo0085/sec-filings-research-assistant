@@ -1,0 +1,231 @@
+{
+  "variant": "V1",
+  "scores": {
+    "n": 80,
+    "passed": 37,
+    "rate": 0.4625,
+    "ci95": [
+      0.3574781238878701,
+      0.5709583563319731
+    ],
+    "by_category": {
+      "numeric": {
+        "n": 25,
+        "passed": 12,
+        "verdicts": {
+          "abstained_wrongly": 6,
+          "correct_text_only": 12,
+          "wrong_value": 4,
+          "scale_error": 3
+        },
+        "rate": 0.48,
+        "ci95": [
+          0.30031003928960015,
+          0.6650178204685269
+        ]
+      },
+      "computed": {
+        "n": 12,
+        "passed": 4,
+        "verdicts": {
+          "abstained_wrongly": 6,
+          "wrong_value": 2,
+          "correct": 4
+        },
+        "rate": 0.3333333333333333,
+        "ci95": [
+          0.13811783989736132,
+          0.6093824126023861
+        ]
+      },
+      "compare_trend": {
+        "n": 10,
+        "passed": 1,
+        "verdicts": {
+          "correct": 1,
+          "abstained_wrongly": 7,
+          "wrong_value": 1,
+          "partial_multi": 1
+        },
+        "rate": 0.1,
+        "ci95": [
+          0.01787574951572113,
+          0.4041563854975721
+        ]
+      },
+      "as_of": {
+        "n": 8,
+        "passed": 3,
+        "verdicts": {
+          "wrong_abstain_reason": 4,
+          "correct_text_only": 3,
+          "wrong_value": 1
+        },
+        "rate": 0.375,
+        "ci95": [
+          0.13684175946152105,
+          0.6942621454161981
+        ]
+      },
+      "narrative": {
+        "n": 15,
+        "passed": 8,
+        "verdicts": {
+          "correct": 8,
+          "abstained_wrongly": 5,
+          "wrong_value": 2
+        },
+        "rate": 0.5333333333333333,
+        "ci95": [
+          0.3011663015105079,
+          0.7519077474025355
+        ]
+      },
+      "abstain": {
+        "n": 10,
+        "passed": 9,
+        "verdicts": {
+          "correct_abstain": 9,
+          "wrong_abstain_reason": 1
+        },
+        "rate": 0.9,
+        "ci95": [
+          0.5958436145024278,
+          0.9821242504842788
+        ]
+      }
+    },
+    "flags": {
+      "uncited_number": 19
+    }
+  },
+  "llm": {
+    "by_role": {
+      "generator": {
+        "calls": 68,
+        "tokens": 244074,
+        "latency_s": 40.2746,
+        "cached": 16
+      }
+    },
+    "total_calls": 68,
+    "total_tokens": 244074,
+    "latency_p50": 3.279,
+    "latency_p95": 6.6193,
+    "latency_max": 11.0505,
+    "cost_usd": 0.0,
+    "cost_note": "free-tier providers only (D18); no per-token price applies"
+  },
+  "paired_subset": {
+    "n_total": 80,
+    "n_paired": 79,
+    "n_excluded": 1,
+    "excluded_ids": [
+      "M-JPM-NETINCOME-TREND-2022-2024"
+    ],
+    "missing_filings": {
+      "JPM": [
+        "FY2022"
+      ]
+    },
+    "scores": {
+      "n": 79,
+      "passed": 37,
+      "rate": 0.46835443037974683,
+      "ci95": [
+        0.36235600950357894,
+        0.5772878409290539
+      ],
+      "by_category": {
+        "numeric": {
+          "n": 25,
+          "passed": 12,
+          "verdicts": {
+            "abstained_wrongly": 6,
+            "correct_text_only": 12,
+            "wrong_value": 4,
+            "scale_error": 3
+          },
+          "rate": 0.48,
+          "ci95": [
+            0.30031003928960015,
+            0.6650178204685269
+          ]
+        },
+        "computed": {
+          "n": 12,
+          "passed": 4,
+          "verdicts": {
+            "abstained_wrongly": 6,
+            "wrong_value": 2,
+            "correct": 4
+          },
+          "rate": 0.3333333333333333,
+          "ci95": [
+            0.13811783989736132,
+            0.6093824126023861
+          ]
+        },
+        "compare_trend": {
+          "n": 9,
+          "passed": 1,
+          "verdicts": {
+            "correct": 1,
+            "abstained_wrongly": 6,
+            "wrong_value": 1,
+            "partial_multi": 1
+          },
+          "rate": 0.1111111111111111,
+          "ci95": [
+            0.019890371327130507,
+            0.4350062147680602
+          ]
+        },
+        "as_of": {
+          "n": 8,
+          "passed": 3,
+          "verdicts": {
+            "wrong_abstain_reason": 4,
+            "correct_text_only": 3,
+            "wrong_value": 1
+          },
+          "rate": 0.375,
+          "ci95": [
+            0.13684175946152105,
+            0.6942621454161981
+          ]
+        },
+        "narrative": {
+          "n": 15,
+          "passed": 8,
+          "verdicts": {
+            "correct": 8,
+            "abstained_wrongly": 5,
+            "wrong_value": 2
+          },
+          "rate": 0.5333333333333333,
+          "ci95": [
+            0.3011663015105079,
+            0.7519077474025355
+          ]
+        },
+        "abstain": {
+          "n": 10,
+          "passed": 9,
+          "verdicts": {
+            "correct_abstain": 9,
+            "wrong_abstain_reason": 1
+          },
+          "rate": 0.9,
+          "ci95": [
+            0.5958436145024278,
+            0.9821242504842788
+          ]
+        }
+      },
+      "flags": {
+        "uncited_number": 19
+      }
+    }
+  }
+}

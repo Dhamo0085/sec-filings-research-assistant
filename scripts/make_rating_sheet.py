@@ -34,7 +34,7 @@ import json
 import random
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Mapping, Optional, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -111,17 +111,45 @@ def recover_passages(question: str, as_of: Optional[str]) -> tuple:
 
     deps = query_module.Deps(retriever=recording_retrieve)
     outcome = query_module.ask(question, as_of=as_of, deps=deps)
+    # Outcome.citations are typed Citation objects; the recorded transcript
+    # holds the same thing as dicts. Normalise to dicts so citation_key() can
+    # compare the live result against the recording without caring which.
     payload = outcome.to_dict() if hasattr(outcome, "to_dict") else dict(outcome)
+    payload["citations"] = [
+        c if isinstance(c, dict) else
+        (c.model_dump() if hasattr(c, "model_dump") else vars(c))
+        for c in (payload.get("citations") or [])
+    ]
 
-    # Citations are 1..n in the order the answer may refer to them (G4), and
-    # the retriever returns chunks in that same ranked order, so index i names
-    # chunk i-1. The comparison against the recorded citations is what makes
-    # that safe to rely on rather than merely likely.
-    passages: Dict[int, str] = {}
-    for position, chunk in enumerate(captured, start=1):
-        text = getattr(chunk.chunk, "text", "") or ""
-        passages[position] = text
+    # Keyed by identity, NOT by position. answering/text_answer.prune_to_cited
+    # drops the sources the answer never referred to and renumbers the rest
+    # 1..n, so final citation 1 is not necessarily the first chunk retrieval
+    # returned. A positional lookup put an FY2025 passage against an FY2024
+    # citation in the first build of this sheet.
+    #
+    # Several chunks of one section are joined, in retrieval order, because
+    # the answer path shows the model one source per section too.
+    passages: Dict[tuple, str] = {}
+    for chunk in captured:
+        inner = getattr(chunk, "chunk", chunk)
+        key = (inner.ticker, _as_int(inner.fiscal_year), inner.section_name)
+        text = getattr(inner, "text", "") or ""
+        passages[key] = f"{passages[key]}\n\n{text}" if key in passages else text
     return payload.get("citations", []), passages
+
+
+def _as_int(value) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def passage_for(citation: Mapping, passages: Mapping) -> str:
+    """The retrieved text behind one citation, matched by what it names."""
+    key = (citation.get("ticker"), _as_int(citation.get("fiscal_label")),
+           citation.get("section"))
+    return passages.get(key, "")
 
 
 def build_rows(run_rows: Sequence[dict], ids: Sequence[str], *,
@@ -177,7 +205,7 @@ def build_rows(run_rows: Sequence[dict], ids: Sequence[str], *,
 
         for citation in recorded:
             index = int(citation.get("index") or 0)
-            passage = passages.get(index, "")
+            passage = passage_for(citation, passages)
             out.append({
                 "item_id": item_id,
                 "question": row["question"],

@@ -624,14 +624,15 @@ A refusal row is flagged as a decision, not as an uncited answer: five of the
 fifteen are refusals, and marking them `no_citation` would have had the owner
 rating five working refusals as hallucinations.
 
-## A10. Spec discrepancy, raised not corrected
+## A10. Spec discrepancy — raised, and since resolved
 
-Spec v1.10 drops `llm_prompt_too_large` from the `error_code` enum (section
-6.5), while P4-16 item (4) and T4-14 both still require it to be listed. This
-looks like an edit from a base predating the v1.9 change. The spec is the
-owner's, so it was committed as given rather than edited back; the
-implementation keeps the code, because the two task entries mandating it are
-unchanged. **One line in section 6.5 to restore, at the owner's word.**
+Spec v1.10 dropped `llm_prompt_too_large` from the `error_code` enum (section
+6.5) while P4-16 item (4) and T4-14 both still required it listed. It was
+committed as the owner wrote it and raised rather than edited back, since the
+spec is theirs; the implementation kept the code.
+
+**Resolved in v1.11**: the owner confirmed it was dropped by mistake and the
+line is restored. Nothing in the implementation changed.
 
 ## A11. Tests
 
@@ -641,7 +642,81 @@ self-test), T4-10 (narrative gold validator, 11), T4-11 (rating sheet, 18),
 T4-13 (context budget, 21), T4-14 (oversize prompts, 7), plus the D25 item
 filter (5).
 
-## A12. For P4-15 (not started — the narrative ratings are outstanding)
+## A12. P4-17 — the V1-generous arm (D32)
+
+V1 again, facts engine off, but with a **30,000-token** context budget instead
+of the shipped 6,000, pinned to **one** Gemini Flash-Lite model with failover
+structurally impossible (the generator role resolved to a single candidate).
+80 of 80 items ran, **zero errors**. Results in
+`reports/phase4/runs_v1_generous/`; the shipped-budget runs were not touched.
+
+This arm exists because V1's shipped-budget score is conditional on a number
+derived from the **weakest** member of the failover list (groq:qwen, 8,000 TPM)
+while Flash-Lite allows 250,000. Without it, "the facts engine is worth 36
+items" could equally have meant "the fallback provider's token limit is worth
+36 items".
+
+| arm | overall | numeric | computed | cmp/trend | as_of | narrative | abstain | generator tokens | flags |
+|---|---|---|---|---|---|---|---|---:|---|
+| V1, shipped 6k | 37/80 (46.2%) | 12/25 | 4/12 | 1/10 | 3/8 | 8/15 | 9/10 | 244,074 | 19 uncited |
+| **V1-generous, 30k** | **50/80 (62.5%)** | **20/25** | 5/12 | 5/10 | 3/8 | 8/15 | 9/10 | **1,024,250** | **28 uncited** |
+| **V3, shipped 6k** | **73/80 (91.2%)** | **25/25** | **12/12** | **10/10** | **8/8** | 8/15 | **10/10** | **54,047** | **none** |
+
+**The budget was worth 13 items to V1** (37 → 50). So part of what looked like
+the facts engine's contribution was the fallback provider's token ceiling, and
+the honest decomposition of the 36-item gap between V3 and V1 is roughly
+**13 items of context budget and 23 of the facts engine** at comparable context.
+This is exactly what D32 was pre-registered to find out, and it changes the
+claim the README is entitled to make.
+
+### D32's condition, evaluated
+
+> *"If it scores close to V3 on numeric items…"*
+
+| | numeric | 95% CI |
+|---|---|---|
+| V1-generous | 20/25 (80.0%) | 60.9–91.1% |
+| V3 | 25/25 (100.0%) | 86.7–100.0% |
+
+A gap of **5 items / 20.0 pp**. The intervals do overlap, but only over
+86.7–91.1%, a sliver produced by V3's lower bound rather than by the arms being
+alike. **Called: not close.** D32 did not fix a numeric threshold the way D27
+did, so this is a judgement, stated here so the owner can overrule it — the
+rule is theirs.
+
+**The qualitative difference is more decisive than the count.** All 20 of
+V1-generous's numeric passes are `correct_text_only` — the right value, read out
+of retrieved prose, with no fact citation behind it. V3's 25 are `correct`:
+every figure traced to a tagged XBRL fact. And V1-generous carries **28 uncited
+numbers** against V3's **zero flags of any kind**, while spending **19× the
+generator tokens** (1,024,250 against 54,047) to score 23 items worse.
+
+### What the README may claim
+
+Even though the conditional is called "not close", the three properties D32
+names are independently measured here and should be stated plainly, because
+they are the part of the comparison that does not depend on where the budget
+is set:
+
+- **Robustness under free-tier limits.** V1-generous needs a 30,000-token
+  prompt, which **no member of the shipped failover list below Flash-Lite can
+  serve** — groq:qwen's ceiling is 8,000. It is not a configuration the system
+  can fall back to.
+- **Zero generator tokens on the facts path.** V3 answers all 25 numeric and
+  12 computed items with **no generation call at all**; its 54,047 tokens are
+  narrative only.
+- **Exact traceability.** `correct` versus `correct_text_only` is the whole
+  difference between a figure tied to a tagged fact and a figure a model read
+  out of a page.
+
+Accuracy remains part of the claim — 25/25 against 20/25, and 12/12 against
+5/12 on computed — but it is no longer the *only* part, and the README must not
+rest on the 36-item headline alone now that 13 of those items are known to be
+budget rather than architecture.
+
+---
+
+## A13. For P4-15 (not started — the narrative ratings are outstanding)
 
 1. Apply the owner's `OK` rows to set `verified_by=owner` on the 37 verified
    numeric and computed items; the other 43 stay `companyfacts` or `auto` and
@@ -653,3 +728,16 @@ filter (5).
    outcomes of 15 → P5-13; otherwise record the gap as scorer strictness, list
    the disagreements, and tighten the scorer without changing the pipeline.
 5. README quotes post-fix numbers only, with pre-fix shown as "before" evidence.
+6. **Reconcile this report end to end** (spec v1.11). Sections 4.6, 6, 7 and 8
+   predate P4-11 to P4-17 and contradict the addendum: defects A–D are closed,
+   the rating sheet exists, the re-index ran, D27 reversed the cross-encoder
+   reading at n=45, and the test counts moved. Correct each stale statement in
+   place or mark it superseded with a pointer; no number may appear twice with
+   two values and no note of which is current.
+7. **Carry A12's conclusion into the README** (D32): the facts engine's value is
+   robustness under free-tier limits, zero generator tokens and exact
+   traceability **as well as** accuracy — 13 of the 36-item V3-versus-V1 gap is
+   context budget, not architecture, and the headline must not rest on 36 alone.
+   A12 calls D32's "close to V3 on numeric items" condition **not met**
+   (20/25 against 25/25); that call is a judgement on a rule the owner wrote
+   without a numeric threshold, and is theirs to overrule.

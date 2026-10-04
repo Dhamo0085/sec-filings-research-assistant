@@ -317,8 +317,20 @@ def test_the_markdown_table_states_n_and_an_interval_for_every_rate():
 
 
 def test_the_variants_file_defines_the_four_the_spec_names():
+    """The four scored variants, plus P4-17's sensitivity arm kept separate.
+
+    V1_generous (D32) is deliberately NOT one of the four: it runs V1 at a
+    30,000-token context budget that no member of the generator failover list
+    below Flash-Lite can serve, so it is evidence about where the shipped
+    budget sits, not a configuration the system can rely on. It is reported
+    beside the four and never in place of them, and this assertion is what
+    stops it drifting into the headline set.
+    """
     variants = load_variants()
-    assert sorted(variants) == ["V0", "V1", "V2", "V3"]
+    assert sorted(variants) == ["V0", "V1", "V1_generous", "V2", "V3"]
+    assert variants["V1_generous"].flags == variants["V1"].flags, (
+        "the generous arm must differ from V1 only in context budget, which is "
+        "an environment override, not a variant flag")
     assert variants["V0"].pipeline == "v1"
     assert variants["V0"].as_of_in_question, "v1 has no as_of parameter"
     assert variants["V0"].qdrant_path == "data/qdrant_v1_backup", "T4-07"

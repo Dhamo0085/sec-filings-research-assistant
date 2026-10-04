@@ -14,7 +14,7 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
-| Phase 4 | **IN PROGRESS against spec v1.10** (2026-10-04). **P4-00 to P4-14 and P4-16 are DONE. Only P4-15 remains**, and it is blocked on the owner's narrative ratings. PR #6 is open on `phase-4-evaluation` and must not be merged |
+| Phase 4 | **IN PROGRESS against spec v1.11** (2026-10-04). **P4-00 to P4-14, P4-16 and P4-17 are DONE. Only P4-15 remains**, and it is blocked on the owner's narrative ratings. PR #6 is open on `phase-4-evaluation` and must not be merged |
 | Current task | **Nothing is running.** The Phase 4 report addendum is written (`reports/phase4/REPORT.md`), every number in it re-checked against the artifacts. **Next action is the owner's: rate the 15 rows in `reports/phase4/narrative_rating_sheet.csv`.** Then P4-15 — see section 1f |
 | Tests | `make test` → **1,327 passed, 0 failed, 0 skipped** (1,277 before the P4-12 tooling) (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
 
@@ -39,10 +39,30 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 6. T4-05: every number regenerable by one command. Update STATE, DECISIONS and
    the CLAUDE.md table, push to PR #6, stop. **Do not merge.**
 
-**Spec discrepancy to settle first (A10 in the report):** v1.10 drops
-`llm_prompt_too_large` from the `error_code` enum in section 6.5, but P4-16 item
-(4) and T4-14 both still require it listed. Committed as the owner wrote it; the
-code keeps the error. One line to restore at the owner's word.
+7. **Reconcile `reports/phase4/REPORT.md` end to end** (spec v1.11): sections
+   4.6, 6, 7 and 8 predate P4-11 to P4-17 and contradict the addendum — defects
+   A–D closed, rating sheet built, re-index done, D27 reversed the cross-encoder
+   reading at n=45, test counts moved. No number may appear twice with two
+   values and no note of which is current.
+8. **Carry A12 into the README** (D32): 13 of the 36-item V3-vs-V1 gap is
+   context budget, not architecture, so the headline must not rest on 36 alone.
+
+*(The v1.10 `llm_prompt_too_large` discrepancy is RESOLVED — restored in v1.11.)*
+
+### P4-17 / D32 — the V1-generous arm, done 2026-10-04
+- V1 at a **30,000-token** budget, one pinned Gemini Flash-Lite, no failover.
+  80/80 ran, **zero errors**. `reports/phase4/runs_v1_generous/`.
+- **50/80 (62.5%)** against V1-shipped **37/80** — **the budget alone is worth
+  13 items**. So the 36-item V3-vs-V1 gap decomposes to roughly **13 budget /
+  23 facts engine**. This is what D32 existed to find out.
+- **D32's condition called NOT met**: numeric 20/25 vs V3's 25/25 — 5 items,
+  20 pp; intervals overlap only over 86.7–91.1%, off V3's lower bound. D32 set
+  no numeric threshold (unlike D27), so this is a judgement and the owner may
+  overrule it.
+- The decisive difference is qualitative: all 20 V1-generous numeric passes are
+  `correct_text_only` (right value, no fact citation) against V3's 25 `correct`;
+  **28 uncited numbers vs zero flags**; **19× the tokens** (1,024,250 vs 54,047)
+  for 23 fewer items.
 
 ## 1e. P4-12 activation and P4-16, measured 2026-10-03/04 (READ THIS FIRST)
 

@@ -5,6 +5,98 @@ Newest first.
 
 ---
 
+## 2026-10-04 — D4-08 D27 applied: the cross-encoder stays on, and n=15 was noise
+
+**The rule, as pre-registered.** D27 fixed the decision before the data
+existed: turn the cross-encoder off if, for hybrid without rerank versus
+hybrid with rerank, (a) section hit@5 is within 5 percentage points or
+higher, (b) MRR is not lower by more than 0.03, and (c) retrieval time per
+query is at least 10 times lower. Otherwise keep it on.
+
+**The measurement**, on the 45-item P4-13 set against the re-indexed corpus
+(D27 requires at least 40):
+
+| arm | section hit@5 | MRR | s/query |
+|---|---|---|---|
+| hybrid, no rerank | 29/45 (64.4%) | 0.494 | 0.17 |
+| hybrid + rerank | 35/45 (77.8%) | 0.604 | 5.96 |
+| hybrid + rerank + focus (shipped) | 44/45 (97.8%) | 0.870 | 6.20 |
+
+(a) −13.3 pp **FAIL** · (b) −0.110 **FAIL** · (c) 34.9× **PASS**.
+
+**Decision: the cross-encoder stays ON. `config.py` is unchanged.**
+
+**Why this entry matters more than the decision.** At n=15 the same ablation
+said the cross-encoder *lost* a hit (12/15 → 11/15) and that dense-only beat
+the shipped default on MRR. The Phase 4 report recorded that the intervals
+were too wide to act on and did not act. At n=45 the sign reverses: the
+cross-encoder is worth +13.3 pp and +0.110 MRR, and the focus boost another
+20 pp. Had the pipeline been changed on the n=15 reading, retrieval would
+have been made substantially worse on the evidence of noise. The pre-
+registration is what made that outcome impossible, and it is the part of this
+method worth keeping.
+
+**What would change it.** A faster reranker, or a retrieval change that
+closed the gap — the rule stays available and the switch still works.
+
+---
+
+## 2026-10-04 — D4-07 Defect E: the text path sent whole parent sections (D30)
+
+**What it was.** `answering/text_answer.py` passed each retrieved chunk's
+entire parent section to the generator, once per chunk in a group. Answering
+`N-JPM-REVENUE-2024` assembled **3,323,116 characters** — about 831,000
+tokens — from **4,653 characters** of retrieved chunk, because
+`JPM_2024 / fs_income_stmt` is 1,526,355 characters and was emitted twice.
+30 of the 704 live sections exceed 100,000 tokens.
+
+**Why it hid for a day.** Every provider refused on size, each refusal was
+recorded as a budget stop, and the last was raised as `LLMBudgetExceeded` — a
+subclass of `LLMRateLimited`. The runner wrote `llm_rate_limited`, so a paced
+retry was the obvious response. It recovered 1 item of 15. The symptom named
+the wrong cause, and the fix for the wrong cause was cheap enough to try
+twice before anyone read the failover chain.
+
+**Why it appeared now.** The defect was always in v2, but P4-00 rewrote the
+section boundaries and P4-12 put that parse behind the live index. v1's
+generator truncated to `MAX_CTX_TOKS`; the v2 rewrite dropped the budget, and
+until the sections grew nothing noticed.
+
+**Options.** (a) Report as measured and fix in Phase 5. (b) Fix V1 only, since
+V2 and V3 lose almost nothing to it. (c) Fix and re-run all three.
+
+**Choice.** (c), authorized by the owner as D30 — a second fix cycle, which
+D28 had not provided for. A system that cannot answer any question about the
+four largest banks is not one whose narrative numbers mean much, and
+publishing numbers shaped by a known bug is the thing CLAUDE.md rule 11
+exists to prevent.
+
+**The fix, in three parts.** A total budget of 6,000 tokens and 1,500 per
+source, derived from the smallest per-minute limit in the generator failover
+order (8,000 TPM) less the 900-token response and the system prompt — a test
+asserts that relationship rather than the constant. A window of the parent
+**centred on the retrieved chunk** rather than its head, because the head of
+a 1.5 MB statement section is XBRL preamble. And several chunks of one
+section now share one merged window instead of repeating the section.
+
+**`llm_prompt_too_large`**, deliberately not a subclass of `LLMRateLimited`.
+A rate limit says "not now"; this says "not ever, as built". It is raised
+once before the failover loop, consuming no attempt, and only when every
+candidate declares a limit and all are too small — an unknown limit is not
+evidence, so such a provider is still tried.
+
+**Tokens are estimated at 3 characters each, not tokenized.** `tiktoken`
+downloads a BPE file on first use, which already broke CI once from an import
+in `generation/generator.py`. A budget that needs the network fails exactly
+where it is needed. Three is below prose's four on purpose: these sources are
+dense XBRL tables, and budgeting on an underestimate costs the whole answer.
+
+**What would change it.** A generator failover list whose smallest member has
+a larger per-minute budget — the constant is derived from that number, not
+chosen, so it should be re-derived rather than edited.
+
+---
+
 ## 2026-10-03 — D4-06 The owner signed the gold verification sheet; it is applied at P4-15
 
 **The sign-off.** The owner signed `reports/phase4/gold_verification_signed.csv`

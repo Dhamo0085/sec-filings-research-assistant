@@ -145,8 +145,8 @@ def eligible_collections(
 # the result reported, rather than tuned by watching a 15-item score move.
 # The defaults are the derivation above; an override is an experiment, and
 # P4-16's report records which number produced which measurement.
-MAX_SOURCE_TOKENS = int(os.environ.get("CTX_MAX_SOURCE_TOKENS", 1_500))
-TOTAL_CTX_BUDGET = int(os.environ.get("CTX_TOTAL_BUDGET", 6_000))
+MAX_SOURCE_TOKENS = int(os.environ.get("CTX_MAX_SOURCE_TOKENS") or 1_500)
+TOTAL_CTX_BUDGET = int(os.environ.get("CTX_TOTAL_BUDGET") or 6_000)
 
 #: Characters per token, measured on this corpus rather than assumed.
 #: `ingestion/chunker.py` records `token_count` from a real tokenizer at

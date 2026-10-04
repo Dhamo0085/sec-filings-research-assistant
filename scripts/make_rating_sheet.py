@@ -50,6 +50,13 @@ RUBRIC = [
     "A passage column that reads PASSAGE NOT RECOVERED means the sheet could not "
     "show you what the model saw; rate that row only on what is shown, and say so "
     "in notes.",
+    "A row flagged refused:<reason> is one the system DECLINED to answer. Leave "
+    "verdict blank for it — supported/partially/unsupported do not apply to a "
+    "refusal — and use issue to say whether declining was right: issue=none if "
+    "the filing really does not support an answer, issue=missing_info if it does "
+    "and the system should have found it.",
+    "A row flagged no_citation is different: the system ANSWERED without citing "
+    "anything, which is a defect. Rate it unsupported.",
 ]
 
 #: the owner signs these; nothing in this file ever writes to them (D29).
@@ -128,10 +135,17 @@ def build_rows(run_rows: Sequence[dict], ids: Sequence[str], *,
         answer = outcome.get("answer") or ""
 
         flags: List[str] = []
-        if not recorded:
+        status = outcome.get("status")
+        if status == "abstained":
+            # A refusal legitimately has no citation: it is a decision, not a
+            # defect, and it is not rated supported/partially/unsupported.
+            # Distinguishing it from an uncited ANSWER matters — one is the
+            # system working, the other is the failure T4-11 looks for.
+            flags.append(f"refused:{outcome.get('abstain_reason')}")
+        elif not recorded:
             # T4-11: an answer with no citation cannot be rated against text.
             flags.append("no_citation")
-        if outcome.get("status") == "error":
+        if status == "error":
             flags.append(f"run_error:{outcome.get('error_code')}")
 
         passages: Dict[int, str] = {}
@@ -185,6 +199,15 @@ def build_rows(run_rows: Sequence[dict], ids: Sequence[str], *,
     return out
 
 
+def _rel(path: Path) -> str:
+    """Repo-relative when it can be, absolute otherwise — a path outside the
+    repo is a legitimate --out (a scratch dry run), not an error."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def write_sheet(path: Path, rows: Sequence[dict], header_notes: Sequence[str]) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
@@ -222,7 +245,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     notes = [
         *RUBRIC,
-        f"source run: {args.run.relative_to(REPO_ROOT)}",
+        f"source run: {_rel(args.run)}",
         f"sample: {len(ids)} of {len(narrative)} narrative answers, "
         f"seed {args.seed}, drawn by sorted item id",
         "passages were re-derived by re-asking each question through the same "
@@ -233,8 +256,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     flagged = sorted({row["item_id"] for row in rows if row["assist_flags"]})
     digest = hashlib.sha256(args.out.read_bytes()).hexdigest()[:16]
-    print(f"{len(ids)} question(s), {len(rows)} row(s) → "
-          f"{args.out.relative_to(REPO_ROOT)}")
+    print(f"{len(ids)} question(s), {len(rows)} row(s) → {_rel(args.out)}")
     print(f"  passages recovered: "
           f"{sum(1 for r in rows if r['assist_passage_chars'])} of {len(rows)} rows")
     print(f"  flagged items: {flagged or 'none'}")

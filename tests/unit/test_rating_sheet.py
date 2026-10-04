@@ -27,7 +27,7 @@ from scripts.make_rating_sheet import (
 
 
 def run_row(item_id: str, *, citations=None, answer="Apple says things [1].",
-            status="answered_text", error_code=None) -> dict:
+            status="answered_text", error_code=None, abstain_reason=None) -> dict:
     if citations is None:
         citations = [{"index": 1, "ticker": "AAPL", "fiscal_label": 2024,
                       "section": "Item 1A: Risk Factors", "cik": 320193,
@@ -37,7 +37,9 @@ def run_row(item_id: str, *, citations=None, answer="Apple says things [1].",
         "question": f"What does Apple disclose about {item_id}?",
         "as_of": None, "latency_s": 1.0, "variant": "V3",
         "outcome": {"answer": answer, "citations": citations,
-                    "status": status, "error_code": error_code},
+                    "status": status, "error_code": error_code,
+                    "abstain_reason": abstain_reason or (
+                        "insufficient_evidence" if status == "abstained" else None)},
     }
 
 
@@ -153,3 +155,25 @@ def test_a_passage_is_truncated_to_the_requested_length():
     parent section runs to 130 kB and no one rates fifteen of those."""
     rows = build_rows([run_row("R-A")], ["R-A"], passage_chars=10, recover=False)
     assert rows[0]["assist_passage_chars"] == 0  # not recovered, so nothing to cut
+
+
+def test_a_refusal_is_flagged_as_a_decision_not_as_an_uncited_answer():
+    """A refusal has no citation legitimately — it is the system working. An
+    ANSWER with no citation is the defect T4-11 hunts for. Collapsing the two
+    would have the owner rating five correct refusals as hallucinations."""
+    rows = build_rows(
+        [run_row("R-A", citations=[], answer="I didn't find enough in the filing.",
+                 status="abstained")],
+        ["R-A"], passage_chars=1500, recover=False)
+    assert "refused:" in rows[0]["assist_flags"]
+    assert "no_citation" not in rows[0]["assist_flags"]
+
+
+def test_an_uncited_answer_is_still_flagged_no_citation():
+    """Negative control for the test above."""
+    rows = build_rows(
+        [run_row("R-A", citations=[], answer="Apple is large.",
+                 status="answered_text")],
+        ["R-A"], passage_chars=1500, recover=False)
+    assert "no_citation" in rows[0]["assist_flags"]
+    assert "refused:" not in rows[0]["assist_flags"]

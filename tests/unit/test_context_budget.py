@@ -221,10 +221,21 @@ def test_a_chunk_outside_the_as_of_scope_is_still_dropped():
     assert citations == [] and context == ""
 
 
-def test_estimate_tokens_is_conservative():
-    """Budgeting on an underestimate would let an oversize prompt through.
-    Dense XBRL tables run closer to 3 characters per token than 4."""
-    assert estimate_tokens("a" * 3_000) >= 1_000
+def test_estimate_tokens_is_conservative_against_the_measured_medians():
+    """Budgeting on an underestimate is what lets an oversize prompt through.
+
+    This used to assert a flat 3 characters per token, which was a guess. The
+    corpus says tables run 2.68 and prose 5.33 at the median, so the test now
+    asserts both constants sit BELOW their measured median — that is what
+    "conservative" means here, and it is checkable.
+    """
+    from answering.text_answer import (
+        CHARS_PER_TOKEN_PROSE,
+        CHARS_PER_TOKEN_TABLE,
+    )
+
+    assert CHARS_PER_TOKEN_TABLE < 2.68, "table ratio is above its median"
+    assert CHARS_PER_TOKEN_PROSE < 5.33, "prose ratio is above its median"
 
 
 # ── locating the chunk inside its parent (the regression P4-16 caused) ───────
@@ -307,3 +318,61 @@ def test_the_committed_corpus_locates_essentially_every_chunk():
     assert located / total > 0.95, (
         f"only {located}/{total} ({located / total:.1%}) of chunks located; "
         f"the rest fell back to the head of their section")
+
+
+# ── calibrating the token estimate (measured, not guessed) ───────────────────
+
+def test_the_estimate_is_calibrated_against_the_corpus_token_counts():
+    """`ingestion/chunker.py` records `token_count` from a real tokenizer at
+    ingest time, so the committed corpus is ground truth for this ratio —
+    offline, free, and specific to these filings.
+
+    Measured over 35,700 chunks: tables run 2.68 characters per token at the
+    median (p5 2.01) and prose 5.33 (p5 4.19). A single constant is therefore
+    wrong in both directions at once. The first version used 3 for everything,
+    which UNDER-counted table tokens — the dangerous direction — while
+    over-counting prose by ~78%, which is what squeezed broad narrative
+    questions until they abstained for lack of evidence.
+    """
+    import json
+
+    chunks_dir = REPO_ROOT / "data/chunks"
+    if not chunks_dir.is_dir():
+        pytest.skip("the corpus is not present")
+
+    under = checked = 0
+    for path in sorted(chunks_dir.glob("*.json"))[:8]:
+        payload = json.loads(path.read_text())
+        items = payload if isinstance(payload, list) else payload.get("chunks", payload)
+        for chunk in items:
+            actual = int(chunk.get("token_count") or 0)
+            text = chunk.get("text") or ""
+            if actual <= 50 or not text:
+                continue
+            checked += 1
+            if estimate_tokens(text) < actual:
+                under += 1
+
+    assert checked > 500, f"only {checked} chunks checked"
+    # Under-counting is what lets an oversize prompt through, so it is the
+    # error that must be rare. Over-counting only costs context.
+    assert under / checked < 0.02, (
+        f"{under}/{checked} ({under / checked:.1%}) of chunks were estimated "
+        f"BELOW their true token count")
+
+
+def test_prose_is_not_over_counted_the_way_a_flat_ratio_did():
+    """The regression this calibration fixes. A 5,500-character prose chunk is
+    about 1,030 real tokens; a flat 3 chars/token called it 1,833 and the
+    per-source cap then truncated genuine evidence away."""
+    prose = ("Alphabet faces ongoing antitrust investigations and regulatory "
+             "proceedings in multiple jurisdictions. ") * 55
+    assert 4_000 < len(prose) < 7_000
+    assert estimate_tokens(prose) < 1_500
+
+
+def test_a_dense_table_is_still_counted_conservatively():
+    """Negative control for the test above: loosening the prose ratio must not
+    loosen the table ratio, which is the one that protects the budget."""
+    table = "| 2024 | 2023 | $ | 177,556 | $ | 158,104 |\n" * 120
+    assert estimate_tokens(table) >= len(table) / 2.6

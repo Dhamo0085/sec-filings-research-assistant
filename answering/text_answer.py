@@ -30,6 +30,7 @@ counts go in the trace.
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any, Dict, List, Optional, Protocol, Sequence, Tuple
 
@@ -139,14 +140,36 @@ def eligible_collections(
 # owner asked for: v1 appended the HEAD of the parent section, which on a 1.5 MB
 # statement is the XBRL preamble. We send a window around the retrieved chunk
 # instead — the passage that actually matched the question.
-MAX_SOURCE_TOKENS = 1_500
-TOTAL_CTX_BUDGET = 6_000
+#
+# Both are overridable by environment variable so the budget can be SWEPT and
+# the result reported, rather than tuned by watching a 15-item score move.
+# The defaults are the derivation above; an override is an experiment, and
+# P4-16's report records which number produced which measurement.
+MAX_SOURCE_TOKENS = int(os.environ.get("CTX_MAX_SOURCE_TOKENS", 1_500))
+TOTAL_CTX_BUDGET = int(os.environ.get("CTX_TOTAL_BUDGET", 6_000))
 
-#: Characters per token for budgeting. Deliberately below the usual ~4 for
-#: English prose: these sources are dense XBRL tables full of digits and
-#: separators, which tokenize closer to 3. Budgeting on an overestimate costs
-#: a little context; budgeting on an underestimate costs the whole answer.
-CHARS_PER_TOKEN = 3
+#: Characters per token, measured on this corpus rather than assumed.
+#: `ingestion/chunker.py` records `token_count` from a real tokenizer at
+#: ingest time, so the 35,700 committed chunks are ground truth:
+#:
+#:     table chunks (28,382):  median 2.68  p5 2.01  min 1.66
+#:     prose chunks  (7,059):  median 5.33  p5 4.19  min 3.15
+#:
+#: One constant is therefore wrong in both directions at once. The first
+#: version of this fix used 3 everywhere: it UNDER-counted table tokens, which
+#: is the direction that lets an oversize prompt through, while over-counting
+#: prose by about 78% — which squeezed broad narrative questions until the
+#: model had too little text left and abstained for lack of evidence.
+#:
+#: Both values sit below their measured medians, so the estimate still errs
+#: towards over-counting; the point is to stop erring by a factor of two on
+#: the text that carries narrative answers.
+CHARS_PER_TOKEN_TABLE = 2.0
+CHARS_PER_TOKEN_PROSE = 4.0
+
+#: A line of a markdown table is mostly delimiters. Counting pipes is a cheap,
+#: deterministic proxy that needs no tokenizer and cannot fail offline.
+_TABLE_PIPE_DENSITY = 0.02
 
 #: Printed where the window omits the rest of a section, so the model is not
 #: led to believe it was handed a complete section (D23 forbids claiming that).
@@ -159,10 +182,15 @@ def estimate_tokens(text: str) -> int:
     `tiktoken.get_encoding` downloads a BPE file on first use, which already
     broke CI once from an import in `generation/generator.py` (STATE section
     1c). A budget that cannot be computed offline is a budget that fails
-    exactly where it is needed, so this counts characters instead.
+    exactly where it is needed, so this counts characters — but with the
+    ratio the corpus actually shows for each kind of text.
     """
-    return (len(text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN
-
+    if not text:
+        return 0
+    pipes = text.count("|")
+    dense = pipes / len(text) >= _TABLE_PIPE_DENSITY
+    ratio = CHARS_PER_TOKEN_TABLE if dense else CHARS_PER_TOKEN_PROSE
+    return int(len(text) / ratio) + 1
 
 
 #: The chunker prefixes every chunk with a line naming the company, year and
@@ -230,6 +258,20 @@ def _locate(parent: str, text: str) -> int:
     return -1
 
 
+def _budget_chars(sample: str, budget_tokens: int) -> int:
+    """How many characters of text like ``sample`` fit in ``budget_tokens``.
+
+    The ratio depends on what the text is, so a token budget cannot be turned
+    into a character budget without looking at it. Using the table ratio on
+    prose would throw away more than half the context; using the prose ratio
+    on a table would blow the budget.
+    """
+    ratio = (CHARS_PER_TOKEN_TABLE
+             if sample and sample.count("|") / len(sample) >= _TABLE_PIPE_DENSITY
+             else CHARS_PER_TOKEN_PROSE)
+    return max(0, int(budget_tokens * ratio))
+
+
 def window_around(parent: str, chunk_texts: Sequence[str],
                   *, budget_chars: int) -> str:
     """A slice of ``parent`` covering the retrieved chunks, within the budget.
@@ -289,15 +331,14 @@ def _source_body(items: Sequence[Any], *, budget_tokens: int) -> str:
 
     joined = "\n\n".join(t for t in chunk_texts if t)
     if not parent:
-        budget_chars = budget_tokens * CHARS_PER_TOKEN
-        return joined[:budget_chars]
+        return joined[:_budget_chars(joined, budget_tokens)]
 
     remaining = budget_tokens - estimate_tokens(joined) - 30
     if remaining <= 100:
-        return joined[:budget_tokens * CHARS_PER_TOKEN]
+        return joined[:_budget_chars(joined, budget_tokens)]
 
     window = window_around(parent, chunk_texts,
-                           budget_chars=remaining * CHARS_PER_TOKEN)
+                           budget_chars=_budget_chars(parent, remaining))
     if window.strip() == joined.strip():
         return joined
     return f"{joined}\n\n--- section context ---\n{window}"
@@ -378,7 +419,7 @@ def build_context(
                 f"dropping {len(order) - len(parts)} lower-ranked source(s)")
             break
         if not parts and piece_tokens > TOTAL_CTX_BUDGET:
-            keep = TOTAL_CTX_BUDGET * CHARS_PER_TOKEN - len(header) - 2
+            keep = _budget_chars(body, TOTAL_CTX_BUDGET) - len(header) - 2
             piece = f"{header}\n{body[:max(keep, 0)]}"
             piece_tokens = estimate_tokens(piece)
 

@@ -118,6 +118,17 @@ def test_a_dependency_failure_is_a_503_with_its_code(api):
     assert resp.json()["detail"]["error_code"] == "llm_rate_limited"
 
 
+def test_an_oversize_prompt_is_a_503_with_its_own_code(api):
+    """T4-14: the API contract lists llm_prompt_too_large, and it is not
+    reported as a rate limit — a client that retries rate limits must not
+    retry this one, because it cannot clear."""
+    client = client_for(api, lambda q, a: Outcome.error(
+        ErrorCode.LLM_PROMPT_TOO_LARGE, "Too large to send.", query=q))
+    resp = client.post("/query", json={"question": "JPMorgan revenue 2024?"})
+    assert resp.status_code == 503
+    assert resp.json()["detail"]["error_code"] == "llm_prompt_too_large"
+
+
 def test_a_text_answer_carries_typed_text_citations(api):
     def text_outcome(question, as_of):
         return Outcome.answered_text(

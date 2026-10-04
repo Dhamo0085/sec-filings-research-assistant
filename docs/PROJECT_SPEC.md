@@ -173,7 +173,7 @@ Initial metrics: `revenue`, `net_income`, `operating_income`, `gross_profit`, `r
 }
 ```
 `abstain_reason` enum: `company_not_found`, `no_filing_for_company`, `period_not_covered`, `period_not_filed_as_of`, `future_period`, `metric_not_supported`, `metric_not_found_in_filing`, `ambiguous_concept`, `unsupported_period_type`, `out_of_scope`, `insufficient_evidence`.
-`error_code` enum: `llm_auth`, `llm_rate_limited`, `llm_unavailable`, `llm_bad_output`, `data_unavailable`, `internal`.
+`error_code` enum: `llm_auth`, `llm_rate_limited`, `llm_prompt_too_large`, `llm_unavailable`, `llm_bad_output`, `data_unavailable`, `internal`.
 `trace` is returned only to an admin (`X-Admin-Token`) with `?debug=1`.
 
 ### 6.6 Gold item (`eval/gold/gold_v1.jsonl`)

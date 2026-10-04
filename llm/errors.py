@@ -88,3 +88,17 @@ class LLMBudgetExceeded(LLMRateLimited):
     Distinct from LLMRateLimited so a runner can tell "we chose to stop" from
     "the provider refused", and mark remaining work not_run (CLAUDE.md rule 7).
     """
+
+
+class LLMPromptTooLarge(LLMError):
+    """The prompt exceeds every candidate provider's per-minute token limit.
+
+    Deliberately NOT a subclass of :class:`LLMRateLimited`. A rate limit says
+    "not now"; this says "not ever, as built". P4-16 exists because the two
+    were conflated: a ~831,000-token prompt was refused by all three providers
+    on size, each refusal recorded as a budget stop, and the last raised as
+    ``LLMBudgetExceeded`` — so the runner marked the item ``llm_rate_limited``
+    and a paced retry looked like the fix. It recovered 1 item of 15.
+
+    Raised before any request, so it consumes no failover attempt.
+    """

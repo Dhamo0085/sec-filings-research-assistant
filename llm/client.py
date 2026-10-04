@@ -50,6 +50,7 @@ from llm.errors import (
     LLMBadOutput,
     LLMBudgetExceeded,
     LLMEmptyOutput,
+    LLMPromptTooLarge,
     LLMRateLimited,
     LLMUnavailable,
 )
@@ -257,6 +258,27 @@ class LLMClient:
             candidates = candidates[:1]
 
         messages = [dict(m) for m in messages]
+
+        # P4-16: a prompt no candidate could ever accept is not a rate limit.
+        # Checked once, before the loop, so it consumes no failover attempt
+        # and cannot be reported as something a retry would fix. Only a
+        # provider that declares a tpm can rule itself out; an unknown limit
+        # is not evidence of anything, so such a provider still gets tried.
+        estimated_prompt = _estimate_tokens(messages) + max_tokens
+        declared = [(entry, self.budget.get_limits(entry.key).tpm)
+                    for entry in candidates]
+        known = [(entry, tpm) for entry, tpm in declared if tpm is not None]
+        if known and len(known) == len(declared) and all(
+                estimated_prompt > tpm for _entry, tpm in known):
+            largest = max(tpm for _entry, tpm in known)
+            raise LLMPromptTooLarge(
+                f"Prompt is about {estimated_prompt:,} tokens; the largest "
+                f"per-minute limit among the {len(known)} candidate "
+                f"provider(s) for role '{role}' is {largest:,}. Retrying "
+                f"cannot help.",
+                provider=known[0][0].provider, model=known[0][0].model,
+            )
+
         last_rate_limit: Optional[LLMRateLimited] = None
         last_unavailable: Optional[LLMUnavailable] = None
         last_empty: Optional[LLMEmptyOutput] = None

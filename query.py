@@ -57,6 +57,7 @@ from llm.errors import (
     LLMBadOutput,
     LLMBudgetExceeded,
     LLMError,
+    LLMPromptTooLarge,
     LLMRateLimited,
     LLMUnavailable,
 )
@@ -67,6 +68,7 @@ from routing.router import Computation, Path, Route, route
 #: LLMBudgetExceeded subclasses LLMRateLimited.
 ERROR_CODES: Tuple[Tuple[type, ErrorCode], ...] = (
     (LLMAuthError, ErrorCode.LLM_AUTH),
+    (LLMPromptTooLarge, ErrorCode.LLM_PROMPT_TOO_LARGE),
     (LLMBudgetExceeded, ErrorCode.LLM_RATE_LIMITED),
     (LLMRateLimited, ErrorCode.LLM_RATE_LIMITED),
     (LLMBadOutput, ErrorCode.LLM_BAD_OUTPUT),

@@ -32,6 +32,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Protocol, Sequence, Tuple
 
+from loguru import logger
+
 from answering.abstain import abstain_for
 from answering.outcome import AbstainReason, Citation, CitationKind, Outcome
 from generation.normalize import normalize_markers
@@ -117,12 +119,130 @@ def eligible_collections(
     return names, by_collection
 
 
-def _source_text(item: Any) -> str:
-    """The text to show the model for one retrieved item.
+# ── the context budget (P4-16, D30) ──────────────────────────────────────────
+#
+# Defect E: this module used to hand the model each retrieved chunk's WHOLE
+# parent section, once per chunk. One JPMorgan question assembled 3,323,116
+# characters — ~831,000 tokens — from 4,653 characters of retrieved chunk,
+# because `JPM_2024 / fs_income_stmt` is 1,526,355 characters and was emitted
+# twice. Every provider in the generator failover list refused it and the
+# failure surfaced as `llm_rate_limited`, so it read as a pacing problem.
+#
+# The budget is set from the SMALLEST per-minute token limit of any provider
+# the generator can fail over to. That order ends at groq:qwen/qwen3.8-27b,
+# measured at 8,000 TPM. Subtract the 900-token response (`max_tokens` below)
+# and roughly 600 for the system prompt and the question, and ~6,500 is what
+# is left; 6,000 keeps a margin, because the estimate below is an estimate.
+#
+# This is v1's MAX_CTX_TOKS/TOTAL_CTX_BUDGET pair with one semantic change the
+# owner asked for: v1 appended the HEAD of the parent section, which on a 1.5 MB
+# statement is the XBRL preamble. We send a window around the retrieved chunk
+# instead — the passage that actually matched the question.
+MAX_SOURCE_TOKENS = 1_500
+TOTAL_CTX_BUDGET = 6_000
 
-    The parent section when retrieval supplied one (that is what v1's
-    ParentStore is for) and the chunk itself otherwise.
+#: Characters per token for budgeting. Deliberately below the usual ~4 for
+#: English prose: these sources are dense XBRL tables full of digits and
+#: separators, which tokenize closer to 3. Budgeting on an overestimate costs
+#: a little context; budgeting on an underestimate costs the whole answer.
+CHARS_PER_TOKEN = 3
+
+#: Printed where the window omits the rest of a section, so the model is not
+#: led to believe it was handed a complete section (D23 forbids claiming that).
+ELISION = "\n[... section text omitted ...]\n"
+
+
+def estimate_tokens(text: str) -> int:
+    """A conservative token estimate, with no tokenizer and no network.
+
+    `tiktoken.get_encoding` downloads a BPE file on first use, which already
+    broke CI once from an import in `generation/generator.py` (STATE section
+    1c). A budget that cannot be computed offline is a budget that fails
+    exactly where it is needed, so this counts characters instead.
     """
+    return (len(text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN
+
+
+def window_around(parent: str, chunk_texts: Sequence[str],
+                  *, budget_chars: int) -> str:
+    """A slice of ``parent`` covering the retrieved chunks, within the budget.
+
+    The window is centred on the span the chunks occupy, so the passage that
+    matched the question is inside it — which is what the head of the section
+    could not promise. If a chunk cannot be located (chunking normalises
+    whitespace, so an exact match sometimes fails) its position is simply not
+    used; a source with no text behind it would be worse than the head.
+    """
+    if len(parent) <= budget_chars:
+        return parent
+
+    starts, ends = [], []
+    for text in chunk_texts:
+        probe = (text or "").strip()[:200]
+        if not probe:
+            continue
+        at = parent.find(probe)
+        if at >= 0:
+            starts.append(at)
+            ends.append(at + len(text))
+    if not starts:
+        return parent[:budget_chars] + ELISION
+
+    span_start, span_end = min(starts), max(ends)
+    span = span_end - span_start
+    if span >= budget_chars:
+        # The chunks alone fill the budget: keep them, not a centred slice
+        # that could cut the first one in half.
+        return parent[span_start:span_end]
+
+    pad = (budget_chars - span) // 2
+    start = max(0, span_start - pad)
+    end = min(len(parent), start + budget_chars)
+    start = max(0, end - budget_chars)
+
+    piece = parent[start:end]
+    if start > 0:
+        piece = ELISION + piece
+    if end < len(parent):
+        piece = piece + ELISION
+    return piece
+
+
+def _source_body(items: Sequence[Any], *, budget_tokens: int) -> str:
+    """One source's text: the retrieved chunks, plus a window of their section.
+
+    Several chunks of one section become ONE source with one merged window.
+    Emitting the parent once per chunk is the other half of defect E, and it
+    is also what made the model see the same 1.5 MB twice under two numbers.
+    """
+    chunk_texts = [getattr(getattr(i, "chunk", i), "text", "") or "" for i in items]
+    parent = ""
+    for item in items:
+        candidate = getattr(item, "parent_text", None)
+        if candidate:
+            parent = candidate
+            break
+
+    joined = "\n\n".join(t for t in chunk_texts if t)
+    if not parent:
+        budget_chars = budget_tokens * CHARS_PER_TOKEN
+        return joined[:budget_chars]
+
+    remaining = budget_tokens - estimate_tokens(joined) - 30
+    if remaining <= 100:
+        return joined[:budget_tokens * CHARS_PER_TOKEN]
+
+    window = window_around(parent, chunk_texts,
+                           budget_chars=remaining * CHARS_PER_TOKEN)
+    if window.strip() == joined.strip():
+        return joined
+    return f"{joined}\n\n--- section context ---\n{window}"
+
+
+def _source_text(item: Any) -> str:
+    """The text of one retrieved item, unbounded. Kept for callers that want
+    the raw passage (the P4-14 rating sheet shows what was retrieved, not what
+    survived the budget). The answer path goes through ``_source_body``."""
     if hasattr(item, "chunk"):
         return getattr(item, "parent_text", None) or item.chunk.text
     return item.text
@@ -161,16 +281,46 @@ def build_context(
 
     parts: List[str] = []
     citations: List[Citation] = []
-    for index, key in enumerate(order, start=1):
+    used_tokens = 0
+    index = 0
+    for key in order:
         items = groups[key]
         first = items[0]
         chunk = getattr(first, "chunk", first)
         filing = by_collection[collection_of(chunk)]
 
-        header = (f"[{index}] {chunk.company} ({chunk.ticker}) | "
+        candidate_index = index + 1
+        header = (f"[{candidate_index}] {chunk.company} ({chunk.ticker}) | "
                   f"FY{chunk.fiscal_year} | {chunk.section_name} | "
                   f"filed {filing['filing_date']}")
-        parts.append(f"{header}\n" + "\n".join(_source_text(i) for i in items))
+
+        # Whichever is tighter: this source's own cap, or what is left of the
+        # whole-prompt budget. The second is what stops N sources, each
+        # individually legal, from adding up past the provider's limit.
+        headroom = TOTAL_CTX_BUDGET - used_tokens - estimate_tokens(header) - 4
+        body = _source_body(items, budget_tokens=min(MAX_SOURCE_TOKENS,
+                                                     max(headroom, 0)))
+        piece = f"{header}\n{body}"
+        piece_tokens = estimate_tokens(piece)
+
+        # Sources arrive ranked, so once the budget is reached the remaining
+        # ones are the weakest matches: stop rather than shrink every source
+        # to nothing. The first source is always kept, truncated if it alone
+        # is over budget — a single strong match must never produce an empty
+        # context, which would turn an answerable question into a refusal.
+        if parts and used_tokens + piece_tokens > TOTAL_CTX_BUDGET:
+            logger.debug(
+                f"context budget reached ({used_tokens}/{TOTAL_CTX_BUDGET} tok) — "
+                f"dropping {len(order) - len(parts)} lower-ranked source(s)")
+            break
+        if not parts and piece_tokens > TOTAL_CTX_BUDGET:
+            keep = TOTAL_CTX_BUDGET * CHARS_PER_TOKEN - len(header) - 2
+            piece = f"{header}\n{body[:max(keep, 0)]}"
+            piece_tokens = estimate_tokens(piece)
+
+        index = candidate_index
+        parts.append(piece)
+        used_tokens += piece_tokens
 
         citations.append(Citation(
             kind=CitationKind.TEXT,

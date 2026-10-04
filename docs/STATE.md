@@ -14,87 +14,138 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
-| Phase 4 | **IN PROGRESS against spec v1.9** (2026-10-04). P4-00 to P4-13 done; **P4-14 in progress, P4-15 not started**. PR #6 is open on `phase-4-evaluation` and must not be merged |
-| Current task | **P4-16 (D30) is implemented and the V1/V2/V3 re-runs are in flight.** P4-12 is complete (re-index activated, T4-09 verified independently, catalog relinked). P4-13 is complete and D27 is decided. P4-14's generator exists; the sheet is built from the post-fix V3 run. P4-15 waits for the owner |
+| Phase 4 | **IN PROGRESS against spec v1.10** (2026-10-04). **P4-00 to P4-14 and P4-16 are DONE. Only P4-15 remains**, and it is blocked on the owner's narrative ratings. PR #6 is open on `phase-4-evaluation` and must not be merged |
+| Current task | **Nothing is running.** The Phase 4 report addendum is written (`reports/phase4/REPORT.md`), every number in it re-checked against the artifacts. **Next action is the owner's: rate the 15 rows in `reports/phase4/narrative_rating_sheet.csv`.** Then P4-15 — see section 1f |
 | Tests | `make test` → **1,327 passed, 0 failed, 0 skipped** (1,277 before the P4-12 tooling) (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+
+## 1f. P4-15 is the only task left, and exactly what it must do (spec v1.10)
+
+**Blocked on the owner's narrative ratings.** Everything else in Phase 4 is done.
+
+1. Apply the owner's `OK` rows from `reports/phase4/gold_verification_signed.csv`
+   to set `verified_by=owner` on the **37** verified numeric/computed gold items.
+   The other **43 stay `companyfacts` or `auto`** and must be described that way
+   everywhere. Read that sheet by `gold_id` only (D29 / CLAUDE.md rule 17).
+2. Read `reports/phase4/narrative_rating_sheet.csv` by row id only.
+3. **Report agreement between the automated narrative verdicts and the owner's
+   ratings**: n/N, with every disagreement listed.
+4. **Apply D31 exactly as pre-registered** and record which branch it takes.
+   An outcome is **bad** if the owner marks it `unsupported`, or marks a refusal
+   wrong (`issue` = `missing_info` or `wrong_section`). **5 or more bad of 15 →
+   run P5-13**; otherwise record the gap as scorer strictness, list the
+   disagreements, and **tighten the scorer without changing the pipeline**.
+5. Replace "provisional" with final in README, `docs/EVAL.md` and the addendum;
+   README quotes **post-fix numbers only**, pre-fix shown as "before" evidence.
+6. T4-05: every number regenerable by one command. Update STATE, DECISIONS and
+   the CLAUDE.md table, push to PR #6, stop. **Do not merge.**
+
+**Spec discrepancy to settle first (A10 in the report):** v1.10 drops
+`llm_prompt_too_large` from the `error_code` enum in section 6.5, but P4-16 item
+(4) and T4-14 both still require it listed. Committed as the owner wrote it; the
+code keeps the error. One line to restore at the owner's word.
 
 ## 1e. P4-12 activation and P4-16, measured 2026-10-03/04 (READ THIS FIRST)
 
+### Final results — POST-FIX IS THE HEADLINE
+| variant | full 80 pre-fix | **full 80 post-fix** | frozen D21 69 | flags post-fix |
+|---|---|---|---|---|
+| V0 | — | — | 19/69 (27.5%) | 15 uncited, 36 invalid citations |
+| V1 | 48/80 | **37/80 (46.2%)** | 33/69 (47.8%) | 19 uncited numbers, **0 errors** |
+| V2 | 64/80 | **63/80 (78.8%)** | 52/69 (75.4%) | 4 look-ahead (by design) |
+| **V3** | 74/80 | **73/80 (91.2%)** | **62/69 (89.9%)** | **none** |
+
+- Pre-fix files preserved in `reports/phase4/runs_before_fix/`. **Neither V1
+  number is "V1's capability"**: pre-fix, 14 V1 items were unanswerable (prompts
+  no provider accepts) while the rest got unlimited context. Post-fix is the only
+  column describing a system that can run.
+- **Tokens fell ~95%** on identical calls: V3 927,519 → **54,047**; V2 1,419,465
+  → 68,749; V1 4,682,750 → 244,074.
+- **V1's 48 → 37 is the evaluation's clearest result.** V1 answers numerics from
+  text; bounding context to what a free-tier provider serves costs it 11 items.
+  V3 loses one, because its numerics never reach the generator. Verified by
+  tracing retrieval with no model call, not assumed.
+
 ### The re-index is LIVE
-- `scripts/activate_reindex.py --yes` swapped the artifacts in: six renames, nothing deleted.
-  The previous artifacts are `data/{parsed,chunks,qdrant}_retired_20261003T163939Z` and
-  **undo is one command**, `scripts/activate_reindex.py --undo`.
-- **Live store: 39 collections, 37,882 points.** `data/qdrant_v1_backup` untouched at 25 / 14,557.
-  BAC, IVZ, STT, TROW and WFC now have text; TSLA no longer does.
-- **T4-09 was verified independently**, not taken from the runner's own integrity block:
-  `scripts/verify_reindex_integrity.py` re-derives every number from each collection's
-  `storage.sqlite` over a read-only immutable URI (no client, no lock). All checks pass.
-  `--self-test` plants a short corpus and fails 9 checks, including all three it must.
-- **D4-04**: the relink now CLEARS a link the store cannot honour. TSLA FY2025 survived the swap
-  pointing at a collection the new store does not hold; `link_collections()` only ever set names.
-  Retrieval was never at risk (it intersects with live collections) but `query._years_with()`
-  reads `collection_name`, so a refusal would have offered a year nothing can search.
-- **The live paired subset is now 79 of 80**, not 69 — only JPM FY2022 is still unindexed. V0 is
-  frozen against the 25-collection backup, so `scripts/score_d21_subset.py` reports the **frozen
-  69** as well; a "paired" column computed today is not paired with V0.
+- `scripts/activate_reindex.py --yes` swapped the artifacts in: six renames,
+  nothing deleted. Previous artifacts are
+  `data/{parsed,chunks,qdrant}_retired_20261003T163939Z`; **undo is one command**,
+  `scripts/activate_reindex.py --undo`.
+- **Live store: 39 collections, 37,882 points.** `data/qdrant_v1_backup`
+  untouched at 25 / 14,557. BAC, IVZ, STT, TROW, WFC gained text; TSLA lost it.
+- **T4-09 verified independently** by `scripts/verify_reindex_integrity.py`,
+  which re-derives everything from each collection's `storage.sqlite` over a
+  read-only immutable URI instead of trusting the runner. `--self-test` plants a
+  corpus and fails 9 checks. The lock guard fired for real, refusing activation
+  while `make test` held Qdrant.
+- **D4-04**: a relink now CLEARS a link the store cannot honour (TSLA FY2025).
+- **The live paired subset is 79 of 80**, not 69. V0 is frozen against the
+  25-collection backup, so `scripts/score_d21_subset.py` reports the frozen 69
+  too; a "paired" column computed today is not paired with V0.
+- Section audit on the new parse: **290 of 429 ok**; Item 1 and Item 1A **39/39**.
+- Phase 3 smoke re-ran twice (post-re-index, post-fix): **30/30 both times**.
 
 ### Defect E and P4-16 (D30) — the thing that cost a day
-- **The text path sent each retrieved chunk's WHOLE parent section, once per chunk.**
-  `N-JPM-REVENUE-2024` assembled **3,323,116 chars (~831k tokens) from 4,653 chars of chunk**.
-  Every provider refused on size; the last refusal was `LLMBudgetExceeded`, a subclass of
-  `LLMRateLimited`, so it was recorded as `llm_rate_limited` and **a paced retry looked like the
-  fix. It recovered 1 item of 15.** All 14 remaining V1 errors were banks (JPM, BAC, GS, WFC).
-- Fixed: `TOTAL_CTX_BUDGET=6000` / `MAX_SOURCE_TOKENS=1500` (derived from the smallest TPM in the
-  generator failover order, 8,000, less the 900-token response and the system prompt — a test
-  asserts the relationship, not the constant); a **window centred on the chunk**, not the head of
-  the section; several chunks of one section collapsed into one merged window; and
-  **`llm_prompt_too_large`**, deliberately not a `LLMRateLimited` subclass, raised before the
-  failover loop so no attempt is consumed.
-- **Two bugs in that fix, both found by measurement, both fixed:**
-  1. `ingestion/chunker.py` prefixes every chunk with a header line that is NOT in the parent
-     section, so the probe located only **30%** of chunks and the rest fell back to the section
-     head — the exact behaviour P4-16 removes. `_locate()` now strips the header and leading
-     table scaffolding and probes four offsets in two lengths: **1,167/1,170 = 99.74%**.
-  2. A flat 3 chars/token was wrong in both directions. The chunker's own `token_count` over
-     **35,700 chunks** says tables run **2.68** (p5 2.01) and prose **5.33** (p5 4.19).
-     `estimate_tokens` is now content-aware.
-- **The budget was swept and NOT changed**: 3k→9/15, 6k→8/15, 12k→11/15, 30k→8/15. Non-monotonic,
-  all intervals overlap; **n=15 cannot separate them**. Reading 8 vs 11 as signal was the same
-  error D4-08 documents. `reports/phase4/budget_sweep/` keeps the negative result.
-  Override with `CTX_TOTAL_BUDGET` / `CTX_MAX_SOURCE_TOKENS` to sweep again.
-- **Defect D is closed**: `R-MSFT-SEGMENTS-2025` was a symptom of defect E, not a router bug.
-- **`scripts/compare_before_after.py` is why the regressions were caught.** V3's headline was
-  unchanged at 74/80 while two correct items had become abstentions and one abstention had become
-  correct. Always diff per item, in both directions; a flat total hides movement.
-
-### Results (pre-fix files preserved in `reports/phase4/runs_before_fix/`)
-| variant | pre-fix full 80 | post-fix full 80 |
-|---|---|---|
-| V3 | 74/80 (92.5%), 0 flags | **73/80 (91.2%), 0 flags** |
-| V2 | 64/80 (80.0%), 4 look-ahead | re-running |
-| V1 | 48/80 (60.0%), 14 oversize errors | re-running |
-- V3 on the frozen D21 69: **63/69 (91.3%)** against V0's 19/69 (27.5%).
-- Phase 3 smoke re-ran twice, post-re-index and post-fix: **30/30 both times**.
+- **The text path sent each chunk's WHOLE parent section, once per chunk.**
+  `N-JPM-REVENUE-2024` assembled **3,323,116 chars (~831k tokens) from 4,653
+  chars of chunk**. Every provider refused on size; the last refusal was
+  `LLMBudgetExceeded`, a subclass of `LLMRateLimited`, so it was logged as
+  `llm_rate_limited` and **a paced retry looked like the fix — it recovered 1 of
+  15.** All 14 remaining V1 errors were banks.
+- Fixed: `TOTAL_CTX_BUDGET=6000` / `MAX_SOURCE_TOKENS=1500` (derived from the
+  smallest TPM in the failover order, 8,000, less the 900-token response and the
+  system prompt — a test asserts the relationship, not the constant); a window
+  **centred on the chunk**; chunks of one section collapsed into one window; and
+  **`llm_prompt_too_large`**, not a `LLMRateLimited` subclass, raised before the
+  failover loop.
+- **Two bugs inside that fix, both found by measurement:**
+  1. `ingestion/chunker.py` prefixes each chunk with a header line absent from
+     the parent, so the probe located only **30%** and the rest fell back to the
+     section head — the exact behaviour P4-16 removes. Now **1,167/1,170 =
+     99.74%**.
+  2. A flat 3 chars/token was wrong both ways. The chunker's own `token_count`
+     over **35,700 chunks**: tables **2.68** (p5 2.01), prose **5.33** (p5 4.19).
+     `estimate_tokens` is content-aware.
+- **The budget was swept and NOT changed**: 3k→9/15, 6k→8/15, 12k→11/15,
+  30k→8/15. Non-monotonic, intervals overlap, **n=15 cannot separate them**.
+  Reading 8 vs 11 as signal repeated the exact error D4-08 documents.
+  `reports/phase4/budget_sweep/` keeps the negative result. Sweep again with
+  `CTX_TOTAL_BUDGET` / `CTX_MAX_SOURCE_TOKENS`.
+- **A rejected improvement, recorded**: the "(in thousands)" header hypothesis
+  for 3 `scale_error`s is weakly supported — only **19.4%** of statement sections
+  carry the units phrase in their first 400 chars. Not built.
+- **Defect D is closed**: `R-MSFT-SEGMENTS-2025` was a symptom of defect E.
+- **`scripts/compare_before_after.py` is why the regressions were caught.** V3's
+  headline sat at 74/80 while two correct items became abstentions and one
+  abstention became correct. Always diff per item, both directions.
 
 ### P4-13 and D27 — the cross-encoder stays ON
-- `eval/gold/narrative_retrieval_v1.jsonl`: **45 items, 13 filers, 4 fiscal years, 5 sections**,
-  drafted only where the audit says the section is `ok` AND the section text carries the topic.
-  A separate file from the gold set on purpose (**D4-05**): appending would change every
+- `eval/gold/narrative_retrieval_v1.jsonl`: **45 items, 13 filers, 4 years, 5
+  sections**, each drafted only where the audit says `ok` AND the text carries
+  the topic. A separate file by **D4-05** — appending would change every
   denominator already measured and break comparability with the frozen V0.
-- **D27 applied exactly as pre-registered** (D4-08): hybrid 29/45 MRR 0.494 vs hybrid_rerank
-  35/45 MRR 0.604 → (a) −13.3pp FAIL, (b) −0.110 FAIL, (c) 34.9× PASS → **keep it on, no
-  `config.py` change**. At n=15 the same ablation said the opposite; acting on it would have made
-  retrieval substantially worse. The shipped default reaches **44/45 (97.8%), MRR 0.870**.
-- **D25, old index vs new, on the 24 filings both stores hold** (62 scorable items):
-  shipped default **30/40 (75.0%) → 37/40 (92.5%), +17.5pp**; MRR 0.690 → 0.799.
-  `scripts/make_d25_itemset.py` builds the shared set — running unfiltered would have asked the
-  old arm about five filers it never held.
+- **D27 applied as pre-registered** (D4-08): hybrid 29/45 MRR 0.494 vs
+  hybrid_rerank 35/45 MRR 0.604 → (a) −13.3pp FAIL, (b) −0.110 FAIL, (c) 34.9×
+  PASS → **keep it on, no `config.py` change.** At n=15 the same ablation said
+  the opposite. Shipped default reaches **44/45 (97.8%), MRR 0.870**.
+- **D25, old vs new index**, 24 shared filings / 62 scorable items: shipped
+  default **30/40 (75.0%) → 37/40 (92.5%), +17.5pp**; MRR 0.690 → 0.799.
+  `scripts/make_d25_itemset.py` builds the shared set.
+
+### P4-14 — the sheet is ready for the owner
+`reports/phase4/narrative_rating_sheet.csv`, from the post-fix V3 run: 15
+questions, 23 rows, 18 with passage text and an EDGAR link, 5 refusal rows
+flagged `refused:…`, owner columns empty, byte-identical across builds.
+**A bug was caught before it reached the owner**: passages were matched to
+citations by position, but `prune_to_cited` renumbers citations 1..n over only
+the cited sources, so an AAPL FY2024 row carried text footed "2025 Form 10-K".
+Now matched by `(ticker, fiscal_label, section)`, with a test over the committed
+artifact that failed against the version as shipped.
 
 ### Owner gates
-- **The gold verification sheet IS SIGNED** (`reports/phase4/gold_verification_signed.csv`,
-  committed): 37 rows OK, **25 of 25 core**. **D4-06**: `verified_by` is applied at **P4-15, not
-  before**, so numeric/computed are not called owner-verified yet. Narrative stays provisional
-  until the owner rates the P4-14 sheet from the **post-fix** V3 run.
+- **The gold sheet IS SIGNED** (`reports/phase4/gold_verification_signed.csv`,
+  committed): 37 rows OK, **25 of 25 core**. **D4-06**: `verified_by` is applied
+  at **P4-15, not before**.
+- **The narrative ratings are OUTSTANDING** — this is what blocks P4-15.
 
 ## 1b. Phase 3 facts (measured, 2026-10-02)
 - **The answer pipeline is `query.ask()` → `Outcome`.** `route()` (rules first; the model only for genuine ambiguity) → facts path (resolve → calc → deterministic template) or text path (catalog-scoped retrieval → structured `{found, answer}`) → `answering/abstain.py`. Dependencies are injected via `query.Deps`, so tests drive the real dispatcher.

@@ -399,3 +399,257 @@ python scripts/compare_section_audits.py \
 | the suite under CI's isolation (empty cwd, `PYTHONPATH`, fresh `HOME`) | 0 — 1,173 passed |
 
 Raw logs: `logs/phase4/` (gitignored).
+
+---
+
+# Addendum — P4-12, P4-13, P4-16 (spec v1.10, written 2026-10-04)
+
+Everything above describes the **pre-re-index** system. This addendum covers the
+re-index (P4-12), the expanded narrative set and the reranker decision (P4-13,
+D27), the D25 arm, and the context-budget fix (P4-16, D30).
+
+**Post-fix numbers are the headline.** The pre-fix numbers are kept because the
+owner asked for the comparison, and because one of them is misleading in a way
+worth stating: pre-fix, 14 V1 items and 1 V3 item were *unanswerable* — prompts
+no provider would accept — while every other item received unlimited context.
+Post-fix, every item is answerable inside a budget a real provider serves. Only
+the post-fix column describes a system that can actually run.
+
+**Still provisional.** The owner has signed the gold verification sheet (25 of
+25 core rows OK, D4-06) but `verified_by` is applied at P4-15, not here, and
+the narrative ratings are not done. Every narrative figure below is the
+automated scorer's, not the owner's.
+
+## A1. Headline — pre-fix versus post-fix
+
+| variant | full 80, pre-fix | **full 80, post-fix** | paired 79, post-fix | flags, post-fix |
+|---|---|---|---|---|
+| V0 (v1 baseline, frozen) | — | — | — | 15 uncited, 36 invalid citations |
+| V1 (no facts engine) | 48/80 (60.0%) | **37/80 (46.2%)** | 37/79 | 19 uncited numbers, **0 errors** |
+| V2 (no as_of, no gate) | 64/80 (80.0%) | **63/80 (78.8%)** | 62/79 | 4 look-ahead (by design) |
+| **V3 (shipped)** | 74/80 (92.5%) | **73/80 (91.2%)** | **72/79** | **none** |
+
+On the **frozen D21 69** — the only set on which V0 is a fair control, since V0
+runs against the 25-collection backup (`scripts/score_d21_subset.py`):
+
+| | V0 | V1 | V2 | **V3** |
+|---|---|---|---|---|
+| overall | 19/69 (27.5%) | 33/69 (47.8%) | 52/69 (75.4%) | **62/69 (89.9%)** |
+| 95% CI | 18.4–39.0% | 36.5–59.4% | 64.0–84.0% | **80.5–95.0%** |
+| numeric | 11/18 | 11/18 | 18/18 | **18/18** |
+| computed | 2/12 | 4/12 | 12/12 | **12/12** |
+| compare/trend | 0/6 | 1/6 | 6/6 | **6/6** |
+| as_of | 2/8 | 3/8 | 4/8 | **8/8** |
+| narrative | 4/15 | 8/15 | 8/15 | 8/15 |
+| abstain | 0/10 | 9/10 | 4/10 | **10/10** |
+
+The **live** paired subset is now 79 of 80 (only JPM FY2022 is unindexed), up
+from 69, because P4-12 indexed BAC, IVZ, STT, TROW and WFC. Both are reported:
+a "paired" column computed today is no longer paired with the frozen V0.
+
+## A2. By category, pre-fix → post-fix (full 80)
+
+| category | V1 | V2 | V3 |
+|---|---|---|---|
+| numeric (25) | 17 → **12** | 25 → **25** | 25 → **25** |
+| computed (12) | 4 → **4** | 12 → **12** | 12 → **12** |
+| compare/trend (10) | 6 → **1** | 10 → **10** | 10 → **10** |
+| as_of (8) | 3 → **3** | 4 → **4** | 8 → **8** |
+| narrative (15) | 9 → **8** | 9 → **8** | 9 → **8** |
+| abstain (10) | 9 → **9** | 4 → **4** | 10 → **10** |
+
+## A3. Cost — the context budget cut tokens ~95%
+
+Same questions, same number of model calls, same models.
+
+| variant | calls | tokens pre-fix | **tokens post-fix** | change |
+|---|---:|---:|---:|---:|
+| V1 | 68 | 4,682,750 | **244,074** | **−94.8%** |
+| V2 | 21 | 1,419,465 | **68,749** | **−95.2%** |
+| V3 | 16 | 927,519 | **54,047** | **−94.2%** |
+
+V3 answers 80 questions on **54,047 generator tokens** because the facts path
+makes no generation call at all; V1 needs 4.5× that to score half as well.
+
+## A4. What the V1 drop actually means
+
+V1 fell 48 → 37 while its errors went 14 → 0. Neither figure is "V1's
+capability", and the per-item diff (`scripts/compare_before_after.py`) shows
+why: 6 items that previously *errored* now answer, and 17 that previously
+answered now fail — almost all numeric, computed or compare/trend.
+
+The mechanism was verified, not assumed, by tracing retrieval with no model
+call. For `N-AAPL-REVENUE-2024` retrieval returns Notes and MD&A chunks, all
+located correctly; with the full 89,572-character section the model could scan
+for revenue, with a ~4,000-character window it cannot, and it abstains honestly
+rather than guessing.
+
+**This is the clearest result in the evaluation.** V1 answers numeric questions
+from retrieved text, and bounding context to what a free-tier provider actually
+serves costs it 11 items. V3 loses one, because its numerics never touch the
+generator. The facts engine is what makes the system robust to a constraint
+that cripples the text-only approach — and that constraint is not hypothetical,
+it is the provider limit this project runs under.
+
+## A5. P4-16 (D30) — defect E, and the two bugs inside its own fix
+
+**Defect E.** `answering/text_answer.py` passed each retrieved chunk's whole
+parent section to the generator, once per chunk. `N-JPM-REVENUE-2024` assembled
+**3,323,116 characters (~831,000 tokens) from 4,653 characters of retrieved
+chunk**, because `JPM_2024/fs_income_stmt` is 1,526,355 characters and was
+emitted twice. 30 of 704 live sections exceed 100,000 tokens. Every provider
+refused on size; the last refusal was `LLMBudgetExceeded`, a subclass of
+`LLMRateLimited`, so it was recorded as `llm_rate_limited`. **A paced retry
+looked like the fix and recovered 1 item of 15.** All 14 remaining V1 errors
+were banks.
+
+**The fix.** `TOTAL_CTX_BUDGET` 6,000 / `MAX_SOURCE_TOKENS` 1,500, derived from
+the smallest TPM in the generator failover order (8,000) less the 900-token
+response and the system prompt — a test asserts the relationship, not the
+constant. A window centred on the chunk rather than the head of the section.
+Several chunks of one section collapsed into one merged window. And
+`llm_prompt_too_large`, deliberately not a `LLMRateLimited` subclass, raised
+before the failover loop so no attempt is consumed.
+
+**Two bugs in that fix, both found by measurement:**
+
+1. **The locator failed 70% of the time.** `ingestion/chunker.py` prefixes every
+   chunk with a header line that is not in the parent section, so probing with
+   the chunk's opening missed and the window fell back to the section head —
+   the exact behaviour P4-16 removes. Fixed: **1,167/1,170 located (99.74%)**.
+2. **The token estimate was wrong in both directions.** A flat 3 chars/token
+   *under*-counted table tokens (the unsafe direction) and over-counted prose by
+   ~78%. The chunker's own `token_count` over 35,700 chunks says tables run
+   **2.68** and prose **5.33**. `estimate_tokens` is now content-aware.
+
+One of the new tests was itself wrong first: it inferred "located" from
+`window != parent[:4000]`, false for any chunk genuinely at the head of its
+section, and reported 53/150 while the locator was finding 150/150.
+
+**Defect D is closed.** `R-MSFT-SEGMENTS-2025`, the over-refusal D28 deferred,
+was a symptom of defect E and now answers correctly.
+
+**The budget was swept and not changed** (`reports/phase4/budget_sweep/`):
+3k → 9/15, 6k → 8/15, 12k → 11/15, 30k → 8/15. Non-monotonic, all intervals
+overlapping; n=15 cannot separate them. An earlier reading of 8 versus 11 as
+"the budget costs three narrative items" was noise read as signal — the same
+error D4-08 documents. The negative result is kept, with its reproduction
+command, rather than discarded.
+
+**A rejected improvement, recorded.** Three V1 items became `scale_error`, and
+the hypothesis was that the window cut off "(in thousands)" units headers.
+Measured: only **19.4%** of statement sections carry the units phrase in their
+first 400 characters (52.4% deeper in, 28.2% not at all). Weakly supported, so
+not built.
+
+## A6. P4-12 — the re-index
+
+- Live store **39 collections / 37,882 points**; `data/qdrant_v1_backup`
+  untouched at 25 / 14,557. Retired artifacts kept; undo is one command.
+- **T4-09 verified independently** by `scripts/verify_reindex_integrity.py`,
+  which re-derives every number from each collection's `storage.sqlite` over a
+  read-only immutable URI rather than trusting the runner's own integrity
+  block. `--self-test` plants a corpus and fails 9 checks, including all three
+  it must. The guard also fired for real: an activation attempt was refused
+  because `make test` held the Qdrant lock.
+- **D4-04**: the relink now *clears* a link the store cannot honour. TSLA FY2025
+  survived the swap pointing at a collection the new store does not hold.
+  Retrieval was never at risk, but `query._years_with()` reads
+  `collection_name`, so a refusal would have offered a year nothing can search.
+- Section audit on the new parse: **290 of 429 pairs ok**; Item 1 and Item 1A
+  usable in **39 of 39** filings.
+- Phase 3 smoke re-ran twice — post-re-index and post-fix — **30/30 both times**.
+
+## A7. P4-13 and D27 — the cross-encoder stays on
+
+45 items, 13 filers, 4 fiscal years, 5 sections
+(`eval/gold/narrative_retrieval_v1.jsonl`), each drafted only where the audit
+says the section is `ok` **and** the section text carries the topic. A separate
+file from the gold set by **D4-05**: appending would change every denominator
+already measured and break comparability with the frozen V0.
+
+| arm | section hit@5 | MRR | s/query |
+|---|---|---|---|
+| bm25 | 17/45 (37.8%) | 0.334 | 0.25 |
+| dense | 31/45 (68.9%) | 0.544 | 0.08 |
+| hybrid, no rerank | 29/45 (64.4%) | 0.494 | 0.17 |
+| hybrid + rerank | 35/45 (77.8%) | 0.604 | 5.96 |
+| **hybrid + rerank + focus (shipped)** | **44/45 (97.8%)** | **0.870** | 6.20 |
+
+D27's three conditions for switching the cross-encoder **off**: (a) hit@5 within
+5 pp or higher → **−13.3 pp FAIL**; (b) MRR not lower by more than 0.03 →
+**−0.110 FAIL**; (c) ≥10× faster → 34.9× PASS. **Only (c) holds, so it stays on
+and `config.py` is unchanged.**
+
+At n=15 the same ablation said the cross-encoder *lost* a hit and that
+dense-only beat the shipped default on MRR. At n=45 the sign reverses. Acting on
+the n=15 reading would have made retrieval substantially worse; pre-registering
+the rule is what made that impossible.
+
+## A8. D25 — what the parser rewrite was worth
+
+Identical questions over the **24 filings both stores hold** (62 scorable items;
+`scripts/make_d25_itemset.py`). Running unfiltered would have asked the old arm
+about five filers it never held and credited the rewrite for coverage.
+
+| arm | old index | new index | Δ hit@5 | Δ MRR |
+|---|---|---|---|---|
+| bm25 | 20/40 | 22/40 | +5.0 pp | +0.065 |
+| dense | 25/40 | 32/40 | +17.5 pp | +0.093 |
+| hybrid | 28/40 | 31/40 | +7.5 pp | +0.105 |
+| hybrid + rerank | 27/40 | 33/40 | +15.0 pp | +0.107 |
+| **shipped default** | **30/40 (75.0%)** | **37/40 (92.5%)** | **+17.5 pp** | **+0.109** |
+
+Every arm improves. `number_in_context` is 21/22 on both stores, repeating the
+earlier finding that when the text path gets a number wrong, retrieval had the
+figure anyway.
+
+## A9. P4-14 — the rating sheet
+
+`reports/phase4/narrative_rating_sheet.csv`, from the **post-re-index, post-fix**
+V3 run: 15 questions, 23 rows, 18 with passage text and an EDGAR link, 5 refusal
+rows flagged `refused:insufficient_evidence`, `verdict`/`issue`/`notes` written
+empty (D29), byte-identical across builds.
+
+**A bug caught before it reached the owner.** The first build matched passages to
+citations *by position*, but `prune_to_cited` renumbers citations 1..n over only
+the sources an answer used. An AAPL FY2024 citation carried text footed "2025
+Form 10-K". Rating an answer against a passage it never cited manufactures both
+false hallucination reports and false clean bills — on the artifact that decides
+whether narrative numbers stop being provisional. Now matched by
+`(ticker, fiscal_label, section)`, with a test over the committed sheet that
+failed against the version as shipped.
+
+A refusal row is flagged as a decision, not as an uncited answer: five of the
+fifteen are refusals, and marking them `no_citation` would have had the owner
+rating five working refusals as hallucinations.
+
+## A10. Spec discrepancy, raised not corrected
+
+Spec v1.10 drops `llm_prompt_too_large` from the `error_code` enum (section
+6.5), while P4-16 item (4) and T4-14 both still require it to be listed. This
+looks like an edit from a base predating the v1.9 change. The spec is the
+owner's, so it was committed as given rather than edited back; the
+implementation keeps the code, because the two task entries mandating it are
+unchanged. **One line in section 6.5 to restore, at the owner's word.**
+
+## A11. Tests
+
+`make test` **1,394 passed, 0 failed, 0 skipped**; ruff clean; `eval.mini_eval`
+9/9 with 0 look-ahead. New in this addendum: T4-09 (re-index integrity, with a
+self-test), T4-10 (narrative gold validator, 11), T4-11 (rating sheet, 18),
+T4-13 (context budget, 21), T4-14 (oversize prompts, 7), plus the D25 item
+filter (5).
+
+## A12. For P4-15 (not started — the narrative ratings are outstanding)
+
+1. Apply the owner's `OK` rows to set `verified_by=owner` on the 37 verified
+   numeric and computed items; the other 43 stay `companyfacts` or `auto` and
+   must be described that way everywhere.
+2. Read the rating sheet by `gold_id`/row id only (D29).
+3. **Report agreement between the automated narrative verdicts and the owner's
+   ratings** — n/N, with every disagreement listed.
+4. **Apply D31 as written** and record which branch it takes: 5 or more bad
+   outcomes of 15 → P5-13; otherwise record the gap as scorer strictness, list
+   the disagreements, and tighten the scorer without changing the pipeline.
+5. README quotes post-fix numbers only, with pre-fix shown as "before" evidence.

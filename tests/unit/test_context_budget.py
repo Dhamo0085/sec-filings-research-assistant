@@ -15,13 +15,20 @@ planted oversize case as its control.
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from answering.text_answer import (
     MAX_SOURCE_TOKENS,
     TOTAL_CTX_BUDGET,
+    _locate,
     build_context,
     estimate_tokens,
     window_around,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class FakeChunk:
@@ -218,3 +225,85 @@ def test_estimate_tokens_is_conservative():
     """Budgeting on an underestimate would let an oversize prompt through.
     Dense XBRL tables run closer to 3 characters per token than 4."""
     assert estimate_tokens("a" * 3_000) >= 1_000
+
+
+# ── locating the chunk inside its parent (the regression P4-16 caused) ───────
+
+CHUNKER_HEADER = "BlackRock Inc. (BLK) FY2025 — Item 7: MD&A\n"
+
+
+def test_a_chunk_carrying_the_chunkers_header_still_locates():
+    """The bug the first version of this fix shipped.
+
+    `ingestion/chunker.py` prefixes every chunk with a header line naming the
+    company, year and section. That line does not exist in the parent section,
+    so probing with the chunk's first 200 characters failed for **70%** of a
+    480-chunk sample, and `window_around` quietly fell back to the head of the
+    section — precisely the behaviour P4-16 exists to remove. It cost two
+    correct narrative answers (R-GOOGL-REGULATION-2024, R-GS-MARKETRISK-2024)
+    before the sample showed why.
+    """
+    needle = "Government investigations and antitrust enforcement actions"
+    parent = ("PREAMBLE " * 3_000) + needle + (" AFTERWARD" * 3_000)
+    chunk = CHUNKER_HEADER + needle + " and related proceedings continue."
+
+    window = window_around(parent, [chunk], budget_chars=3_000)
+
+    assert needle in window
+    assert not window.startswith("PREAMBLE PREAMBLE"), \
+        "fell back to the head of the section"
+
+
+def test_a_chunk_whose_opening_was_reformatted_still_locates():
+    """Table chunks begin with pipe-and-dash scaffolding that the parse joins
+    differently, so the opening is the least reliable part of a chunk to probe
+    with. Matching must not depend on it."""
+    needle = "Total revenues increased 14% to $350,018 million"
+    parent = ("x" * 40_000) + needle + ("y" * 40_000)
+    chunk = CHUNKER_HEADER + "|  |  |  |\n| --- | --- |\n" + needle
+
+    window = window_around(parent, [chunk], budget_chars=2_000)
+    assert needle in window
+
+
+def test_the_committed_corpus_locates_essentially_every_chunk():
+    """The measurement itself, as a test: a regression in the chunker's header
+    or the parser's joining would silently send section heads again."""
+    import json
+    import random
+
+    parsed_dir = REPO_ROOT / "data/parsed"
+    chunks_dir = REPO_ROOT / "data/chunks"
+    if not (parsed_dir.is_dir() and chunks_dir.is_dir()):
+        pytest.skip("the corpus is not present")
+
+    parsed = {}
+    for path in parsed_dir.glob("*.json"):
+        doc = json.loads(path.read_text())
+        parsed[doc["doc_id"]] = {
+            s["section_id"]: " ".join(b.get("text", "") for b in s["content_blocks"])
+            for s in doc["sections"]}
+
+    files = sorted(chunks_dir.glob("*.json"))
+    rng = random.Random(20261004)  # noqa: S311
+    located = total = 0
+    for path in rng.sample(files, min(6, len(files))):
+        payload = json.loads(path.read_text())
+        items = payload if isinstance(payload, list) else payload.get("chunks", payload)
+        for chunk in rng.sample(items, min(25, len(items))):
+            parent = parsed.get(chunk["doc_id"], {}).get(chunk["parent_id"])
+            text = (chunk.get("text") or "").strip()
+            if not parent or not text:
+                continue
+            total += 1
+            # Assert on the locator, not on the window. A chunk that genuinely
+            # sits at the head of its section produces a window starting at
+            # character 0, which is indistinguishable from the fallback — the
+            # first version of this test called those failures and reported
+            # 53/150 when the locator was in fact finding all 150.
+            located += int(_locate(parent, text) >= 0)
+
+    assert total > 100, f"only {total} chunks sampled"
+    assert located / total > 0.95, (
+        f"only {located}/{total} ({located / total:.1%}) of chunks located; "
+        f"the rest fell back to the head of their section")

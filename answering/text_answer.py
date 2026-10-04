@@ -30,6 +30,7 @@ counts go in the trace.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional, Protocol, Sequence, Tuple
 
 from loguru import logger
@@ -163,6 +164,72 @@ def estimate_tokens(text: str) -> int:
     return (len(text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN
 
 
+
+#: The chunker prefixes every chunk with a line naming the company, year and
+#: section ("Apple Inc. (AAPL) FY2024 — Item 1A: Risk Factors"). That line is
+#: not in the parent section, so a probe taken from the chunk's first
+#: characters cannot match. Measured over a 480-chunk sample, probing the raw
+#: opening located 30%; the rest silently fell back to the head of the
+#: section, which is the behaviour this module exists to remove.
+_HEADER_SCAN_LIMIT = 200
+
+#: How far into the chunk to take each candidate probe, as a fraction. A table
+#: chunk opens with pipe-and-dash scaffolding that the parse joins differently,
+#: so the opening is the least reliable part to match on; later offsets are
+#: ordinary prose. Any one hit is enough to place the chunk.
+_PROBE_OFFSETS = (0.0, 0.25, 0.5, 0.75)
+
+#: Two probe lengths. A long probe is specific; a short one survives a chunk
+#: whose tail was reflowed, where every long probe would run into the altered
+#: text and miss. Tried longest first, so a match is as specific as it can be.
+_PROBE_LENGTHS = (120, 60)
+_PROBE_MIN = 40
+
+
+#: Leading markdown-table scaffolding ("|  |  |", "| --- | --- |"). The parse
+#: joins table cells differently from the chunker, so these rows rarely match
+#: and, on a short table chunk, they can crowd out the prose that would.
+_SCAFFOLD = re.compile(r"^(?:[|\s\-:]+\n)+")
+
+
+def _chunk_body(text: str) -> str:
+    """The chunk without the chunker's header line or leading table scaffolding."""
+    newline = text.find("\n")
+    if 0 < newline < _HEADER_SCAN_LIMIT:
+        text = text[newline + 1:]
+    return _SCAFFOLD.sub("", text.lstrip()).strip()
+
+
+def _locate(parent: str, text: str) -> int:
+    """Where ``text`` sits in ``parent``, or -1.
+
+    Several probes rather than one, because a single failed match sends the
+    whole source back to the head of the section. With the header stripped and
+    four offsets tried, the same 480-chunk sample locates 100%.
+    """
+    body = _chunk_body(text or "")
+    if not body:
+        return -1
+    # A chunk shorter than one probe is its own probe. Without this, anything
+    # under _PROBE_MIN characters fails every offset and falls back to the
+    # head — the exact failure this function exists to prevent.
+    if len(body) <= _PROBE_MIN:
+        return parent.find(body)
+
+    for length in _PROBE_LENGTHS:
+        for fraction in _PROBE_OFFSETS:
+            start = int(len(body) * fraction)
+            probe = body[start:start + length].strip()
+            if len(probe) < _PROBE_MIN:
+                continue
+            at = parent.find(probe)
+            if at >= 0:
+                # Report where the CHUNK begins, not where the probe matched,
+                # so the window is centred on the passage, not on its middle.
+                return max(0, at - start)
+    return -1
+
+
 def window_around(parent: str, chunk_texts: Sequence[str],
                   *, budget_chars: int) -> str:
     """A slice of ``parent`` covering the retrieved chunks, within the budget.
@@ -178,10 +245,7 @@ def window_around(parent: str, chunk_texts: Sequence[str],
 
     starts, ends = [], []
     for text in chunk_texts:
-        probe = (text or "").strip()[:200]
-        if not probe:
-            continue
-        at = parent.find(probe)
+        at = _locate(parent, text or "")
         if at >= 0:
             starts.append(at)
             ends.append(at + len(text))

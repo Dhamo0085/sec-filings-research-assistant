@@ -5,6 +5,80 @@ Newest first.
 
 ---
 
+## 2026-10-05 — D4-11 A time-boxed release pass, and what that bought and cost
+
+**Context.** The owner needed the project presentable for an interview the next
+morning and had no time to review, so they issued a set of one-time overrides:
+a ~45-minute cap per work item, authority to merge the open PRs when CI is
+green, no long-running jobs and no new heavy evaluations, and an explicit list
+of things to skip and record as future work (P5-10 to P5-13, Docker slimming,
+response caching, hosting).
+
+**Options.** (a) Decline to act without review, and hand over a half-finished
+state. (b) Do the work and present it as fully reviewed. (c) Do the work inside
+the box, record every decision here, and make the unreviewed parts visible
+rather than smooth.
+
+**Choice.** (c). What that means concretely:
+
+- **No new measurement was run.** Every figure in the README, `docs/EVAL.md`,
+  `docs/FEATURES.md`, `docs/INTERVIEW_BRIEF.md` and the Phase 4 report
+  reconciliation is re-read from artifacts already committed, not re-measured.
+  The narrative demo answer is served from the LLM cache. Nothing in this pass
+  spent more than the eight demo queries' worth of free-tier quota.
+- **The things that were skipped are named**, with why, in
+  `docs/LIMITATIONS.md` under "Deferred, and why" — not omitted.
+- **The claim that a clean clone is one command from a demo is withdrawn.**
+  The README states that building the index is about **5 hours on an 8 GB
+  laptop** and that the one-command goal is **not met**. That requirement
+  failing quietly would have been the most expensive thing to discover during
+  an interview.
+- Two new commands exist so that the state is checkable rather than asserted:
+  `make demo-check` (health, LLM state, collections, the 8 demo queries run for
+  real, plus `scripts/smoke.py` — ~17 s, 12/12 PASS) and `make security`.
+
+**Reason.** A time box changes what can be *measured*, not what may be
+*claimed*. The rule that survives unchanged is CLAUDE.md rule 1: every number
+published tonight was produced by a command, and the ones that could not be
+produced are reported as not run.
+
+**What would change it.** Nothing here is load-bearing on the override: a later
+session can re-measure any of it with the commands listed in
+`reports/phase4/REPORT.md` section 8.
+
+---
+
+## 2026-10-05 — D4-10 `pip-audit` findings are accepted in a committed file, not by a flag
+
+**Context.** The release security pass runs `pip-audit`. It reports one
+advisory — `PYSEC-2026-3740`, nltk 3.10.3, model-artifact APIs treating
+caller-controlled model paths as ordinary filenames — for which **no fixed
+version has been released**.
+
+**Options.** (a) Let `make security` fail permanently. (b) Drop the audit. (c)
+Suppress the id with a flag inside the script. (d) Keep the audit failing on
+anything not listed, with an accepted-advisory file holding the id, the reason
+and what would end the acceptance.
+
+**Choice.** (d). `reports/security/accepted_vulnerabilities.txt` holds one line
+per accepted advisory. `scripts/security_check.py` fails on any advisory not in
+it, so adding a dependency with a real vulnerability still breaks the check.
+
+**Reason for (d) over (c).** An acceptance that is not written down is
+indistinguishable from a check that was never run — and (a) trains a reader to
+ignore a red row, which is worse than no row. The reason for this one:
+`ingestion/chunker.py` is the only nltk caller in the project, and it passes
+hard-coded resource names and filing text, never a path from a user, a request
+or a document.
+
+**Verified with a negative control** (CLAUDE.md rule 15): emptying the accepted
+file makes the check report `FAIL — not accepted: nltk PYSEC-2026-3740`.
+
+**What would change it.** nltk shipping a fix (then upgrade and delete the
+line), or any nltk call ever taking a caller-supplied path.
+
+---
+
 ## 2026-10-05 — D4-09 The narrative rating gate is recorded as NOT completed; D31's precondition was not met
 
 **Context.** P4-15 is blocked on the owner's ratings of 15 sampled narrative

@@ -1,0 +1,8 @@
+# Advisories accepted, with the reason and what would end the acceptance.
+# Format: <advisory id> <tab or spaces> <reason>
+# scripts/security_check.py reads this file. An advisory NOT listed here fails
+# the check. Review at every release.
+#
+# Reviewed 2026-10-05 (v2.0.0-rc1).
+
+PYSEC-2026-3740   nltk 3.10.3 — model-artifact APIs treat caller-controlled model paths as ordinary filenames. No fixed version has been released. This project calls nltk in exactly one place, ingestion/chunker.py, with two hard-coded resource names ('punkt' via nltk.data.find / nltk.download) and nltk.sent_tokenize over filing text; no path in either call comes from a user, a request or a filing. Acceptance ends when nltk ships a fix, or if any nltk call ever takes a caller-supplied path.

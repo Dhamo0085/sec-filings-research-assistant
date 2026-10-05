@@ -20,7 +20,7 @@ PORT    ?= 8000
 BASE_URL ?= http://localhost:$(PORT)
 
 .DEFAULT_GOAL := help
-.PHONY: help setup test test-live lint fmt ingest index catalog facts eval-smoke eval-full up hygiene clean
+.PHONY: help setup test test-live lint fmt ingest index catalog facts eval-smoke eval-full up hygiene clean demo-check security
 
 help:   ## Show the available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -82,6 +82,12 @@ eval-full: ## Full gold-set evaluation (Phase 4)
 
 up: ## Run the API locally
 	$(VENV)/bin/uvicorn api.app:app --host $(HOST) --port $(PORT)
+
+security: ## Security and privacy pass: hygiene, tracked secrets, admin fail-closed, pip-audit (P5-01)
+	$(PY) scripts/security_check.py
+
+demo-check: ## Pre-flight for a live demo: /health, collections, the 8 demo queries, smoke (P5-00)
+	$(PY) scripts/demo_check.py $(if $(BASE_URL_SET),--base-url $(BASE_URL),)
 
 smoke: ## Read-only smoke check against a running instance (P1-11)
 	$(PY) scripts/smoke.py --base-url $(BASE_URL)

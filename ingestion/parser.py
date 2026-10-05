@@ -4,7 +4,7 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import StringIO
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 
 import pandas as pd
 from bs4 import BeautifulSoup, Tag
@@ -133,8 +133,30 @@ _FS_RECOVERY_PATTERNS: List[Tuple[str, str, str]] = [
 # tables entirely, so without a sentinel this text is lost before it ever
 # reaches the plain-text stream, and no amount of post-hoc line scanning
 # (unlike the plain-TOC-zone case AAPL/NVDA hit) can recover it.
+#
+# P4-00 (D25) extends this list from "Item 1. Business" alone to every Item
+# heading the text path audits. D3-00 recorded that doing so in Phase 3
+# recovered AMZN's Item 1C but *cost* AMZN's Item 1, because a sentinel then
+# won outright over the plain-text heading. That is no longer how a sentinel is
+# used: _collect_candidates scores it like any other candidate and
+# _assign_sections resolves the competition globally, so a table-of-contents
+# sentinel loses to a real heading instead of displacing it.
 _ITEM_RECOVERY_PATTERNS: List[Tuple[str, str, str]] = [
-    (r"^item\s*1\.?\s*business$", "item_1_business", "Item 1: Business"),
+    (r"^item\s*1\.?\s*business$",                 "item_1_business",      "Item 1: Business"),
+    (r"^item\s*1a\.?\s*risk\s*factors?$",         "item_1a_risk_factors", "Item 1A: Risk Factors"),
+    (r"^item\s*1b\.?\s*unresolved\s*staff\s*comments?$",
+        "item_1b_staff",        "Item 1B: Unresolved Staff Comments"),
+    (r"^item\s*1c\.?\s*cybersecurity$",           "item_1c_cyber",        "Item 1C: Cybersecurity"),
+    (r"^item\s*2\.?\s*propert(y|ies)$",           "item_2_properties",    "Item 2: Properties"),
+    (r"^item\s*3\.?\s*legal\s*proceedings?$",     "item_3_legal",         "Item 3: Legal Proceedings"),
+    (r"^item\s*4\.?\s*mine\s*safety.*$",          "item_4_mine",          "Item 4: Mine Safety"),
+    (r"^item\s*5\.?\s*market\s*for.*$",           "item_5_market",        "Item 5: Market for Equity"),
+    (r"^item\s*7\.?\s*management.{0,3}s\s*discussion.*$",
+        "item_7_mda",           "Item 7: MD&A"),
+    (r"^item\s*7a\.?\s*quantitative.*$",          "item_7a_market_risk",  "Item 7A: Quantitative Disclosures"),
+    (r"^item\s*8\.?\s*financial\s*statements.*$", "item_8_financials",    "Item 8: Financial Statements"),
+    (r"^item\s*9a\.?\s*controls\s*and\s*procedures$",
+        "item_9a_controls",     "Item 9A: Controls and Procedures"),
 ]
 
 _SECTION_PRIORITY: Dict[str, int] = {
@@ -249,8 +271,17 @@ def _match_section(text: str) -> Optional[Tuple[str, str]]:
     return None
 
 
-def _match_section_at(lines: List[str], i: int, total: int) -> Optional[Tuple[str, str]]:
+def _match_section_at(
+    lines: List[str], i: int, total: int
+) -> Optional[Tuple[str, str, str, int]]:
     """
+    Returns ``(section_id, title, matched_text, span_end)`` or ``None``.
+
+    ``matched_text`` is the text the pattern actually matched — the line itself,
+    or the joined pair described below — and ``span_end`` is the last line index
+    consumed, so a caller scoring this candidate looks for the following prose
+    past the join rather than at the second half of the heading.
+
     _match_section on lines[i], with a lookahead fallback: some filers split
     "Item N." and its description across two separate lines/text nodes
     (AMZN, WFC, TROW, ...) — a short "Item N" line that doesn't match alone
@@ -263,17 +294,20 @@ def _match_section_at(lines: List[str], i: int, total: int) -> Optional[Tuple[st
     """
     stripped = lines[i].strip()
     match = _match_section(stripped)
+    if match:
+        return match[0], match[1], stripped, i
 
-    if not match and len(stripped) < 35 and re.search(r"^item\s*\d", stripped.lower()):
+    if len(stripped) < 35 and re.search(r"^item\s*\d", stripped.lower()):
         for j in range(i + 1, min(i + 5, total)):
             next_stripped = lines[j].strip()
             if next_stripped and len(next_stripped) < 100:
-                match = _match_section(stripped + " " + next_stripped)
-                if not match:
-                    match = _match_section(stripped + next_stripped)
+                for joined in (stripped + " " + next_stripped, stripped + next_stripped):
+                    match = _match_section(joined)
+                    if match:
+                        return match[0], match[1], joined, j
                 break
 
-    return match
+    return None
 
 
 def _collect_occurrences(
@@ -306,7 +340,7 @@ def _collect_occurrences(
         match = _match_section_at(lines, i, total)
 
         if match:
-            section_id, title = match
+            section_id, title = match[0], match[1]
             all_occurrences[section_id].append((i, section_id, title))
 
     return all_occurrences, sentinel_hits
@@ -427,10 +461,417 @@ def _llm_locate_fs_headings(
     return recovered
 
 
+# ---------------------------------------------------------------------------
+# Candidate scoring and global boundary assignment (P4-00, D25)
+# ---------------------------------------------------------------------------
+#
+# What this replaces, and why
+# ---------------------------
+# Until P4-00 the parser kept exactly ONE occurrence per section id — the first
+# one past a 15 % table-of-contents skip zone, for item_* sections — and then
+# applied a greedy monotonic Item-priority filter. P3-00 measured the result
+# over the whole parsed corpus with scripts/audit_sections.py: Item 1A was
+# missing from 17 of 39 filings and Item 7 from 17 of 39. Two structural causes,
+# both recorded in docs/DECISIONS.md under D3-00:
+#
+#   * The skip zone is a FRACTION of the document, not a bound on where a table
+#     of contents can end. Filers whose primary document is the whole annual
+#     report start Part I well inside it — JPM FY2024's real
+#     "Item 1A. Risk Factors." heading is at line 229 of 6,897 (3.3 %),
+#     GS FY2024's at 9.1 %, STT FY2024's at 10.9 %, MSFT FY2026's at 14.2 %.
+#     The real heading was never a candidate, so the preceding section absorbed
+#     its text (GS FY2024's Item 1 ran to 295,735 characters).
+#   * The greedy filter is irreversible. One early false candidate raises the
+#     priority watermark and silently drops every lower-priority section after
+#     it. TROW FY2024 matched "Items 10-14" (priority 100) before its real
+#     Item 7 heading at line 680, so Items 5, 7, 7A and 8 were all discarded;
+#     IVZ FY2024 lost Items 3, 4, 5, 7 and 7A the same way to an early Item 8.
+#     This is why D3-00 found local heuristics could not be made net-positive:
+#     each new early candidate both misplaced its own section and blocked the
+#     rest.
+#
+# The replacement makes both decisions globally rather than locally:
+#
+#   1. Every matching line in the segment is a candidate (_collect_candidates).
+#      There is no skip zone for item_* sections: a table of contents is now
+#      rejected by what it LOOKS like, not by where it sits.
+#   2. Each candidate is scored on evidence that it is a heading rather than a
+#      contents entry or a cross-reference (_score_candidate). Lines that refer
+#      to a section ("Refer to Part I, Item 1A: Risk Factors on pages 10-37")
+#      or mention it mid-sentence ("elsewhere in this Item 1A") are rejected
+#      outright, not merely down-weighted, because no amount of surrounding
+#      evidence makes them the heading.
+#   3. _assign_sections picks the maximum-weight subsequence whose line numbers
+#      AND Item priorities both strictly increase — a weighted longest-
+#      increasing subsequence. Choosing a bad early candidate now has to pay
+#      for every section it blocks, so the chain that keeps Items 1, 1A, 1B,
+#      1C, 2, 3, 4, 5, 7, 7A and 8 beats the chain that stops at an early
+#      "Items 10-14".
+#
+# fs_* sub-sections deliberately stay OUT of the assignment and keep their
+# existing selection rule: filers present the five statements in different
+# relative orders (GOOGL puts its balance sheet before its income statement),
+# so an ordering constraint among them drops real statements. See
+# _select_and_validate's docstring.
+
+class _Candidate(NamedTuple):
+    """One scored possibility for where a section begins."""
+
+    line:       int
+    section_id: str
+    title:      str
+    score:      int
+    has_prose:  bool  # is there real prose shortly after it (see _followed_by_prose)
+    source:     str   # "text" | "sentinel"
+
+
+_TABLE_PLACEHOLDER_RE = re.compile(r"^<<<TABLE_\d+>>>$")
+
+# A line that REFERS to a section is never that section's heading. These are the
+# forms the corpus actually contains: "Refer to Part I, Item 1A: Risk Factors on
+# pages 10-37" (JPM), "In addition to risks described elsewhere in this Item 1A"
+# (Amazon's own Item 1A prose), "see Item 1A Risk Factors of this Annual Report"
+# (GOOGL), "...are incorporated by reference in this Item 1" (BAC).
+_CROSS_REFERENCE_RE = re.compile(
+    r"\b(refer(?:s|red)?\s+to"
+    r"|see\b"
+    r"|described\s+in|discussed\s+in|contained\s+in|set\s+forth\s+in"
+    r"|elsewhere\s+in"
+    r"|incorporated\s+by\s+reference"
+    r"|on\s+pages?\b|pages?\s+\d)",
+    re.I,
+)
+
+# Filers prefix a heading with its Part — "PART I - ITEM 1A. RISK FACTORS",
+# "Part II, Item 1A. Risk Factors" — and that is still an anchored heading.
+_PART_PREFIX_RE = re.compile(r"^\s*part\s+[ivx]+\s*[,.:;—–-]*\s*", re.I)
+
+# A contents entry carries its page number: "Item 1A. Risk Factors    10".
+_TRAILING_PAGE_NUMBER_RE = re.compile(r"[\s.·…]\d{1,3}\s*$")
+
+# A POINTER sentence says where the disclosure is, rather than being it. This is
+# deliberately much narrower than _CROSS_REFERENCE_RE, which disqualifies a
+# candidate HEADING: ordinary disclosure prose mentions other sections all the
+# time ("...appearing elsewhere in this Annual Report on Form 10-K"), so only an
+# explicit page or incorporation pointer counts. JPM FY2024's entire Item 7 body
+# is one such sentence: the MD&A "appears on pages 44-115 of this 2024 Form
+# 10-K".
+_POINTER_RE = re.compile(
+    r"(incorporated\s+(herein\s+)?by\s+reference"
+    r"|^\s*refer\s+to\b"
+    r"|\bon\s+pages?\s+\d"
+    r"|\bpages?\s+\d+\s*[–—-]\s*\d+)",
+    re.I,
+)
+
+# A heading is a short standalone line. The longest real heading in the corpus
+# ("Item 7. Management's Discussion and Analysis of Financial Condition and
+# Results of Operations") is 95 characters; 120 leaves room for a Part prefix.
+_HEADING_MAX_LEN = 120
+
+# A line long enough to be the disclosure itself rather than another list entry.
+# Set from what a contents line cannot be, not fitted: the longest contents
+# entry in the corpus is well under 200 characters, and the opening sentence of
+# a real Item 1A ("The following discussion sets forth the material risk
+# factors...") is well over it.
+_PROSE_MIN_LEN = 200
+
+# How far past a heading to look for that prose, counted in non-empty lines.
+# Filers put a sub-heading, a date line and a table between a heading and its
+# first paragraph; 15 covers every case in the corpus without reaching into the
+# next section.
+_PROSE_LOOKAHEAD = 15
+
+
+def _is_prose(line: str) -> bool:
+    """A line that is the disclosure, not a heading, a placeholder or a marker."""
+    stripped = line.strip()
+    if len(stripped) < _PROSE_MIN_LEN:
+        return False
+    return not (
+        _TABLE_PLACEHOLDER_RE.match(stripped)
+        or stripped.startswith(_FS_SENTINEL_PREFIX)
+    )
+
+
+def _followed_by_prose(lines: List[str], span_end: int, total: int) -> bool:
+    """Does the section behind this candidate actually have content?
+
+    This is the feature that separates a real heading from a contents entry
+    without any assumption about WHERE the contents table sits: a contents entry
+    is followed by more contents entries, a real heading by the disclosure
+    itself.
+
+    Two bounds make it a question about THIS section rather than about the
+    neighbourhood:
+
+    * the scan stops at the next heading candidate, so prose belonging to a
+      later section is not credited to this one. Without that bound a bank's
+      cross-reference index passes — JPM FY2024 prints Items 6, 7, 7A, 8, 9 and
+      9A as consecutive one-line pointers, and the real prose under Item 9A is
+      only eleven lines below the Item 7 heading;
+    * a pointer sentence does not count as content (_POINTER_RE). JPM's Item 7
+      body is one sentence saying the MD&A "appears on pages 44-115 of this
+      2024 Form 10-K" — long enough to pass a length test, and still not an
+      MD&A.
+    """
+    seen = 0
+    for j in range(span_end + 1, total):
+        if not lines[j].strip():
+            continue
+        if _match_section_at(lines, j, total) is not None:
+            break
+        if _is_prose(lines[j]) and not _POINTER_RE.search(lines[j]):
+            return True
+        seen += 1
+        if seen >= _PROSE_LOOKAHEAD:
+            break
+    return False
+
+
+def _next_is_section_heading(lines: List[str], span_end: int, total: int) -> bool:
+    """Is the next non-empty line itself a section match?
+
+    A run of section matches with nothing between them is the shape of a table
+    of contents. ``span_end`` (not ``line``) is the starting point so that the
+    second half of a heading split across two lines — Netflix writes
+    "Item 1A." then "Risk Factors" — is not mistaken for the next entry in a
+    list.
+    """
+    for j in range(span_end + 1, total):
+        if not lines[j].strip():
+            continue
+        return _match_section_at(lines, j, total) is not None
+    return False
+
+
+def _anchored_section_ids(text: str) -> set:
+    """Section ids whose pattern matches at the START of ``text``.
+
+    A heading begins with its own name. Any optional Part prefix is stripped
+    first so "PART I - ITEM 1A. RISK FACTORS" still counts as anchored — the
+    spellings pinned in tests/unit/test_parser_sections.py.
+    """
+    rest = _PART_PREFIX_RE.sub("", text.lower().strip())
+    return {
+        section_id
+        for pattern, section_id, _title in SECTION_PATTERNS
+        if re.match(pattern, rest)
+    }
+
+
+def _score_candidate(
+    lines:        List[str],
+    line_no:      int,
+    span_end:     int,
+    total:        int,
+    matched_text: str,
+    section_id:   str,
+    title:        str,
+    source:       str,
+) -> Optional[_Candidate]:
+    """Score one possible heading, or reject it outright.
+
+    Rejection (returning None) is reserved for the two shapes that can never be
+    a heading however they score: a cross-reference to the section, and a
+    mention of it inside a sentence. Everything else is a matter of degree and
+    is left to _assign_sections to weigh against the alternatives.
+    """
+    stripped = lines[line_no].strip()
+
+    if source == "text":
+        if _CROSS_REFERENCE_RE.search(matched_text):
+            return None
+        if section_id not in _anchored_section_ids(matched_text):
+            return None
+        explicit_item = bool(re.match(r"item\s*\d", _PART_PREFIX_RE.sub("", matched_text.lower().strip())))
+    else:
+        # A sentinel is a heading recovered verbatim from a table cell by an
+        # anchored ^...$ pattern, so it is anchored and heading-shaped by
+        # construction. It is still only a candidate: before P4-00 a sentinel
+        # won outright, which is why extending _ITEM_RECOVERY_PATTERNS cost
+        # Amazon its Item 1 (D3-00).
+        explicit_item = True
+
+    score = 0
+    if source == "sentinel":
+        score += 2
+    if explicit_item:
+        score += 4                     # "Item 7. ..." beats a bare-title fallback
+    if len(stripped) <= _HEADING_MAX_LEN:
+        score += 3
+    if _TRAILING_PAGE_NUMBER_RE.search(stripped):
+        score -= 5                     # a contents entry carries its page number
+    if _next_is_section_heading(lines, span_end, total):
+        score -= 4                     # a run of headings is a contents list
+
+    # Whether the section has content is not one signal among several — it
+    # decides which of the two weight classes the candidate falls into. See
+    # _assign_sections.
+    has_prose = _followed_by_prose(lines, span_end, total)
+
+    return _Candidate(line_no, section_id, title, score, has_prose, source)
+
+
+def _collect_candidates(
+    lines: List[str], skip_end: int
+) -> List[_Candidate]:
+    """Every scored item_* heading candidate in lines[:skip_end].
+
+    Unlike _collect_occurrences there is no ``skip_start``: the whole document
+    is scanned and contents entries are rejected on their own evidence.
+    ``skip_end`` is kept because the tail of a filing is an exhibit index whose
+    entries are contents entries by nature.
+    """
+    total = len(lines)
+    candidates: List[_Candidate] = []
+
+    for i, line in enumerate(lines):
+        if i > skip_end:
+            break
+        stripped = line.strip()
+        if not stripped or len(stripped) > 250:
+            continue
+
+        if stripped.startswith(_FS_SENTINEL_PREFIX):
+            title = stripped[len(_FS_SENTINEL_PREFIX):]
+            for _pattern, sid, sentinel_title in _HEADER_TABLE_RECOVERY_PATTERNS:
+                if sentinel_title.lower() == title.lower():
+                    if sid.startswith("fs_"):
+                        break        # fs_* sentinels are handled by the fs_ path
+                    scored = _score_candidate(
+                        lines, i, i, total, sentinel_title, sid, sentinel_title, "sentinel"
+                    )
+                    if scored is not None:
+                        candidates.append(scored)
+                    break
+            continue
+
+        match = _match_section_at(lines, i, total)
+        if not match:
+            continue
+        section_id, title, matched_text, span_end = match
+        if section_id.startswith("fs_"):
+            continue
+        scored = _score_candidate(
+            lines, i, span_end, total, matched_text, section_id, title, "text"
+        )
+        if scored is not None:
+            candidates.append(scored)
+
+    return candidates
+
+
+def _assign_sections(candidates: Iterable[_Candidate]) -> List[_Candidate]:
+    """Maximum-weight subsequence with strictly increasing line AND priority.
+
+    This is the whole point of P4-00. Because Item priorities are distinct, a
+    strictly-increasing-priority chain holds at most one candidate per section
+    id, so picking the chain IS picking one boundary per section — the two
+    decisions the old code made separately and greedily (keep the first
+    occurrence; then drop anything out of order) are made together here.
+
+    Weighting is in two classes, because a boundary is only worth having if the
+    section behind it has content:
+
+      * a candidate with prose after it is worth ``20 + score`` (floored at 1),
+        so among real headings the constant dominates and a chain that keeps one
+        more section beats a chain of fewer, better-looking ones;
+      * a candidate with no prose after it is worth exactly 1.
+
+    The second class is what stops a bank's mid-document Form 10-K
+    cross-reference index from winning. JPM, WFC, GS and BAC satisfy Items 3,
+    5, 7, 7A and 8 by pointing at their annual report, and print that pointer
+    list as a run of perfectly-formed Item headings each followed by one line of
+    "Refer to pages 44-115". Those entries are anchored, explicit and
+    heading-shaped, so on score alone a run of nine of them outranks the two or
+    three real sections elsewhere in the document, and before this rule the
+    assignment picked them: JPM FY2024's Item 7 came out as a 300-character
+    pointer. At weight 1 a run of nine such entries is worth less than one real
+    section, which is the honest ordering — a 300-character pointer is not an
+    answerable MD&A.
+
+    Deterministic: candidates are sorted by (line, priority) and ties in the
+    dynamic program resolve to the earliest index.
+    """
+    ordered = sorted(
+        candidates,
+        key=lambda c: (c.line, _SECTION_PRIORITY.get(c.section_id, 500), c.section_id),
+    )
+    n = len(ordered)
+    if n == 0:
+        return []
+
+    priority = [_SECTION_PRIORITY.get(c.section_id, 500) for c in ordered]
+    weight   = [max(1, 20 + c.score) if c.has_prose else 1 for c in ordered]
+    best     = list(weight)
+    prev     = [-1] * n
+
+    for j in range(n):
+        for k in range(j):
+            if ordered[k].line < ordered[j].line and priority[k] < priority[j]:
+                through_k = best[k] + weight[j]
+                if through_k > best[j]:
+                    best[j] = through_k
+                    prev[j] = k
+
+    end = max(range(n), key=lambda idx: (best[idx], -idx))
+    chain: List[_Candidate] = []
+    while end != -1:
+        chain.append(ordered[end])
+        end = prev[end]
+    chain.reverse()
+    return chain
+
+
+def _assign_sections_with_second_chance(
+    candidates: Iterable[_Candidate],
+) -> List[_Candidate]:
+    """_assign_sections, then one more pass over the section ids it dropped.
+
+    One chain assumes the document lays its sections out in Form 10-K Item
+    order. That holds for a 10-K, but not for an annual-report exhibit
+    incorporated by reference: Wells Fargo's EX-13 puts its "Financial Review"
+    (Item 7) before its "Risk Factors" (Item 1A), because it is ordered by the
+    bank's own layout. A single increasing chain has to drop one of the two
+    wholesale, and it drops Item 1A — 95,265 characters of real risk factors in
+    FY2023 — to keep the longer MD&A. Nor does one chain fit a document that
+    interleaves a Form 10-K skeleton with the annual report it points at.
+
+    So ids with no candidate at all in the first chain get a second assignment
+    among themselves. The result is internally ordered, is merged by line
+    position, and is restricted to candidates with prose after them, so this
+    recovers a block of real sections laid out in another order without
+    re-admitting the contents entries and cross-reference stubs the first pass
+    rejected.
+
+    Deliberately NOT extended to ids the first chain filled with a content-free
+    entry. Doing that was implemented and measured: it recovers JPM's real MD&A
+    (Item 7 usable 25 of 40 to 28) and costs BAC its Risk Factors (Item 1A 40 of
+    40 to 37), because the recovered BAC boundary produces a longer slice than
+    the right one and the "longest instance keeps the canonical id" rule then
+    prefers it. The corpus total is 298 either way. The numbers are in
+    reports/phase4/REPORT.md; a filing that interleaves a Form 10-K skeleton
+    with the annual report it points at needs the two to be separated, not one
+    more selection rule.
+    """
+    pool = list(candidates)   # consumed twice
+    first = _assign_sections(pool)
+    taken = {c.section_id for c in first}
+    leftover = [
+        c for c in pool
+        if c.section_id not in taken and c.has_prose
+    ]
+    if not leftover:
+        return first
+    return sorted(first + _assign_sections(leftover), key=lambda c: c.line)
+
+
 def _select_and_validate(
     lines: List[str],
     all_occurrences: Dict[str, List[Tuple[int, str, str]]],
     sentinel_hits: Dict[str, Tuple[int, str, str]],
+    item_candidates: List[_Candidate],
     skip_start: int,
     skip_end: int,
 ) -> List[Tuple[int, str, str]]:
@@ -438,10 +879,12 @@ def _select_and_validate(
     Hybrid boundary selection — different strategies for Item-level vs
     financial-statement sub-sections.
 
-    item_* sections  → FIRST occurrence past the 15 % TOC zone.
-      Rationale: Item-level headers sometimes appear as cross-references
-      deep inside financial footnotes (e.g. "see Item 7A"), causing
-      "keep last" to misplace them and balloon section sizes.
+    item_* sections  → the maximum-weight chain over ALL scored candidates
+      (_collect_candidates then _assign_sections, P4-00/D25). Rewritten
+      because "first occurrence past the 15 % TOC zone" misses the real
+      heading whenever Part I starts inside that zone, which is every filer
+      whose primary document is the whole annual report. See the block
+      comment above _Candidate for the measurements behind the change.
 
     fs_* sub-sections → LAST HEADING-LIKE occurrence inside the valid window.
       Rationale: fs_* headers ("Consolidated Statements of Operations")
@@ -460,10 +903,10 @@ def _select_and_validate(
       (heading-length) lines before taking the last one fixes this without
       the "first occurrence" TOC problem returning.
 
-    Pass 2 enforces monotonic Item ordering so misdetections
-    (cross-refs, TOC stragglers) are dropped — for item_* sections ONLY.
-    fs_* sub-sections are spliced in separately afterward with no ordering
-    constraint among themselves: different filers present the 5 standard
+    Item ordering is enforced inside the assignment itself rather than by a
+    second greedy pass, so a misdetection is weighed against what it would
+    cost instead of silently winning. fs_* sub-sections are spliced in
+    afterward with no ordering constraint among themselves: different filers present the 5 standard
     financial statements in different relative orders (verified: GOOGL
     presents its Balance Sheet BEFORE its Income Statement; most others do
     the reverse), so forcing all of them through one monotonically-
@@ -475,40 +918,37 @@ def _select_and_validate(
     # that happens to contain the same phrase runs much longer.
     _FS_HEADING_MAX_LEN = 100
 
-    selected_item: Dict[str, Tuple[int, str, str]] = {}
-    selected_fs:   Dict[str, Tuple[int, str, str]] = {}
+    selected_fs: Dict[str, Tuple[int, str, str]] = {}
 
+    # fs_* selection is unchanged by P4-00. Its failure mode is different from
+    # the item_* one (a prose mention of a statement title landing after the
+    # real heading, not a skip zone or an ordering filter), the statements have
+    # no reliable relative order to assign against, and leaving it alone keeps
+    # the before/after of this change attributable to the item_* rewrite.
     for section_id, occurrences in all_occurrences.items():
-        bucket = selected_fs if section_id.startswith("fs_") else selected_item
+        if not section_id.startswith("fs_"):
+            continue
         if section_id in sentinel_hits:
-            bucket[section_id] = sentinel_hits[section_id]   # sentinel wins
-        elif section_id.startswith("fs_"):
-            heading_like = [
-                o for o in occurrences
-                if len(lines[o[0]].strip()) <= _FS_HEADING_MAX_LEN
-            ]
-            # Fall back to the true last occurrence if nothing looks
-            # heading-like, rather than dropping the section entirely.
-            bucket[section_id] = heading_like[-1] if heading_like else occurrences[-1]
-        else:
-            bucket[section_id] = occurrences[0]    # first = content header
+            selected_fs[section_id] = sentinel_hits[section_id]   # sentinel wins
+            continue
+        heading_like = [
+            o for o in occurrences
+            if len(lines[o[0]].strip()) <= _FS_HEADING_MAX_LEN
+        ]
+        # Fall back to the true last occurrence if nothing looks
+        # heading-like, rather than dropping the section entirely.
+        selected_fs[section_id] = heading_like[-1] if heading_like else occurrences[-1]
 
-    # Any sentinel sections not found via text patterns also get included
+    # Any fs_* sentinel sections not found via text patterns also get included
     for sid, entry in sentinel_hits.items():
-        bucket = selected_fs if sid.startswith("fs_") else selected_item
-        if sid not in bucket:
-            bucket[sid] = entry
+        if sid.startswith("fs_") and sid not in selected_fs:
+            selected_fs[sid] = entry
 
-    # Monotonic priority filter — item_* candidates ONLY
-    item_candidates = sorted(selected_item.values(), key=lambda x: x[0])
-    validated: List[Tuple[int, str, str]] = []
-    max_priority = -1
-
-    for entry in item_candidates:
-        priority = _SECTION_PRIORITY.get(entry[1], 500)
-        if priority > max_priority:
-            validated.append(entry)
-            max_priority = priority
+    # item_* boundaries: one global assignment over every scored candidate.
+    validated: List[Tuple[int, str, str]] = [
+        (c.line, c.section_id, c.title)
+        for c in _assign_sections_with_second_chance(item_candidates)
+    ]
 
     # Splice in fs_* candidates unconditionally (see docstring) and re-sort
     # by line position so the merged list stays in document order.
@@ -603,26 +1043,12 @@ def _select_and_validate(
                 validated.sort(key=lambda x: x[0])
                 still_missing = [sid for sid in still_missing if sid not in {r[1] for r in recovered}]
 
-    # --- Recovery pass for Item 1: Business ------------------------------
-    # It's almost always the very first substantive heading right after the
-    # cover page, which commonly lands it INSIDE the 15% TOC-skip window
-    # that every other item_* section relies on to avoid TOC/cover-page
-    # false positives. Recover it by scanning exactly that excluded window;
-    # take the LAST match there (TOC entries like a bare "Item 1." appear
-    # first, the real "Item 1. Business" heading follows shortly after).
-    if "item_1_business" not in {e[1] for e in validated} and skip_start > 0:
-        toc_zone_hits: List[Tuple[int, str, str]] = []
-        for i in range(skip_start):
-            stripped = lines[i].strip()
-            if not stripped or len(stripped) > 250:
-                continue
-            match = _match_section_at(lines, i, len(lines))
-            if match and match[0] == "item_1_business":
-                toc_zone_hits.append((i, match[0], match[1]))
-        if toc_zone_hits:
-            validated.append(toc_zone_hits[-1])
-            validated.sort(key=lambda x: x[0])
-
+    # The Item 1 TOC-zone recovery pass that used to sit here is gone: it
+    # existed only because item_* candidates were restricted to lines past the
+    # 15 % skip zone, and Item 1 is almost always before it. _collect_candidates
+    # scans the whole segment, so Item 1 is now an ordinary candidate. The
+    # ``skip_start`` argument is kept because the fs_* path above still uses
+    # the window it came from.
     return validated
 
 
@@ -771,45 +1197,44 @@ def _annotate_fs_header_tables(soup: BeautifulSoup) -> None:
         if matched:
             continue
 
-        # Item-level TOC entries (TROW, IVZ) can be dozens of rows into a long
-        # TOC table — only fall back to this wider scan if no fs_ header
-        # already claimed this table above.
+        # Item-level headings rendered as table rows (AMZN, TROW, IVZ) — only
+        # reached if no fs_ header already claimed this table above.
+        #
+        # P4-00 (D25) changed this from one sentinel per TABLE to one per
+        # matching ROW. Amazon renders every item heading as its own two-cell
+        # row, so stopping at the first match recovered Item 1 and lost Item 1A,
+        # Item 7 and the rest — the audit found zero occurrences of those
+        # headings anywhere in AMZN's parsed text. Emitting one sentinel per row
+        # is safe now that a sentinel is a scored candidate rather than an
+        # outright winner: a contents table yields a run of sentinels with no
+        # prose after them, which _score_candidate penalises and
+        # _assign_sections then rejects in favour of the real headings.
+        item_rows_matched = 0
         for row in rows[:60]:
             cells = row.find_all(["td", "th"])
             cell_texts = [c.get_text(separator=" ", strip=True).lower() for c in cells]
 
-            for cell_text in cell_texts:
-                if not cell_text or len(cell_text) > 120:
-                    continue
-                for pattern, _section_id, title in _ITEM_RECOVERY_PATTERNS:
-                    if re.search(pattern, cell_text):
-                        sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
-                        table_tag.insert_before(sentinel)
-                        logger.debug(f"  Pre-annotated table: '{title}' ({cell_text[:50]})")
-                        matched = True
-                        break
-                if matched:
-                    break
-            if matched:
-                break
-
-            # AMZN/WFC split the heading across ADJACENT cells in the same row
-            # ("Item 1." in one <td>, "Business" in the next) rather than one
-            # cell holding the whole title. Concatenating non-empty cell texts
-            # with no separator recovers it; the anchored ^...$ pattern still
-            # rejects TOC rows that carry a trailing page-number cell (e.g.
-            # "item 1." + "business" + "3" -> "item 1.business3" fails "$").
+            # A row matches either on one cell holding the whole title, or —
+            # AMZN/WFC style — on adjacent cells splitting it ("Item 1." in one
+            # <td>, "Business" in the next). Concatenating non-empty cell texts
+            # with no separator recovers the split form; the anchored ^...$
+            # patterns still reject a contents row carrying a trailing
+            # page-number cell ("item 1." + "business" + "3" fails "$").
             joined = "".join(t for t in cell_texts if t)
+            row_texts = [t for t in cell_texts if t and len(t) <= 120]
             if joined and len(joined) <= 120:
-                for pattern, _section_id, title in _ITEM_RECOVERY_PATTERNS:
-                    if re.search(pattern, joined):
-                        sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
-                        table_tag.insert_before(sentinel)
-                        logger.debug(f"  Pre-annotated table (joined cells): '{title}' ({joined[:50]})")
-                        matched = True
-                        break
-            if matched:
-                break
+                row_texts.append(joined)
+
+            for pattern, _section_id, title in _ITEM_RECOVERY_PATTERNS:
+                if any(re.search(pattern, t) for t in row_texts):
+                    sentinel = soup.new_string(f"\n{_FS_SENTINEL_PREFIX}{title}\n")
+                    table_tag.insert_before(sentinel)
+                    logger.debug(f"  Pre-annotated row: '{title}'")
+                    item_rows_matched += 1
+                    break
+
+        if item_rows_matched:
+            matched = True
 
 
 # ---------------------------------------------------------------------------
@@ -875,8 +1300,13 @@ def parse_filing(
         seg_occurrences, seg_sentinels = _collect_occurrences(
             seg_lines, seg_skip_start, seg_skip_end
         )
+        # item_* candidates are collected over the WHOLE segment (P4-00): the
+        # skip zone hid the real Part I headings of every filer whose primary
+        # document is the annual report itself.
+        seg_item_candidates = _collect_candidates(seg_lines, seg_skip_end)
         seg_boundaries = _select_and_validate(
-            seg_lines, seg_occurrences, seg_sentinels, seg_skip_start, seg_skip_end
+            seg_lines, seg_occurrences, seg_sentinels,
+            seg_item_candidates, seg_skip_start, seg_skip_end,
         )
 
         offset = len(lines)
@@ -889,13 +1319,43 @@ def parse_filing(
     # otherwise ParsedDocument.section_by_id() would always resolve to the
     # first (possibly stub) match regardless of which section a chunk came
     # from. Display titles are untouched; only the internal id gets suffixed.
-    seen_ids: Dict[str, int] = {}
+    #
+    # P4-00 (D25): the UNSUFFIXED id goes to the longest instance, not the
+    # first one in the document. A filer that incorporates by reference prints
+    # a stub in the 10-K wrapper and the real section in the exhibit, and the
+    # wrapper comes first — so "first wins" handed the canonical id to the
+    # stub. With the item sentinels extended, WFC FY2024's canonical
+    # item_1a_risk_factors became a 229-character pointer while its real
+    # 102,037-character Risk Factors sat under item_1a_risk_factors__2, where
+    # nothing that resolves a section by id would ever look.
+    boundaries.sort(key=lambda b: b[0])
+    slice_chars = [
+        sum(
+            len(lines[ln])
+            for ln in range(
+                start_line + 1,
+                boundaries[i + 1][0] if i + 1 < len(boundaries) else len(lines),
+            )
+        )
+        for i, (start_line, _sid, _title) in enumerate(boundaries)
+    ]
+
+    rank_in_id: Dict[int, int] = {}
+    by_id: Dict[str, List[int]] = defaultdict(list)
+    for idx, (_line_no, sid, _title) in enumerate(boundaries):
+        by_id[sid].append(idx)
+    for indices in by_id.values():
+        # Longest first; ties keep document order, so the result is
+        # deterministic for two identically-sized slices.
+        for rank, idx in enumerate(
+            sorted(indices, key=lambda i: (-slice_chars[i], i)), start=1
+        ):
+            rank_in_id[idx] = rank
+
     disambiguated: List[Tuple[int, str, str]] = []
-    for line_no, sid, title in boundaries:
-        seen_ids[sid] = seen_ids.get(sid, 0) + 1
-        if seen_ids[sid] > 1:
-            sid = f"{sid}__{seen_ids[sid]}"
-        disambiguated.append((line_no, sid, title))
+    for idx, (line_no, sid, title) in enumerate(boundaries):
+        rank = rank_in_id[idx]
+        disambiguated.append((line_no, sid if rank == 1 else f"{sid}__{rank}", title))
     boundaries = disambiguated
 
     logger.info(

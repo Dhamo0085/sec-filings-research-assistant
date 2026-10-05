@@ -447,6 +447,23 @@ class FactsResolver:
         # answer about two periods at once is not an answer.
         period_end = max(f.period_end for f in eligible)
         eligible = [f for f in eligible if f.period_end == period_end]
+
+        # P4-11 C. The filings exist and were public, but none of them was
+        # ever extracted — the facts build keeps the newest originals per
+        # ticker while the catalog lists everything EDGAR has. Falling through
+        # here reached the metric lookup and refused with
+        # `metric_not_found_in_filing`, which asserts something about the
+        # filer ("Apple did not report revenue in 2019") instead of about this
+        # project's coverage. Decided before any fact is read, so no metric
+        # can change the answer.
+        if not any(self.store.has_facts(f.accession) for f in eligible):
+            covered = sorted({f.fiscal_label for f in filings
+                              if self.store.has_facts(f.accession)})
+            return Abstain(
+                REASON_PERIOD_NOT_COVERED,
+                f"{ticker} {period.describe()} is catalogued but its facts were "
+                f"never extracted; covered: "
+                f"{', '.join(str(x) for x in covered) or 'none'}")
         return period_end, eligible
 
     def _no_such_period(self, ticker: str, filings: Sequence[Filing],

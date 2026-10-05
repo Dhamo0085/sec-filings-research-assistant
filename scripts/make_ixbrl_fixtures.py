@@ -133,11 +133,18 @@ SPECS: List[FixtureSpec] = [
              "InterestAndDividendIncomeOperating all being tagged"),
         sources=["BAC_2024_0000070858-25-000139.htm"],
         period_end="2024-12-31",
+        # `Liabilities` is here for the CI mini-eval (P4-08), which answers
+        # real gold items from these fixtures: without it the gold item
+        # N-BAC-TOTALLIABILITIES-2024 abstained against the fixture while
+        # resolving fine against the full store, and the mini-eval's "numeric
+        # subset must be 100%" threshold would have had to be weakened to
+        # accommodate a gap in the fixture rather than a fault in the code.
         concepts=["Revenues", "RevenuesNetOfInterestExpense", "NetIncomeLoss",
                   "InterestAndDividendIncomeOperating", "Assets",
-                  "StockholdersEquity"],
+                  "Liabilities", "StockholdersEquity"],
         expect={"Revenues": "101887000000",
                 "NetIncomeLoss": "27132000000",
+                "Liabilities": "2965960000000",
                 "InterestAndDividendIncomeOperating": "146607000000"},
         expect_dei={"EntityCentralIndexKey": "0000070858"},
     ),

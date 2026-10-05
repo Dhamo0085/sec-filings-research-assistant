@@ -146,8 +146,15 @@ _COMPUTATION_PATTERNS: Sequence[Tuple[Computation, re.Pattern[str]]] = (
         r"|\brose\b|\bfell\b|\bchange[sd]?\b|\bpercent(age)?\s+change\b"
         r"|\byear\s+over\s+year\b|\byoy\b", re.I)),
     (Computation.RATIO, re.compile(r"\bratio\b|\bdivided\s+by\b|\bper\s+dollar\b", re.I)),
+    # "less" needs the lookahead: "revenue less capital expenditures" is a
+    # subtraction, "revenue less than Microsoft's" is a comparison, and the
+    # bare word cue turned the second into the first (P4-11 A).
+    # "net of" is deliberately NOT a cue: "total revenue, net of interest
+    # expense" is Bank of America's own income-statement line, and reading it
+    # as a subtraction turned a plain numeric gold item into a computation.
     (Computation.DIFFERENCE, re.compile(
-        r"\bdifference\b|\bhow\s+much\s+(?:more|less|higher|lower)\b|\bgap\b", re.I)),
+        r"\bdifference\b|\bhow\s+much\s+(?:more|less|higher|lower)\b|\bgap\b"
+        r"|\bminus\b|\bless\b(?!\s+than)|\bsubtract(?:ing|ed)?\b", re.I)),
     (Computation.TOTAL, re.compile(r"\bcombined\b|\btogether\b|\bsum\s+of\b|\btotal\s+of\b", re.I)),
 )
 

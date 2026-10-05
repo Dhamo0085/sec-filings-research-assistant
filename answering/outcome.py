@@ -91,6 +91,7 @@ class AbstainReason(StrEnum):
 class ErrorCode(StrEnum):
     LLM_AUTH = "llm_auth"
     LLM_RATE_LIMITED = "llm_rate_limited"
+    LLM_PROMPT_TOO_LARGE = "llm_prompt_too_large"
     LLM_UNAVAILABLE = "llm_unavailable"
     LLM_BAD_OUTPUT = "llm_bad_output"
     DATA_UNAVAILABLE = "data_unavailable"

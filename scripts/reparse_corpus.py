@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -80,8 +81,29 @@ def reparse_one(src: Path, doc: dict, out_dir: Path) -> Tuple[str, int, float]:
         filing_date=doc.get("filing_date"),
     )
     name = f"{parsed.ticker}_{parsed.fiscal_year}.json"
-    (out_dir / name).write_text(parsed.model_dump_json(indent=2), encoding="utf-8")
+    # Atomic: a run killed mid-write must leave either the old parse or the new
+    # one, never half of one that --skip-existing would then treat as done.
+    target = out_dir / name
+    tmp = target.with_name(target.name + ".partial")
+    tmp.write_text(parsed.model_dump_json(indent=2), encoding="utf-8")
+    os.replace(tmp, target)
     return name[:-5], len(parsed.sections), time.monotonic() - started
+
+
+def parse_is_complete(path: Path) -> bool:
+    """True when ``path`` holds a readable parse with at least one section.
+
+    The resume predicate for ``--skip-existing``. Deliberately strict about
+    what counts as done: re-parsing a filing costs seconds, while treating a
+    truncated file as finished poisons every chunk and point built from it.
+    """
+    if not path.is_file():
+        return False
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return False
+    return bool(isinstance(doc, dict) and doc.get("doc_id") and doc.get("sections"))
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -92,6 +114,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     help="where the new parses go (use data/parsed to adopt them)")
     ap.add_argument("--only", default="",
                     help="comma-separated filing stems, e.g. JPM_2024,GS_2024")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="leave filings already parsed into --out-dir alone (resume)")
     args = ap.parse_args(argv)
 
     if not args.parsed_dir.is_dir():
@@ -106,8 +130,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     done: List[Tuple[str, int, float]] = []
     skipped: List[Tuple[str, str]] = []
+    reused = 0
     for path in inputs:
         doc = json.loads(path.read_text(encoding="utf-8"))
+        if args.skip_existing and parse_is_complete(args.out_dir / path.name):
+            reused += 1
+            print(f"  reuse {path.stem}")
+            continue
         src = resolve_source(doc)
         if src is None:
             skipped.append((path.stem, "no readable source document on disk"))
@@ -122,12 +151,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         done.append(result)
         print(f"  ok   {result[0]:14s} {result[1]:3d} sections  {result[2]:6.1f}s")
 
-    print(f"\nre-parsed {len(done)} of {len(inputs)} filings into {args.out_dir}")
+    print(f"\nre-parsed {len(done)} of {len(inputs)} filings into {args.out_dir}"
+          + (f" ({reused} reused)" if reused else ""))
     if skipped:
         print("skipped:")
         for stem, why in skipped:
             print(f"  {stem}: {why}")
-    return 0 if done else 1
+    return 0 if (done or reused) else 1
 
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ different code path from the one that ships.
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from loguru import logger
@@ -57,6 +57,7 @@ from llm.errors import (
     LLMBadOutput,
     LLMBudgetExceeded,
     LLMError,
+    LLMPromptTooLarge,
     LLMRateLimited,
     LLMUnavailable,
 )
@@ -67,6 +68,7 @@ from routing.router import Computation, Path, Route, route
 #: LLMBudgetExceeded subclasses LLMRateLimited.
 ERROR_CODES: Tuple[Tuple[type, ErrorCode], ...] = (
     (LLMAuthError, ErrorCode.LLM_AUTH),
+    (LLMPromptTooLarge, ErrorCode.LLM_PROMPT_TOO_LARGE),
     (LLMBudgetExceeded, ErrorCode.LLM_RATE_LIMITED),
     (LLMRateLimited, ErrorCode.LLM_RATE_LIMITED),
     (LLMBadOutput, ErrorCode.LLM_BAD_OUTPUT),
@@ -96,6 +98,26 @@ class Deps:
     resolver: Any = None
     retriever: Optional[Callable[..., List[Any]]] = None
     registry: Any = None
+
+    # ── Ablation switches (P4-04/P4-06; spec section 11's V1 and V2) ────────
+    #
+    # ``None`` means "use the configured value", which is the full system. They
+    # are here rather than read from ``settings`` at the point of use so that a
+    # single process can run V1, V2 and V3 over the same gold set without
+    # mutating global configuration between items — an evaluation that reassigns
+    # a global per item cannot be resumed or run concurrently, and a leaked
+    # value would silently mislabel a whole variant.
+    enable_facts: Optional[bool] = None
+    enable_asof: Optional[bool] = None
+    enable_abstain_gate: Optional[bool] = None
+
+    def flag(self, name: str) -> bool:
+        """This run's value for an ablation switch."""
+        override = getattr(self, name)
+        if override is not None:
+            return bool(override)
+        from config import settings
+        return bool(getattr(settings, name))
 
     def get_llm(self):
         if self.llm is None:
@@ -176,14 +198,14 @@ def _cik_for(catalog, ticker: str) -> Optional[int]:
 
 def _abstain_from_facts(
     refusal: Abstain, route_: Route, ticker: str, *, question: str,
-    catalog, period_label: str,
+    catalog, period_label: str, store=None,
 ) -> Outcome:
     """Turn the resolver's typed refusal into the user-facing one (G3)."""
     reason = reason_from_facts(refusal.reason)
     # The years this system can answer, not every year on EDGAR — see
     # _available_for.
     available: Sequence[int] = _available_for(catalog, [ticker], route_.as_of,
-                                              kind="facts")
+                                              kind="facts", store=store)
 
     candidates = ""
     if refusal.candidate_values:
@@ -263,7 +285,8 @@ def _answer_from_facts(deps: Deps, route_: Route, question: str) -> Outcome:
             route_.period.describe(),
         )
         return _abstain_from_facts(refusal, route_, ticker, question=question,
-                                   catalog=catalog, period_label=period_label)
+                                   catalog=catalog, period_label=period_label,
+                                   store=getattr(deps.get_resolver(), "store", None))
 
     cik = _cik_for(catalog, resolved[0].ticker)
     companies = {t: _company_name(route_, t, catalog) for t in tickers}
@@ -302,13 +325,24 @@ def _compute(
     figures, not to fail the whole question.
     """
     computation = route_.computation
+    #: Calculations that take two *metrics* in one period rather than one
+    #: metric in two periods. Before P4-11 only the margin was in this set, so
+    #: "the ratio of total liabilities to stockholders' equity" fell through
+    #: to the two-period branch, found one resolution, gave up, and answered
+    #: with total liabilities alone — a number that answers a question nobody
+    #: asked, with a citation to make it look checked.
+    two_metric = {
+        Computation.MARGIN_PCT: calc_module.margin_pct,
+        Computation.RATIO: calc_module.ratio,
+        Computation.DIFFERENCE: calc_module.difference,
+    }
     try:
-        if computation is Computation.MARGIN_PCT and route_.metric_denominator:
-            pair = _margin_operands(deps, route_, resolved)
+        if computation in two_metric and route_.metric_denominator:
+            pair = _two_metric_operands(deps, route_, resolved)
             if pair is None:
                 return None
             (numerator_op, numerator_res), (denominator_op, denominator_res) = pair
-            calculation = calc_module.margin_pct(numerator_op, denominator_op)
+            calculation = two_metric[computation](numerator_op, denominator_op)
             return computed_answer(
                 calculation, [numerator_res, denominator_res],
                 question=question, company=companies.get(resolved[0].ticker),
@@ -348,13 +382,14 @@ def _compute(
         return None
 
 
-def _margin_operands(deps: Deps, route_: Route, resolved: List[Resolution]):
+def _two_metric_operands(deps: Deps, route_: Route, resolved: List[Resolution]):
     """((numerator_operand, fact), (denominator_operand, fact)) or None.
 
     The denominator is resolved for the *same* fiscal year as the numerator,
     never for whatever the period request happened to select: an operating
     margin computed from one year's income and another year's revenue would
-    be a plausible-looking number with no meaning.
+    be a plausible-looking number with no meaning. The same holds for a ratio
+    and for a difference, which is why all three share this function.
     """
     numerator_res = resolved[0]
     selector = _selector_for(route_.period, numerator_res.fiscal_label)
@@ -421,7 +456,7 @@ def _answer_from_text(deps: Deps, route_: Route, question: str,
 
 
 def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str],
-                   *, kind: str = "any") -> List[int]:
+                   *, kind: str = "any", store=None) -> List[int]:
     """Years this system can actually answer about, for the refusal's hint.
 
     ``kind`` picks which capability is being offered: ``"facts"`` for years
@@ -437,6 +472,12 @@ def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str],
     the rest produced "I do have fiscal 1994, 1995, 1996 ..." under a refusal
     — a list of years that would each refuse in turn, which is worse than no
     hint at all.
+
+    ``store``, when given, is consulted instead of trusting
+    ``facts_built_at``. The flag records that the build *ran* over a
+    submission, not that it produced anything: Goldman's FY2023 10-K/A is
+    flagged and holds no annual fact. Without this the refusal introduced by
+    P4-11 C read "I don't have fiscal 2023 ... I do have fiscal 2023."
     """
     years: set = set()
     for ticker in tickers:
@@ -447,9 +488,15 @@ def _available_for(catalog, tickers: Sequence[str], as_of: Optional[str],
             logger.debug(f"could not list filings for {ticker}: {exc}")
             continue
         for f in filings:
-            has = {"facts": bool(f.facts_built_at),
+            facts = bool(f.facts_built_at)
+            if facts and store is not None:
+                try:
+                    facts = store.has_facts(f.accession)
+                except Exception as exc:  # a store hiccup drops the hint, not the refusal
+                    logger.debug(f"could not check facts for {f.accession}: {exc}")
+            has = {"facts": facts,
                    "text": bool(f.collection_name),
-                   "any": bool(f.facts_built_at or f.collection_name)}[kind]
+                   "any": bool(facts or f.collection_name)}[kind]
             if has:
                 years.add(f.fiscal_label)
     return sorted(years)
@@ -515,6 +562,12 @@ def _ask_inner(
     except Exception as exc:
         logger.warning(f"catalog unavailable for ticker resolution: {exc}")
 
+    # V2 removes point-in-time scoping: the question is answered from whatever
+    # the corpus holds, which is what a system without `as_of` does.
+    scoped = deps.flag("enable_asof")
+    if not scoped:
+        as_of = None
+
     route_ = route(
         question,
         registry=deps.registry,
@@ -525,7 +578,31 @@ def _ask_inner(
         force_tickers=tickers,
         force_years=years,
     )
+    # ...and the date has to be removed from the ROUTE as well, not only from
+    # the parameter. The first V2 run looked identical to V3 on every
+    # point-in-time item, because the gold questions carry the date in the
+    # sentence ("As of 2024-10-31, what was Apple's revenue...") and the router
+    # parses it from there. Dropping only the parameter ablated nothing and
+    # would have been reported as "the guard makes no difference".
+    if not scoped and route_.as_of:
+        route_ = replace(route_, period=replace(route_.period, as_of=None))
+
     logger.info(f"route: {route_.trace()}")
+
+    # V1 removes the facts path. The question still routes normally — the
+    # router is not the thing being ablated — but a numeric question is then
+    # answered from retrieved text, which is what v1 did and what the facts
+    # engine exists to replace.
+    if route_.path is Path.FACTS and not deps.flag("enable_facts"):
+        return _answer_from_text(deps, route_, question, history=history)
+
+    # V2 removes the abstention gate. A question the gate would refuse is sent
+    # down the text path instead, so the run shows what gets said when nothing
+    # declines to answer. CLARIFY is left alone: it is not the abstention gate,
+    # it is the router having no company to work with, and answering anyway
+    # would mean picking a filer at random.
+    if route_.path is Path.ABSTAIN and not deps.flag("enable_abstain_gate"):
+        return _answer_from_text(deps, route_, question, history=history)
 
     if route_.path is Path.CLARIFY:
         return clarification_no_company(query=question, as_of=route_.as_of,

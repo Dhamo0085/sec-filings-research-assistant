@@ -4,10 +4,23 @@
 # ── Large data directories (regenerate with run_ingestion.py) ──
 data/raw/
 data/qdrant/
+# P4-00/D25: the pre-rewrite index, kept so the V0 baseline stays a true v1
+# measurement after the corpus is re-parsed and re-indexed. 163 MB.
+data/qdrant_v1_backup/
 data/parsed/
 data/chunks/
 data/pending_index/
 data/*.log
+# P4-12: the re-indexed corpus, staged beside the live one until the owner runs
+# scripts/activate_reindex.py. Same sizes as the three above.
+data/parsed_v2/
+data/chunks_v2/
+data/qdrant_v2/
+# What that swap renames aside instead of deleting, plus its undo journals.
+data/parsed_retired_*/
+data/chunks_retired_*/
+data/qdrant_retired_*/
+data/activation/
 
 # SEC company-ticker registry cache (auto-refreshed weekly, see ingestion/registry.py)
 data/company_tickers.json
@@ -50,6 +63,10 @@ Thumbs.db
 ehthumbs.db
 desktop.ini
 
+# CI writes its junit.xml here. Transient: the phase reports keep their own
+# committed test artifacts under reports/phaseN/tests/.
+reports/ci/
+
 # ── Logs ─────────────────────────────────────────────────
 *.log
 logs/
@@ -81,3 +98,10 @@ llm/limits.local.yaml
 # handle, repository name and hostnames). P2-00(b): never committed, so no
 # tracked file names the old project.
 .hygiene_local
+# ── Owner-signed sheets that were returned unusable ───────
+# The narrative rating sheet came back with its columns offset by one and no
+# link on the refusal rows, so the `none` entries were defaults rather than
+# judgements (D4-09). The narrative gate is recorded as NOT completed and the
+# file is deliberately never read or committed. The *blank* sheet
+# (narrative_rating_sheet.csv) stays tracked -- it is a build artifact.
+reports/phase4/narrative_rating_sheet_signed*.csv

@@ -1,0 +1,243 @@
+{
+  "variant": "V0",
+  "scores": {
+    "n": 80,
+    "passed": 19,
+    "rate": 0.2375,
+    "ci95": [
+      0.15764551183088749,
+      0.3414098497080144
+    ],
+    "by_category": {
+      "numeric": {
+        "n": 25,
+        "passed": 11,
+        "verdicts": {
+          "correct_text_only": 11,
+          "wrong_value": 6,
+          "not_run": 7,
+          "scale_error": 1
+        },
+        "rate": 0.44,
+        "ci95": [
+          0.2666537494700256,
+          0.6293298298043557
+        ]
+      },
+      "computed": {
+        "n": 12,
+        "passed": 2,
+        "verdicts": {
+          "wrong_value": 10,
+          "correct": 2
+        },
+        "rate": 0.16666666666666666,
+        "ci95": [
+          0.04696414761482223,
+          0.44803635738467273
+        ]
+      },
+      "compare_trend": {
+        "n": 10,
+        "passed": 0,
+        "verdicts": {
+          "partial_multi": 4,
+          "not_run": 4,
+          "wrong_value": 2
+        },
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.2775401687666166
+        ]
+      },
+      "as_of": {
+        "n": 8,
+        "passed": 2,
+        "verdicts": {
+          "answered_wrongly": 4,
+          "correct_text_only": 2,
+          "wrong_value": 2
+        },
+        "rate": 0.25,
+        "ci95": [
+          0.07147768885802763,
+          0.5907301208974108
+        ]
+      },
+      "narrative": {
+        "n": 15,
+        "passed": 4,
+        "verdicts": {
+          "wrong_value": 11,
+          "correct": 4
+        },
+        "rate": 0.26666666666666666,
+        "ci95": [
+          0.10897276103182807,
+          0.5195088965768675
+        ]
+      },
+      "abstain": {
+        "n": 10,
+        "passed": 0,
+        "verdicts": {
+          "answered_wrongly": 10
+        },
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.2775401687666166
+        ]
+      }
+    },
+    "flags": {
+      "uncited_number": 15,
+      "citation_invalid": 36
+    }
+  },
+  "llm": {
+    "by_role": {},
+    "total_calls": 0,
+    "total_tokens": 0,
+    "latency_p50": 5.3924,
+    "latency_p95": 57.3013,
+    "latency_max": 69.8526,
+    "cost_usd": 0.0,
+    "cost_note": "free-tier providers only (D18); no per-token price applies"
+  },
+  "paired_subset": {
+    "n_total": 80,
+    "n_paired": 69,
+    "n_excluded": 11,
+    "excluded_ids": [
+      "N-BAC-REVENUE-2024",
+      "N-WFC-REVENUE-2024",
+      "N-WFC-STOCKHOLDERSEQUITY-2024",
+      "N-BAC-TOTALLIABILITIES-2024",
+      "N-STT-NETINCOME-2024",
+      "N-TROW-REVENUE-2024",
+      "N-IVZ-CASHANDEQUIVALENTS-2024",
+      "M-JPM-BAC-NETINCOME-2024",
+      "M-BLK-TROW-REVENUE-2024",
+      "M-JPM-NETINCOME-TREND-2022-2024",
+      "M-WFC-REVENUE-TREND-2023-2025"
+    ],
+    "missing_filings": {
+      "BAC": [
+        "FY2024"
+      ],
+      "IVZ": [
+        "FY2024"
+      ],
+      "JPM": [
+        "FY2022"
+      ],
+      "STT": [
+        "FY2024"
+      ],
+      "TROW": [
+        "FY2024"
+      ],
+      "WFC": [
+        "FY2023",
+        "FY2024",
+        "FY2025"
+      ]
+    },
+    "scores": {
+      "n": 69,
+      "passed": 19,
+      "rate": 0.2753623188405797,
+      "ci95": [
+        0.18394380762574333,
+        0.39047520568533167
+      ],
+      "by_category": {
+        "numeric": {
+          "n": 18,
+          "passed": 11,
+          "verdicts": {
+            "correct_text_only": 11,
+            "wrong_value": 6,
+            "scale_error": 1
+          },
+          "rate": 0.6111111111111112,
+          "ci95": [
+            0.3861866858065616,
+            0.7969500807306884
+          ]
+        },
+        "computed": {
+          "n": 12,
+          "passed": 2,
+          "verdicts": {
+            "wrong_value": 10,
+            "correct": 2
+          },
+          "rate": 0.16666666666666666,
+          "ci95": [
+            0.04696414761482223,
+            0.44803635738467273
+          ]
+        },
+        "compare_trend": {
+          "n": 6,
+          "passed": 0,
+          "verdicts": {
+            "partial_multi": 4,
+            "wrong_value": 2
+          },
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.3903430336530645
+          ]
+        },
+        "as_of": {
+          "n": 8,
+          "passed": 2,
+          "verdicts": {
+            "answered_wrongly": 4,
+            "correct_text_only": 2,
+            "wrong_value": 2
+          },
+          "rate": 0.25,
+          "ci95": [
+            0.07147768885802763,
+            0.5907301208974108
+          ]
+        },
+        "narrative": {
+          "n": 15,
+          "passed": 4,
+          "verdicts": {
+            "wrong_value": 11,
+            "correct": 4
+          },
+          "rate": 0.26666666666666666,
+          "ci95": [
+            0.10897276103182807,
+            0.5195088965768675
+          ]
+        },
+        "abstain": {
+          "n": 10,
+          "passed": 0,
+          "verdicts": {
+            "answered_wrongly": 10
+          },
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.2775401687666166
+          ]
+        }
+      },
+      "flags": {
+        "uncited_number": 15,
+        "citation_invalid": 36
+      }
+    }
+  }
+}

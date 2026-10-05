@@ -1,0 +1,209 @@
+{
+  "variant": "V3",
+  "scores": {
+    "n": 80,
+    "passed": 74,
+    "rate": 0.925,
+    "ci95": [
+      0.8458779990261992,
+      0.9651752251489122
+    ],
+    "by_category": {
+      "numeric": {
+        "n": 25,
+        "passed": 25,
+        "verdicts": {
+          "correct": 25
+        },
+        "rate": 1.0,
+        "ci95": [
+          0.8668035060468213,
+          1.0
+        ]
+      },
+      "computed": {
+        "n": 12,
+        "passed": 12,
+        "verdicts": {
+          "correct": 12
+        },
+        "rate": 1.0,
+        "ci95": [
+          0.7574992425007574,
+          1.0
+        ]
+      },
+      "compare_trend": {
+        "n": 10,
+        "passed": 10,
+        "verdicts": {
+          "correct": 10
+        },
+        "rate": 1.0,
+        "ci95": [
+          0.7224598312333834,
+          1.0
+        ]
+      },
+      "as_of": {
+        "n": 8,
+        "passed": 8,
+        "verdicts": {
+          "correct_abstain": 4,
+          "correct": 4
+        },
+        "rate": 1.0,
+        "ci95": [
+          0.6755843804891231,
+          1.0
+        ]
+      },
+      "narrative": {
+        "n": 15,
+        "passed": 9,
+        "verdicts": {
+          "correct": 9,
+          "abstained_wrongly": 2,
+          "wrong_value": 3,
+          "error": 1
+        },
+        "rate": 0.6,
+        "ci95": [
+          0.357464427565077,
+          0.8017577191740534
+        ]
+      },
+      "abstain": {
+        "n": 10,
+        "passed": 10,
+        "verdicts": {
+          "correct_abstain": 10
+        },
+        "rate": 1.0,
+        "ci95": [
+          0.7224598312333834,
+          1.0
+        ]
+      }
+    },
+    "flags": {}
+  },
+  "llm": {
+    "by_role": {
+      "generator": {
+        "calls": 16,
+        "tokens": 927519,
+        "latency_s": 19.5827,
+        "cached": 6
+      }
+    },
+    "total_calls": 16,
+    "total_tokens": 927519,
+    "latency_p50": 0.0651,
+    "latency_p95": 7.2987,
+    "latency_max": 11.8549,
+    "cost_usd": 0.0,
+    "cost_note": "free-tier providers only (D18); no per-token price applies"
+  },
+  "paired_subset": {
+    "n_total": 80,
+    "n_paired": 79,
+    "n_excluded": 1,
+    "excluded_ids": [
+      "M-JPM-NETINCOME-TREND-2022-2024"
+    ],
+    "missing_filings": {
+      "JPM": [
+        "FY2022"
+      ]
+    },
+    "scores": {
+      "n": 79,
+      "passed": 73,
+      "rate": 0.9240506329113924,
+      "ci95": [
+        0.8440439721363859,
+        0.9647284320663336
+      ],
+      "by_category": {
+        "numeric": {
+          "n": 25,
+          "passed": 25,
+          "verdicts": {
+            "correct": 25
+          },
+          "rate": 1.0,
+          "ci95": [
+            0.8668035060468213,
+            1.0
+          ]
+        },
+        "computed": {
+          "n": 12,
+          "passed": 12,
+          "verdicts": {
+            "correct": 12
+          },
+          "rate": 1.0,
+          "ci95": [
+            0.7574992425007574,
+            1.0
+          ]
+        },
+        "compare_trend": {
+          "n": 9,
+          "passed": 9,
+          "verdicts": {
+            "correct": 9
+          },
+          "rate": 1.0,
+          "ci95": [
+            0.7008472464490407,
+            1.0
+          ]
+        },
+        "as_of": {
+          "n": 8,
+          "passed": 8,
+          "verdicts": {
+            "correct_abstain": 4,
+            "correct": 4
+          },
+          "rate": 1.0,
+          "ci95": [
+            0.6755843804891231,
+            1.0
+          ]
+        },
+        "narrative": {
+          "n": 15,
+          "passed": 9,
+          "verdicts": {
+            "correct": 9,
+            "abstained_wrongly": 2,
+            "wrong_value": 3,
+            "error": 1
+          },
+          "rate": 0.6,
+          "ci95": [
+            0.357464427565077,
+            0.8017577191740534
+          ]
+        },
+        "abstain": {
+          "n": 10,
+          "passed": 10,
+          "verdicts": {
+            "correct_abstain": 10
+          },
+          "rate": 1.0,
+          "ci95": [
+            0.7224598312333834,
+            1.0
+          ]
+        }
+      },
+      "flags": {}
+    }
+  }
+}

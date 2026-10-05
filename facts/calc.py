@@ -115,6 +115,19 @@ class Calculation:
         return "%" if self.unit == "percent" else ""
 
 
+def _plain(value: Decimal) -> str:
+    """A Decimal written out, never in scientific notation.
+
+    The resolver scales iXBRL values, so a figure arrives as
+    ``Decimal("3.08030E+11")`` and ``str()`` keeps the exponent. That reached
+    the user as "Computed as 3.08030E+11 / 5.6950E+10", which is not a
+    formula anyone can check against a filing. Only visible once P4-11 made
+    two-metric ratios and differences reachable, but it applies to every
+    calculation.
+    """
+    return format(value, "f")
+
+
 def _as_operand(value) -> Operand:
     if isinstance(value, Operand):
         return value
@@ -175,7 +188,7 @@ def growth_pct(later, earlier) -> Calculation:
         operation="growth_pct",
         value=value.quantize(PERCENT_PLACES, rounding=_ROUNDING),
         unit="percent",
-        formula=f"({a.value} - {b.value}) / {b.value} x 100",
+        formula=f"({_plain(a.value)} - {_plain(b.value)}) / {_plain(b.value)} x 100",
         inputs=(a, b),
     )
 
@@ -204,7 +217,7 @@ def cagr_pct(later, earlier, years: int) -> Calculation:
         operation="cagr_pct",
         value=value.quantize(PERCENT_PLACES, rounding=_ROUNDING),
         unit="percent",
-        formula=f"(({a.value} / {b.value})^(1/{years}) - 1) x 100",
+        formula=f"(({_plain(a.value)} / {_plain(b.value)})^(1/{years}) - 1) x 100",
         inputs=(a, b),
     )
 
@@ -227,7 +240,7 @@ def margin_pct(numerator, denominator) -> Calculation:
         operation="margin_pct",
         value=value.quantize(PERCENT_PLACES, rounding=_ROUNDING),
         unit="percent",
-        formula=f"{a.value} / {b.value} x 100",
+        formula=f"{_plain(a.value)} / {_plain(b.value)} x 100",
         inputs=(a, b),
     )
 
@@ -245,7 +258,7 @@ def ratio(numerator, denominator) -> Calculation:
         operation="ratio",
         value=value.quantize(RATIO_PLACES, rounding=_ROUNDING),
         unit="ratio",
-        formula=f"{a.value} / {b.value}",
+        formula=f"{_plain(a.value)} / {_plain(b.value)}",
         inputs=(a, b),
     )
 
@@ -259,7 +272,7 @@ def difference(later, earlier) -> Calculation:
         operation="difference",
         value=a.value - b.value,
         unit=unit,
-        formula=f"{a.value} - {b.value}",
+        formula=f"{_plain(a.value)} - {_plain(b.value)}",
         inputs=(a, b),
     )
 
@@ -280,6 +293,6 @@ def total(operands: Sequence) -> Calculation:
         operation="sum",
         value=value,
         unit=unit or "",
-        formula=" + ".join(str(i.value) for i in items),
+        formula=" + ".join(_plain(i.value) for i in items),
         inputs=tuple(items),
     )

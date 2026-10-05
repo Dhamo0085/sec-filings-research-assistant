@@ -78,10 +78,11 @@
     ],
     "period_end": "2024-12-31",
     "why": "a bank: revenue is not a product sale, and the sector candidate list has to cope with Revenues / RevenuesNetOfInterestExpense / InterestAndDividendIncomeOperating all being tagged",
-    "kilobytes": 20.4,
+    "kilobytes": 23.6,
     "expect": {
       "Revenues": "101887000000",
       "NetIncomeLoss": "27132000000",
+      "Liabilities": "2965960000000",
       "InterestAndDividendIncomeOperating": "146607000000"
     },
     "expect_dei": {

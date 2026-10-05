@@ -116,15 +116,17 @@ def test_a_ticker_filter_overrides_the_company_in_the_question(world):
 def test_a_year_filter_overrides_the_year_in_the_question(world):
     """The chip wins over the year in the sentence, all the way through.
 
-    Goldman's only fixture filing is its FY2023 10-K/A, which carries 64
-    facts and no financial ones, so the honest outcome is a refusal — about
-    **fiscal 2023**, which is what shows the filter reached the resolver
-    rather than the 2024 the question named.
+    Goldman's only fixture filing is its FY2023 10-K/A, which carries no
+    annual facts, so the honest outcome is a refusal — about **fiscal 2023**,
+    which is what shows the filter reached the resolver rather than the 2024
+    the question named. Since P4-11 C the reason is ``period_not_covered``:
+    nothing was extracted for that year, which is a coverage gap rather than
+    a statement about what Goldman reports.
     """
     got = Q.ask("What was Goldman Sachs' revenue in fiscal 2024?", years=[2023],
                 deps=deps_for(world))
     assert got.status is Status.ABSTAINED
-    assert got.abstain_reason.value == "metric_not_found_in_filing"
+    assert got.abstain_reason.value == "period_not_covered"
     assert "fiscal 2023" in got.answer and "2024" not in got.answer
 
 

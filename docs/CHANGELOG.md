@@ -1,5 +1,92 @@
 # Changelog
 
+## Phase 4 — evaluation, ablations, documentation (2026-10-03)
+
+Report: `reports/phase4/REPORT.md` · Owner explainer: `docs/explainers/phase4.md`
+
+**The headline: measured against the original prototype on the same 69
+questions with the same scorers, the shipped system answers 60 (87%) where v1
+answers 19 (27%) — with zero look-ahead violations against v1's inability to
+refuse anything at all.** The facts engine accounts for most of it: numeric
+accuracy is 17/18 with it and 12/18 without, and the facts path calls no model,
+so those answers take 0.03 seconds and cost nothing.
+
+### Added
+- `eval/gold/` — an 80-item gold set, **planned rather than sampled**. Every
+  generated item is named in `plan.py` with the reason it exists, because the
+  owner's gate is a line-by-line read and a sample cannot be reviewed. Covers
+  all four sectors, all twelve metrics, and the three filers that break naive
+  systems: Netflix (thousands), Wells Fargo (split document), BlackRock (two
+  revenue concepts 37% apart). Expected values are confirmed against SEC
+  `companyfacts`; a disagreement **fails the build** rather than shipping
+  either number.
+- `eval/scorers.py` — deterministic, no model. Compares numbers as numbers at
+  the precision shown ("$391.0 billion" matches 391,035,000,000) and
+  classifies every miss: `scale_error`, `sign_error`, `unit_error`,
+  `wrong_period`, `wrong_entity`, `wrong_metric`, `partial_multi`,
+  `wrong_abstain_reason`, `abstained_wrongly`, `answered_wrongly`. Rates carry
+  Wilson 95% intervals.
+- `eval/runner.py`, `eval/variants.yaml` — resumable (the budget is a free
+  tier), deterministic, and instrumenting **every** LLM role rather than only
+  the generator, which is all the Phase 0 and Phase 1 runners measured.
+- `eval/ablations.py` — six retrieval arms, no generation tokens, scored on
+  section hit@k, MRR and whether the expected figure physically reached the
+  model's context.
+- `eval/mini_eval.py` and `.github/workflows/ci.yml` — CI answers real gold
+  items with the real pipeline against the committed iXBRL fixtures, with no
+  network and no key, and enforces two thresholds: numeric and computed 100%,
+  look-ahead violations 0.
+- `eval/phase4/run_v0.py` — runs the v1 prototype from its git tag as a
+  subprocess, because v1 and v2 share module names and importing both into one
+  interpreter would quietly measure the wrong system.
+- `docs/EVAL.md`, `docs/LIMITATIONS.md`, a rewritten `README.md`.
+
+### Changed
+- `ingestion/parser.py` — **section boundaries are now chosen globally.** Every
+  matching line is a scored candidate and the parser takes the maximum-weight
+  chain whose line order and Item priority both increase, instead of keeping
+  the first occurrence past a 15% skip zone and then greedily dropping anything
+  out of order. Usable (filing, section) pairs went from 245 to 298 of 440;
+  Item 1 and Item 1A from 33 and 20 to **40 of 40**. Both strict `xfail` tests
+  from D3-00 now pass and are ordinary tests. Item 7 reached 25 of 40 against a
+  target of 33, and the owner accepted the miss (D4-00).
+- `query.py` — the three ablation switches in `config.py` existed but nothing
+  read them. They are now `Deps` fields, so one process can run V1, V2 and V3
+  over the same gold set without mutating global configuration between items.
+- `retrieval/` — `mode` (hybrid | dense | bm25), `enable_rerank`,
+  `enable_focus_boost` and `enable_parent_context`, all keyword-only, all
+  defaulting to the configured value so the shipped path is unchanged.
+- `Makefile` — `PHASE` bumped to `phase4`; at the Phase 4 start it was still
+  `phase3` and a test run overwrote Phase 3's committed artifacts, which is the
+  exact hazard the variable's own comment warns about.
+
+### Fixed
+- **The `as_of` ablation ablated nothing.** V2 dropped the `as_of` parameter,
+  but the gold questions carry the date in the sentence and the router parses
+  it from there, so V2 behaved identically to V3 on every point-in-time item.
+  It would have been published as "the guard makes no difference".
+- **Narrative scored 0 of 15 in the first live run.** A `Citation` carries its
+  section as a display title and the gold set names sections by id. Retrieval
+  was correct all along — Apple's supply-chain question cited Item 1A three
+  times.
+- A citation marker `[1]`, and the parts of a date, were being read as
+  quantities; the scale test grew more permissive the larger the exponent; and
+  `RecordingLLM` passed `role` twice.
+- CIKs keyed by ticker sent BlackRock's FY2024 oracle lookup to the wrong
+  document (BLK files under two CIKs), silently writing the item as unverified.
+- An ablation arm that scored nothing printed `0/0 (0%)` as though it were a
+  measurement.
+
+### Known, and open
+- The text index still holds the pre-rewrite parse: the overnight re-index was
+  deferred, so **every narrative number describes the old parser**.
+- The router does not route "ratio of X to Y" or "A less B", though the
+  calculator implements both; and "cash flow from operating activities"
+  resolves to cash and equivalents. Three items in eighty, all named in the
+  report.
+- The owner's verification gate is unsigned, so every headline figure is
+  provisional.
+
 ## Phase 3 — routing, answers, `as_of`, abstention, UI (2026-10-02)
 
 Report: `reports/phase3/REPORT.md` · Owner explainer: `docs/explainers/phase3.md`

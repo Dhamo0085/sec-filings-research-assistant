@@ -19,7 +19,7 @@ explain every component, so prefer simple, explicit designs and write the briefi
 | 1 | Foundation, hardening, catalog, true baseline | COMPLETE (PR #2 merged; report in `reports/phase1/REPORT.md`; baseline partial 9 of 25, D21) |
 | 2 | Facts engine (extract, store, resolve, calculate) | COMPLETE (`reports/phase2/REPORT.md`). PR #3 and PR #4 both merged into `main` (`4013664`). All T2 tests and T2-10 thresholds met; spot-check 20/20 OK |
 | 3 | Routing, answers, `as_of`, abstention, UI | COMPLETE — awaiting owner approval (`reports/phase3/REPORT.md`). All T3 tests pass; smoke eval 30/30; D3-00 documents the section-boundary limit. P3-10 (OPTIONAL) not built. Owner UI walkthrough outstanding |
-| 4 | Evaluation, ablations, documentation | NOT STARTED |
+| 4 | Evaluation, ablations, documentation | **COMPLETE** (2026-10-05, spec v1.11 + owner override D4-09/D4-11). P4-00 to P4-17 all done including **P4-15**. Headline **V3 73/80 (91.2%), zero flags**; frozen D21 69 — V3 62/69 (89.9%) vs V0 19/69 (27.5%). Gold sheet applied: **37 `owner` / 14 `companyfacts` / 29 `auto`**. **The narrative gate was NOT completed (D4-09)** — narrative is automated-scorer-only (8/15, CI 30.1–75.2%), labelled "not human-verified" everywhere; **D31 not applied, precondition not met**; P5-13 unbuilt and the top future-work item. `reports/phase4/REPORT.md` reconciled end to end (A14). PR #6 merged |
 | 5 | Productization and release | NOT STARTED |
 
 ## Standing rules
@@ -41,6 +41,11 @@ explain every component, so prefer simple, explicit designs and write the briefi
 14. **GitHub.** Use `git` and `gh` only against this project's own `origin`. Push only at the points the spec names (Step 0 and each phase gate), open pull requests with `gh pr create`, and leave merging to the owner. Never force-push, delete or rename a repository, change visibility or settings, or push to another remote. Never read or print tokens.
 15. **Checks you can trust.** Prefer small Python scripts over nested shell pipelines for scans and checks. Before relying on a "no matches" or "all clear" result, show that the check can fail (a negative control that plants a known match). Report any check you had to redo, as Step 0 did.
 16. **Session continuity.** Durable facts live in files, not in the conversation. At the start of every session, and after any `/compact`, re-read `CLAUDE.md`, `docs/PROJECT_SPEC.md`, `docs/STATE.md`, and `docs/DECISIONS.md`, then state the current phase and task ID before continuing. Update `docs/STATE.md` at every commit batch, at every gate, and **before** running `/compact` or ending a session. Never rely on a remembered detail that the files do not contain.
+
+17. **Owner-only fields (D29).** Never fill a column the owner signs: `verdict`, `notes`, and
+    `verified_by=owner` in any verification or rating sheet. Assistance goes in separate `assist_*`
+    columns and never edits an existing column. Verification tiers are `owner` > `companyfacts` > `auto`.
+    Until the owner signs a sheet, every headline metric that depends on it is reported as provisional.
 
 ## Commands (the Makefile is created in P1-02; keep these targets working afterwards)
 `make setup` · `make test` (offline unit + integration) · `make test-live` · `make lint` · `make ingest` ·

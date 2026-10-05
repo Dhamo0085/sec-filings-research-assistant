@@ -313,6 +313,25 @@ class FactsStore:
             element_id=row["element_id"],
         )
 
+    def has_facts(self, accession: str) -> bool:
+        """Whether any fact was extracted from this submission.
+
+        A filing can be in the catalog and absent from the store: the build
+        keeps the newest originals per ticker, so the older 10-Ks EDGAR lists
+        are catalogued and never extracted. The resolver needs to tell that
+        apart from "the filer did not report this measure" (P4-11 C), and
+        ``facts_built_at`` on the catalog row is not reliable enough to decide
+        it — four flagged submissions in the current build hold no facts.
+
+        ``LIMIT 1`` on the accession index: this runs once per period
+        selection, not once per fact.
+        """
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM facts WHERE accession = ? LIMIT 1", (accession,)
+            ).fetchone()
+        return row is not None
+
     def concepts_for(self, ticker: str) -> List[str]:
         with self._connect() as conn:
             return [r[0] for r in conn.execute(

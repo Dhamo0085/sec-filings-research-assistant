@@ -1,0 +1,105 @@
+# Evaluation variants (P4-04, spec section 11).
+#
+# Four runs over the same gold set. V1 to V3 are the same code with ablation
+# switches; V0 is v1's own pipeline, which is a different system and is run
+# from the `v1-baseline` tag against the frozen pre-rewrite index.
+#
+# Each variant pins ONE provider and model. Identical prompts across variants
+# are served from the LLM cache, so the ablations cost few new tokens — that is
+# why the model is pinned rather than left to the failover order (spec section
+# 9): a variant that silently fell over to a second provider would be a
+# different experiment with the same name.
+#
+# `requires` names what has to exist before the variant can run. The runner
+# refuses rather than producing a run that looks complete and is not.
+
+defaults:
+  provider: groq
+  model: openai/gpt-oss-20b
+  # Narrative answers only; the facts path makes no generation call at all
+  # (measured in P3-11: all 30 smoke questions routed with zero LLM calls).
+  temperature: 0.0
+  max_tokens: 1600
+
+variants:
+  - id: V0
+    name: v1 baseline
+    description: >
+      v1's pipeline as it shipped: LLM classifier, no facts engine, no
+      point-in-time scope, no abstention gate, no typed outcome. Run from the
+      `v1-baseline` tag against data/qdrant_v1_backup/, because the P4-00
+      boundary rewrite changed what a chunk contains and V0 has to be v1's own
+      behaviour on v1's own index (T4-07).
+    pipeline: v1
+    qdrant_path: data/qdrant_v1_backup
+    # v1 has no as_of parameter at all, so the date goes into the question
+    # text, which is the only way v1 could ever have been given one.
+    as_of_in_question: true
+    requires: [v1_modules, qdrant_v1_backup]
+
+  - id: V1
+    name: v2 without the facts engine
+    description: >
+      Every numeric question answered from retrieved text, like v1, but with
+      v2's router, typed outcome, point-in-time scope and abstention gate.
+      Isolates what the facts engine is worth.
+    pipeline: v2
+    flags:
+      enable_facts: false
+      enable_asof: true
+      enable_abstain_gate: true
+    requires: [facts_store, catalog, index]
+
+  - id: V2
+    name: v2 without point-in-time scope or the abstention gate
+    description: >
+      The facts engine on, the two correctness guards off. Isolates what the
+      guards are worth, and is the variant expected to produce look-ahead
+      violations — the headline target for those is zero, and a variant that
+      cannot produce one would not be evidence that the guard works.
+    pipeline: v2
+    flags:
+      enable_facts: true
+      enable_asof: false
+      enable_abstain_gate: false
+    requires: [facts_store, catalog, index]
+
+  - id: V3
+    name: full v2
+    description: The shipped system, all switches at their defaults.
+    pipeline: v2
+    flags:
+      enable_facts: true
+      enable_asof: true
+      enable_abstain_gate: true
+    requires: [facts_store, catalog, index]
+
+  - id: V1_generous
+    name: v2 without the facts engine, generous context (P4-17, D32)
+    description: >
+      V1 again — facts engine off, every numeric question answered from
+      retrieved text — but with a 30,000-token context budget instead of the
+      shipped 6,000, pinned to one Gemini Flash-Lite model with no failover.
+
+      It exists because V1's shipped-budget score is conditional on a number
+      derived from the WEAKEST member of the generator failover list
+      (groq:qwen at 8,000 TPM), while Flash-Lite allows 250,000. Without this
+      arm, "the facts engine is worth 36 items" could really mean "the
+      fallback provider's token limit is worth 36 items", and the two have
+      very different consequences for what the README should claim (D32).
+
+      It never replaces the shipped-budget rows: 30,000 tokens is more than
+      the failover list's smallest member can serve, so this configuration is
+      not one the system can rely on in general.
+
+      Run it as:
+        CTX_TOTAL_BUDGET=30000 CTX_MAX_SOURCE_TOKENS=7500 \
+        GENERATOR_PROVIDERS=gemini:gemini-3.5-flash-lite \
+        python -m eval.runner --variant V1_generous \
+          --runs-dir reports/phase4/runs_v1_generous --sleep 10
+    pipeline: v2
+    flags:
+      enable_facts: false
+      enable_asof: true
+      enable_abstain_gate: true
+    requires: [facts_store, catalog, index]

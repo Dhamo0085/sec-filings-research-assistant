@@ -130,7 +130,9 @@ class CatalogStore:
             )
         return len(rows)
 
-    def set_collection_name(self, accession: str, collection_name: str) -> None:
+    def set_collection_name(self, accession: str,
+                            collection_name: Optional[str]) -> None:
+        """``None`` clears the link — the store no longer holds that collection."""
         with self._lock, self._connect() as con:
             con.execute("UPDATE filings SET collection_name=? WHERE accession=?",
                         (collection_name, accession))

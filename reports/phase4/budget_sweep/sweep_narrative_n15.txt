@@ -1,0 +1,21 @@
+  budget   3000 tok (per-source 1500): narrative 9/15  {'correct': 9, 'abstained_wrongly': 4, 'wrong_value': 2}
+  budget   6000 tok (per-source 1500): narrative 8/15  {'correct': 8, 'abstained_wrongly': 5, 'wrong_value': 2}
+  budget  12000 tok (per-source 3000): narrative 11/15  {'correct': 11, 'abstained_wrongly': 2, 'wrong_value': 2}
+  budget  30000 tok (per-source 7500): narrative 8/15  {'correct': 8, 'wrong_value': 4, 'abstained_wrongly': 3}
+
+[exited with code 0]
+
+Wilson 95% intervals (n=15 each):
+   3000 tok   9/15  60.0%  35.7%-80.2%
+   6000 tok   8/15  53.3%  30.1%-75.2%
+  12000 tok  11/15  73.3%  48.0%-89.1%
+  30000 tok   8/15  53.3%  30.1%-75.2%
+
+CONCLUSION: n=15 cannot separate these budgets. The 8/15 and 11/15 intervals
+overlap over 48.0%-75.2%, and the curve is not monotonic - 30,000 tokens
+scores exactly what 6,000 does. No budget change is justified by this
+evidence. The spec's derivation (below the smallest provider TPM) stands.
+
+Command, for reproduction:
+  CTX_TOTAL_BUDGET=<n> CTX_MAX_SOURCE_TOKENS=<n/4> .venv/bin/python -m eval.runner \
+    --variant V3 --gold <narrative-only gold> --runs-dir <dir> --sleep 3

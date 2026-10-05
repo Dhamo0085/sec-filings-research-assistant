@@ -111,6 +111,13 @@ ERROR_MESSAGES: Dict[ErrorCode, str] = {
         "credentials, or the configured model isn't available to this key. "
         "That's a configuration problem here, not a problem with your question."
     ),
+    ErrorCode.LLM_PROMPT_TOO_LARGE: (
+        "I can't answer this one: the filing sections this question matches "
+        "are too large to send to the language model in a single request. "
+        "That's a limitation here, not a problem with your question, and "
+        "retrying won't change it. A narrower question — naming one year or "
+        "one topic — will usually work."
+    ),
     ErrorCode.LLM_RATE_LIMITED: (
         "I can't answer right now: the free-tier request limit for the "
         "language model has been reached. Please try again later."

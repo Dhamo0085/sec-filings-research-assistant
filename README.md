@@ -215,7 +215,7 @@ paid services — every provider used has a free tier.
 
 ```bash
 make setup          # virtualenv + dependencies
-make test           # 1,428 offline tests; no network, no API key needed
+make test           # 1,454 offline tests; no network, no API key needed
 ```
 
 **`.env` keys** (copy `.env.example`; the file is gitignored and never read or
@@ -361,7 +361,7 @@ The short version; the full list, with why each is deferred, is
 | `query.py` | the dispatcher (`ask()`) and a CLI |
 | `eval/` | gold set, scorers, runner, ablations, the offline subset CI enforces |
 | `scripts/` | one-purpose tools: hygiene, security, demo-check, re-index, audits, sheets |
-| `tests/` | 1,428 offline tests (unit + integration), plus a `live` marker |
+| `tests/` | 1,454 offline tests (unit + integration), plus a `live` marker |
 | `docs/` | spec, decisions, evaluation method, limitations, features, demo, this brief |
 | `reports/` | every phase's report and its raw artifacts |
 

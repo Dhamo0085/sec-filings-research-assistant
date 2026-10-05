@@ -148,6 +148,35 @@ so one evaluation at a time.
 
 ---
 
+## Deferred, and why
+
+Named here so that "not built" is a decision on the record rather than a gap
+someone has to discover. None of these is a blocker for what the system claims.
+
+| | what it is | why it is deferred |
+|---|---|---|
+| **P5-13 — narrative generation improvement** | A 45-item generation set, then a comparison of context-assembly variants (current parent windows vs top-k chunks vs chunks plus one neighbour) under one pinned model, with the adoption rule pre-registered before the run. | **The top item of future work.** Its trigger rule (D31) was keyed to the owner's narrative ratings, which were never usable — so the rule did not fire, and the case for doing it rests on the automated evidence instead: **5 of 15 narrative items refuse although the section audit confirms the expected sections exist**, with retrieval at 97.8% hit@5. That is a strong enough signal to act on without the gate. |
+| **P5-10 — follow-up rewriter** | Resolve "and last year?", "what about Microsoft?" deterministically against the previous turn's *resolved* entities, before routing. | Needs its own design to avoid v1's failure, where prepending history turned a plain figure request into a trend. Out of scope for this release. |
+| **P5-11 — mixed numeric + narrative answers** | One question answered with a labelled numeric section and a labelled narrative section. | Optional in the spec; neither path's quality is currently limited by the absence of the other. |
+| **P5-12 — delete the retired v1 modules** | Remove `routing/classifier.py`, `routing/resolver.py`, `generation/generator.py`, `generation/synthesizer.py` now that V0 is frozen. | Housekeeping. Deliberately after the release, so the V0 baseline stays trivially reproducible from the `v1-baseline` tag through this release. |
+| **Docker image slimming** | The image carries the full model stack. | No deployment exists, so the image size costs nothing today. |
+| **Response caching** | Cache whole answers, not just LLM prompts. | The facts path already answers in ~0.03 s with no model call; a response cache would mostly cache things that are already free, and would add a staleness question to a system whose whole point is point-in-time correctness. |
+| **Hosting** | A public instance. | **No paid services (D18)**, and a hosted instance would share the owner's free-tier quota with every visitor. If one is ever created it is checked read-only with `scripts/smoke.py --base-url <url>`, never `/admin/*` or `/ingest`. |
+
+**A fresh clone cannot be demoed in one command.** `make setup`, `make catalog`
+and `make facts` are quick, but building the text index means embedding ~38,000
+chunks, measured at **about 5 hours on an 8 GB laptop**. The facts path works
+without it; narrative does not. The README says so rather than implying a
+one-command start.
+
+**One accepted dependency advisory.** `PYSEC-2026-3740` (nltk 3.10.3) has no
+released fix. This project's only nltk calls pass hard-coded resource names and
+filing text, never a caller-supplied path. Recorded with the reason, and what
+would end the acceptance, in `reports/security/accepted_vulnerabilities.txt`;
+`make security` fails on any advisory **not** listed there.
+
+---
+
 ## Reading the V0 baseline
 
 V0 is v1 as it shipped, with two necessary deviations, both stated wherever it

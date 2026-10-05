@@ -15,8 +15,9 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
 | Phase 4 | **COMPLETE** (2026-10-05, spec v1.11 + owner override D4-09/D4-11). P4-00 to P4-17 all done, **including P4-15**. The narrative gate is recorded as **NOT completed** and narrative is automated-scorer-only everywhere |
+| Phase 5 | **IN PROGRESS** — the time-boxed release pass (D4-11): `make demo-check`, `make security`, README, `docs/DEMO.md`, `docs/FEATURES.md`, `docs/INTERVIEW_BRIEF.md`, `docs/demo/TRANSCRIPTS.md`. Tag `v2.0.0-rc1` |
 | Current task | **Nothing is running.** See section 1g for exactly where P4-15 landed |
-| Tests | `make test` → **1,428 passed, 0 failed, 0 skipped** (2026-10-05); earlier: **1,327 passed** (1,277 before the P4-12 tooling) (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+| Tests | `make test` → **1,454 passed, 0 failed, 0 skipped** (2026-10-05, after the release pass; 1,428 at the P4-15 commit); earlier: **1,327 passed** (1,277 before the P4-12 tooling) (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
 
 ## 1g. P4-15 — DONE (2026-10-05). What it actually did
 

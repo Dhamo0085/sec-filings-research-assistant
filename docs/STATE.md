@@ -14,13 +14,42 @@ Phase 3 gate (2026-10-02) against spec v1.5; carried into Phase 4 and updated at
 | Phase 1 | COMPLETE; PR #2 merged into `main` as `6be4200` |
 | Phase 2 | COMPLETE. PR #3 (12 pre-closure commits) and PR #4 (the P2-13 closure) are both merged into `main`; `main` is at `4013664`. All T2 tests pass and all T2-10 thresholds are met |
 | Phase 3 | COMPLETE. PR #5 merged into `main` as `8ce9ae3` (`reports/phase3/REPORT.md`). All 12 MUST tasks done; P3-10 is OPTIONAL, moved to Phase 5 as P5-11 (D26) |
-| Phase 4 | **IN PROGRESS against spec v1.11** (2026-10-04). **P4-00 to P4-14, P4-16 and P4-17 are DONE. Only P4-15 remains**, and it is blocked on the owner's narrative ratings. PR #6 is open on `phase-4-evaluation` and must not be merged |
-| Current task | **Nothing is running.** The Phase 4 report addendum is written (`reports/phase4/REPORT.md`), every number in it re-checked against the artifacts. **Next action is the owner's: rate the 15 rows in `reports/phase4/narrative_rating_sheet.csv`.** Then P4-15 — see section 1f |
-| Tests | `make test` → **1,327 passed, 0 failed, 0 skipped** (1,277 before the P4-12 tooling) (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
+| Phase 4 | **COMPLETE** (2026-10-05, spec v1.11 + owner override D4-09/D4-11). P4-00 to P4-17 all done, **including P4-15**. The narrative gate is recorded as **NOT completed** and narrative is automated-scorer-only everywhere |
+| Current task | **Nothing is running.** See section 1g for exactly where P4-15 landed |
+| Tests | `make test` → **1,428 passed, 0 failed, 0 skipped** (2026-10-05); earlier: **1,327 passed** (1,277 before the P4-12 tooling) (and the same under CI's isolation: no `.env`, fresh `HOME`); ruff clean; `python -m eval.mini_eval` 9/9 with 0 look-ahead. Artifacts in `reports/phase4/tests/` (`PHASE` in the Makefile was still `phase3` at the Phase 4 start and overwrote Phase 3's committed junit/coverage once — bumped in `63516cb`) |
 
-## 1f. P4-15 is the only task left, and exactly what it must do (spec v1.10)
+## 1g. P4-15 — DONE (2026-10-05). What it actually did
 
-**Blocked on the owner's narrative ratings.** Everything else in Phase 4 is done.
+**Read `reports/phase4/REPORT.md` section A14 first; it is the authoritative
+account.** Short version:
+
+1. **The signed gold sheet is applied.** `eval/gold/build_gold.py` reads
+   `reports/phase4/gold_verification_signed.csv` **by `gold_id` only** and
+   promotes `verified_by` to `owner` for the 37 `OK` rows. Final tiers:
+   **37 `owner` / 14 `companyfacts` / 29 `auto`.** `--check` still matches a
+   fresh build. 8 tests in `tests/unit/test_gold_owner_verification.py`,
+   including negative controls (unknown id raises, `WRONG` raises, a different
+   `expected_value` in the sheet leaves the item byte-identical).
+2. **The narrative gate is NOT completed (D4-09).** The signed narrative file
+   was unusable (columns offset by one; refusal rows had no link, so `none`
+   was a default). It is **never read**, stays untracked, and is now
+   **gitignored**. Consequences, applied everywhere: no scorer-versus-owner
+   agreement figure exists (reported **not run**); **D31 is NOT applied and
+   the recorded reason is "precondition not met", not the "fewer than 5 bad"
+   branch**; the scorer was **not** tightened; narrative is labelled **"not
+   human-verified"** at every mention, with its interval (8/15, Wilson
+   30.1–75.2%); **P5-13 stays unbuilt and is the top future-work item**,
+   justified by automated evidence (5 of 15 refuse although the section audit
+   confirms the sections exist, with retrieval at 97.8% hit@5).
+3. **"Provisional" is gone** from README, `docs/EVAL.md` and the report. The
+   README quotes **post-fix only**; pre-fix stays in A1 as "before" evidence.
+   A12/D32 is carried into the README: **13 of the 36-item V3-vs-V1 gap is
+   context budget**, so the headline does not rest on 36 alone.
+4. **The report is reconciled end to end** — header, section 1, 3, 4.6, 4.7,
+   6, 7, 8, 9, 10 all corrected in place or marked `SUPERSEDED` with a pointer.
+   **All five of section 6's "open" defects are closed.**
+
+### 1f. P4-15 as it was specified (kept for the record; see 1g for the outcome)
 
 1. Apply the owner's `OK` rows from `reports/phase4/gold_verification_signed.csv`
    to set `verified_by=owner` on the **37** verified numeric/computed gold items.

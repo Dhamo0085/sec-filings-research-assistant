@@ -98,3 +98,10 @@ llm/limits.local.yaml
 # handle, repository name and hostnames). P2-00(b): never committed, so no
 # tracked file names the old project.
 .hygiene_local
+# ── Owner-signed sheets that were returned unusable ───────
+# The narrative rating sheet came back with its columns offset by one and no
+# link on the refusal rows, so the `none` entries were defaults rather than
+# judgements (D4-09). The narrative gate is recorded as NOT completed and the
+# file is deliberately never read or committed. The *blank* sheet
+# (narrative_rating_sheet.csv) stays tracked -- it is a build artifact.
+reports/phase4/narrative_rating_sheet_signed*.csv

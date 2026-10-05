@@ -37,9 +37,29 @@ number reported. All 47 generated numeric, computed and compare items are
 confirmed by the oracle.
 
 `verified_by` is `owner` > `companyfacts` > `auto`. Headline metrics are
-published over the first two. The 29 `auto` items are the narrative, abstain and
-look-ahead items, which have no oracle by nature — there is none for prose, for
-a refusal, or for a date.
+published over the first two. **As shipped: 37 `owner`, 14 `companyfacts`, 29
+`auto`.**
+
+* The **37 `owner`** items are every numeric and computed item. A person read
+  each one against the printed line in the filing and signed
+  `reports/phase4/gold_verification_signed.csv` (37 rows OK, 25 of 25 marked
+  `core`). `eval/gold/build_gold.py` applies that sheet **by `gold_id` only** —
+  no value, label or note from it reaches the gold set, so only the strength
+  tier moves, and only upwards.
+* The **14 `companyfacts`** items are the compare/trend and answerable `as_of`
+  items: confirmed by the oracle, not read by a person.
+* The **29 `auto`** items are the narrative, abstain and look-ahead items, which
+  have no oracle by nature — there is none for prose, for a refusal, or for a
+  date.
+
+**The narrative human-rating gate was not completed.** A rating sheet was built
+(`reports/phase4/narrative_rating_sheet.csv`, 15 questions / 23 rows, blind by
+construction) but the returned ratings were unusable — the columns were offset
+by one and the refusal rows carried no link, so the `none` entries were defaults
+rather than judgements. **Every narrative figure in this project is therefore
+the automated scorer's and is labelled "not human-verified" wherever it
+appears**; no scorer-versus-owner agreement figure exists, and **D31 was not
+applied, because its precondition — a completed rating — was never met.**
 
 **Point-in-time dates are derived, never typed.** A look-ahead item's `as_of` is
 the day before the catalog says the filing was filed, so it is a real test by
@@ -101,6 +121,15 @@ would not turn a variant into a different experiment with the same name.
 | V1 | v2 with the facts engine off — every number read from retrieved text |
 | V2 | v2 with point-in-time scope and the abstention gate off |
 | V3 | the shipped system |
+| V1-generous | V1 again at a **30,000-token** context budget instead of the shipped 6,000, pinned to one Gemini Flash-Lite with failover structurally impossible (D32 / P4-17) |
+
+V1-generous exists to answer one question honestly: how much of V3's lead over
+V1 is the facts engine, and how much is the context budget the shipped system
+runs under? It is reported **beside** the shipped-budget rows and never in
+place of them — a 30,000-token prompt is a configuration the system cannot fall
+back to, because the smallest member of the generator failover list serves
+8,000 tokens per minute. The answer: **50/80 against V1's 37/80**, so roughly
+13 of the 36-item gap is budget and 23 is the facts engine.
 
 V0 runs as a **subprocess** inside a git worktree at the tag: v1 and v2 share
 module names (`query`, `config`, `retrieval`), so importing both into one

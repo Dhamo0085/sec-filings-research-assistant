@@ -1,189 +1,397 @@
 # SEC Filings Research Assistant
 
-A research assistant over SEC 10-K filings. It answers questions about public
-companies' annual reports and, when it states a number, that number comes from
-the filing's own inline-XBRL tags rather than from a model reading prose.
+**Ask questions about US public companies' annual reports and get answers you
+can check — with the filing, the XBRL tag and the filing date attached, or an
+explicit refusal.**
 
-> Research tool, not investment advice.
-
-```
-You: What was Netflix's revenue in fiscal 2024?
-
-Netflix, Inc.'s revenue for fiscal 2024 (year ended 2024-12-31) was
-$39.00 billion ($39,000,966,000). [1]
-
-  Total net revenue = us-gaap:Revenues, fiscal year ended 2024-12-31
-  [1] NFLX 10-K, filed 2025-01-27, accession 0001065280-25-000044
-```
-
-```
-You: As of 2024-10-31, what was Apple's revenue for fiscal 2024?
-
-As of 2024-10-31, Apple Inc had not yet filed its annual report for fiscal
-2024 — that filing became public on 2024-11-01. I can answer for fiscal 2021
-through 2023 as of that date.
-```
+`v2.0.0-rc1` · private portfolio project · research tool, **not investment
+advice**
 
 ---
 
-## Why it is built this way
+## 1. What it does
 
-The project began as a conventional RAG prototype: chunk the filings, embed
-them, retrieve, and ask a model to read the answer out of what came back. A
-Phase 0 audit of that prototype found defects that are not fixable by better
-prompting, because they are properties of the architecture:
+* **Answers numeric questions from the filing's own inline-XBRL tags**, not
+  from a model reading prose — through a deterministic resolver and a
+  `Decimal` calculator that no language model touches.
+* **Answers as of a date.** `as_of=2024-06-30` means only filings that were
+  public on 2024-06-30 are in scope, enforced by a validator that refuses to
+  construct an answer carrying a later citation.
+* **Refuses, with a named reason.** Eleven of them, plus seven typed error
+  codes for dependency failures, so "I can't" and "it's broken" are different
+  answers.
 
-* **Numbers were read from prose.** A prompt told the model to "assume
-  millions", which silently multiplies every figure from a filer reporting in
-  thousands by a thousand. Netflix reports in thousands.
-* **Nothing knew when a filing became public.** Asked about fiscal 2024 "as of
-  June", it would happily answer from a 10-K filed in November.
-* **It could not say no.** There was no abstention path, so an unanswerable
-  question produced a fluent answer assembled from whatever retrieval returned.
-* **Failures looked like questions.** A model outage was rendered as "Which
-  company are you asking about?", so an outage and a vague question were the
-  same response.
-
-v2 keeps retrieval for prose and adds four things that address those directly: a
-**facts engine** that reads the filing's own XBRL tags and a deterministic
-calculator; **point-in-time scope** driven by a catalog of filing dates;
-**typed outcomes** whose constructors refuse to build an untraceable number, a
-look-ahead citation, a reasonless refusal or an outage dressed as a question;
-and a **measured evaluation** with an independent oracle.
+**What makes it different from a RAG demo:** verified numbers, point-in-time
+answers, and explicit abstention — all three measured against an 80-item gold
+set with deterministic scorers and four ablation variants, rather than
+asserted.
 
 ---
 
-## What it does
+## 2. Results at a glance
 
-| | |
-|---|---|
-| **Numeric questions** | resolved from inline-XBRL facts, with the concept, period and filing named. No model is called at all. |
-| **Computed questions** | margins, growth, CAGR, ratios and differences, from a deterministic calculator over resolved facts. |
-| **Comparisons and trends** | several figures, each attributed to its company and year. |
-| **Narrative questions** | hybrid retrieval over filing text, answered with citations to the section the text came from. |
-| **Point in time** | `as_of` restricts every answer to filings that were public on that date. |
-| **Refusal** | eleven named reasons, each with its own message, rather than a guess. |
+Post-fix, on the 80-item gold set. Every rate carries a Wilson 95% interval,
+because 80 items does not support fine distinctions.
 
-Twelve metrics are supported (`facts/concepts.yaml`). Anything else is refused
-rather than guessed — guessing a concept is what made one filer's revenue read
-37% low in the prototype.
+| variant | what is removed | score | 95% CI | flags |
+|---|---|---:|---:|---|
+| **V3 — shipped** | nothing | **73/80 (91.2%)** | 83.0–95.7% | **none** |
+| V2 | `as_of` scope and the abstention gate | 63/80 (78.8%) | 68.6–86.3% | **4 look-ahead answers** |
+| V1 | the facts engine (numbers read from text) | 37/80 (46.2%) | 35.7–57.1% | 19 uncited numbers |
+| V1-generous | the facts engine, but a 5× context budget | 50/80 (62.5%) | 51.5–72.3% | 28 uncited numbers |
+
+Against the **v1 prototype this replaced**, on the frozen 69-item subset where
+V0 is a fair control:
+
+| | V0 (prototype) | V1 | V2 | **V3** |
+|---|---:|---:|---:|---:|
+| overall | 19/69 (27.5%) | 33/69 (47.8%) | 52/69 (75.4%) | **62/69 (89.9%)** |
+| 95% CI | 18.4–39.0% | 36.5–59.4% | 64.0–84.0% | **80.5–95.0%** |
+| look-ahead violations | — | 0 | 4 | **0** |
+| uncited / invalid citations | 15 / 36 | 19 / 0 | — | **0 / 0** |
+
+**The honest caveats, up front:**
+
+* **37 of the 80 expected answers were hand-checked against filing snippets by
+  a person.** The other 43 are cross-checked by machine against SEC
+  `companyfacts` (an independent pipeline over the same filings) or, for
+  refusals, narrative and dates, have no oracle by nature. The gold set
+  records which tier each item is in (`owner` > `companyfacts` > `auto`).
+* **Narrative is the weakest area, and it is automated-scorer-only.** V3
+  answers **8 of 15** narrative items under the automated scorer (CI
+  30.1–75.2%); **5 of the 15 are over-refusals** even though the section audit
+  confirms the expected section exists and carries the topic. **These results
+  are not human-verified.** No one has checked whether the 8 passes are good
+  answers or merely well-sourced ones.
+* **13 of the 36-item V3-versus-V1 gap is context budget, not architecture.**
+  The V1-generous arm exists to say that. What the budget does *not* explain:
+  all 20 of V1-generous's numeric passes are *right value, no fact citation*
+  against V3's 25 *correct*; 28 uncited numbers against zero; and 19× the
+  tokens (1,024,250 against 54,047) for 23 fewer items. **The facts engine's
+  value is robustness under free-tier limits, zero generator tokens and exact
+  traceability — as well as accuracy, not instead of it.**
+* **Pre-fix numbers exist and are kept as "before" evidence**, not quoted
+  here: before the context-budget fix, 14 V1 items were literally unanswerable
+  (prompts no provider accepts) while the rest got unlimited context. Only the
+  post-fix column describes a system that can run.
+
+Method: [`docs/EVAL.md`](docs/EVAL.md). Full tables, per-item rows and failure
+analysis: [`reports/phase4/REPORT.md`](reports/phase4/REPORT.md). What to be
+sceptical about: [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md).
 
 ---
 
-## Architecture
+## 3. Architecture
 
 ```
-question
-   │
-   ├─ routing/        rules first; the model only for genuine ambiguity
-   │                  entities, periods, metric, focus, as_of
-   │
-   ├─ catalog/        which filings exist, and when each became public
-   │                  (the only thing that decides point-in-time scope)
-   │
-   ├── facts path ──────────────────────────────── numeric / computed
-   │     facts/resolve.py   concept candidates → one fact, or abstain
-   │     facts/calc.py      margins, growth, CAGR, ratios, differences
-   │     answering/facts_answer.py   deterministic template, no model
-   │
-   ├── text path ───────────────────────────────── narrative
-   │     retrieval/        hybrid dense + BM25, rerank, focus boost,
-   │                       parent-section context
-   │     answering/text_answer.py   structured {found, answer} from the model
-   │
-   ├─ answering/abstain.py   one gate, reason → message
-   └─ answering/outcome.py   the typed result every path returns
+                         ┌──────────────────────────────┐
+  question ──────────────▶  routing/   rules first      │
+  (+ optional as_of)     │  entities · period · metric  │
+                         │  focus · intent              │
+                         │  (a model only for genuine   │
+                         │   ambiguity — 30/30 smoke    │
+                         │   questions need none)       │
+                         └───────────────┬──────────────┘
+                                         │
+                         ┌───────────────▼──────────────┐
+                         │  catalog/   the clock        │
+                         │  which filings exist, and    │
+                         │  when each became public.    │
+                         │  The only thing that decides │
+                         │  point-in-time scope.        │
+                         └───────┬──────────────┬───────┘
+         numeric / computed      │              │   narrative
+      ┌──────────────────────────▼──┐        ┌──▼───────────────────────────┐
+      │  FACTS PATH   no model call │        │  TEXT PATH                   │
+      │                             │        │                              │
+      │  facts/resolve.py           │        │  retrieval/                  │
+      │    tiered concept candidates│        │    dense (bge) + BM25        │
+      │    → one fact, or abstain   │        │    → fuse → cross-encoder    │
+      │  facts/calc.py              │        │    → focus boost             │
+      │    margin · growth · CAGR   │        │  bounded parent-chunk window │
+      │    · ratio · difference     │        │    6,000-token budget        │
+      │    in Decimal               │        │  generator → {found, answer} │
+      │  answering/facts_answer.py  │        │  answering/text_answer.py    │
+      │    deterministic template   │        │                              │
+      └──────────────┬──────────────┘        └──────────────┬───────────────┘
+                     └────────────┬─────────────────────────┘
+                                  │
+                  ┌───────────────▼────────────────┐
+                  │  answering/abstain.py          │
+                  │    11 reasons → 11 messages    │
+                  │  answering/outcome.py          │
+                  │    G1 no untraceable number    │
+                  │    G2 no citation after as_of  │
+                  │    G3 no reasonless refusal    │
+                  │    G4 no outage-as-question    │
+                  └───────────────┬────────────────┘
+                                  │
+                       Outcome  →  api/ (200) or 503 + error_code
 ```
 
-`answering/outcome.py` is where the guarantees live. They are validators on a
-constructor, not conventions:
+**Request lifecycle.** `POST /query {question, as_of?}` → size cap and rate
+limit → `query.ask()` → `route()` resolves entities, period, metric, focus and
+intent with rules (a model only if genuinely ambiguous) → the catalog narrows
+the filing set to what was public on `as_of` → **facts path**: resolve one
+fact per operand, compute in `Decimal`, render a deterministic sentence, cite
+each operand — *zero model calls*; or **text path**: retrieve over the
+in-scope collections, rerank, assemble bounded context, ask the generator for
+`{found, answer}`, prune citations to the sources actually used and renumber
+them `1..n` → `answering/abstain.py` if neither path can answer → `Outcome` is
+constructed, and its four validators reject anything untraceable, look-ahead,
+reasonless or mislabelled → HTTP 200 with the answer and citations, or **503**
+with a typed `error_code`.
 
-* **G1** an answered outcome without a fact citation and a definition note
-  naming the concept and period cannot be built;
-* **G2** a citation whose filing date is after `as_of` cannot be built;
-* **G3** a refusal with citations, or without a reason, cannot be built;
-* **G4** a dependency failure cannot be built as a clarification.
-
----
-
-## Results
-
-Measured on an 80-item gold set whose expected values are confirmed against SEC
-`companyfacts` — an independent pipeline over the same filings. Reported on the
-69-item paired subset, which is the items every variant has a corpus for.
-
-| variant | | paired | look-ahead violations |
-|---|---|---:|---:|
-| **V3** | the shipped system | **58/69 (84.1%)** | **0** |
-| V2 | point-in-time scope and abstention gate off | 50/69 (72.5%) | 4 |
-| V1 | facts engine off — numbers read from text | 41/69 (59.4%) | 0 |
-| V0 | the v1 prototype | see `reports/phase4/REPORT.md` | |
-
-The V2 row is the ablation working: with point-in-time scope off, the system
-answers four questions from filings that were not public on the date asked.
-With it on, none.
-
-Numeric accuracy is 17/18 on the paired subset with the facts engine and 12/18
-without it. Every rate carries a Wilson 95% interval, several of which are 30
-points wide — an 80-item gold set does not support fine distinctions, and the
-report says so rather than implying otherwise.
-
-Full tables, the per-item rows, the retrieval ablations and the failure analysis
-are in [`reports/phase4/REPORT.md`](reports/phase4/REPORT.md). The method is in
-[`docs/EVAL.md`](docs/EVAL.md). **What this does not do, and where to be
-sceptical, is in [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md)** — including that
-the owner's verification gate is not yet signed, which makes every figure above
-provisional.
+`answering/outcome.py` is where the guarantees live. They are **validators on
+a constructor**, not conventions: an outcome that violates one cannot be
+built, so a defect becomes an exception at the point of construction rather
+than a wrong answer on a screen.
 
 ---
 
-## Running it
+## 4. Features
+
+Each in one paragraph; the full page, with a real captured example and a
+stated limitation for every one, is [`docs/FEATURES.md`](docs/FEATURES.md).
+
+**Facts engine and calculator.** Inline-XBRL is parsed into a local store of
+**29,002 facts** across 94 submissions and 18 filers; 12 registry metrics map
+to *per-filer tiered candidate concepts* (one global priority list is how the
+prototype read BlackRock's revenue 37% low), and arithmetic is `Decimal` in
+`facts/calc.py`. Coverage is 634 of 780 resolutions (81.3%) with **zero
+ambiguous**; the extractor agrees with SEC `companyfacts` on **99.9787% of
+23,429 comparable pairs**, with zero scale and zero sign errors.
+
+**Point in time (`as_of`).** A catalog of 365 annual filings and 29
+amendments, with real filing dates, is the only thing that decides scope — and
+it resolves a ticker across every CIK it has filed under, which BlackRock
+needs. V3 scores 8/8 on the point-in-time items with 0 look-ahead violations;
+ablate the guard and the same system commits 4.
+
+**Abstention and typed errors.** Eleven named refusal reasons, each with its
+own message, and seven typed error codes surfaced as HTTP 503 — so a model
+outage is an outage, not "which company did you mean?". Two validators make
+both properties unrepresentable rather than conventional.
+
+**Citations.** Every answer names ticker, fiscal label, accession, filing date
+and either the XBRL concept or the section. Indices are exactly `1..n`, and
+the generator failover order *requires* ASCII `[N]` markers — two otherwise
+capable models were excluded because they emit fullwidth `【1】`, which the
+parser would silently read as zero citations.
+
+**Rules-first router.** Entities, periods, metrics and intent resolved in
+code; all 30 smoke questions route with **zero** LLM calls, which is why seven
+of the eight demo queries return in about 0.03 s and why comprehension does
+not degrade when a free tier throttles.
+
+**Text and RAG path.** Dense (bge-base, 512 tokens) + BM25, fused, reranked by
+a cross-encoder, focus-boosted, scoped by the catalog — **44/45 (97.8%)
+section hit@5, MRR 0.870**. The parser rewrite plus re-index moved that from
+75.0% to 92.5% on the filings both indexes hold.
+
+**Free-tier LLM client.** One client for every call: ordered failover per role
+(chosen by a measured 24-call bake-off, not by published limits), a prompt
+cache, bounded retry, a budget, and typed exceptions. A prompt too large for
+the list's smallest member raises its own error *before* the failover loop —
+it used to subclass the rate-limit error, and that cost a day of wrong
+diagnosis.
+
+**Section catalog.** The parser picks the maximum-weight heading subsequence
+with strictly increasing line *and* Item priority; the audit measures the
+result at **290 of 429 slices usable, Item 1 and Item 1A at 39/39**. Nothing
+user-visible may claim a slice is complete.
+
+**Evaluation harness.** 80 *planned* gold items built through the product's
+own resolver and **rejected** if the oracle disagrees; deterministic scorers
+with no LLM judge; five variants run resumably with every model call
+instrumented; retrieval ablations that spend zero generation tokens.
+
+---
+
+## 5. Quickstart
+
+**Prerequisites.** Python 3.12, macOS or Linux, ~8 GB RAM, ~2 GB disk. No
+paid services — every provider used has a free tier.
 
 ```bash
 make setup          # virtualenv + dependencies
-make test           # offline: no network, no API key needed
-make catalog        # build the filing catalog from cached SEC responses
-make facts          # build the facts store from inline XBRL
-make up             # API + UI at http://localhost:8000
+make test           # 1,428 offline tests; no network, no API key needed
 ```
 
-Ask one question from the command line:
+**`.env` keys** (copy `.env.example`; the file is gitignored and never read or
+printed by any tooling):
+
+| key | what it is for | needed for |
+|---|---|---|
+| `edgar_email` | SEC requires a contact address in the User-Agent | fetching filings |
+| `GEMINI_API_KEY` | primary generator (free tier) | narrative answers |
+| `GROQ_API_KEY` | primary router / judge (free tier) | ambiguous questions |
+| `ADMIN_TOKEN` | **optional.** Unset — the default — means every `/admin/*` route and `/ingest` returns **503** and `?debug=1` hands out nothing | admin routes |
+
+**Building the data.**
+
+```bash
+make catalog        # filing catalog from SEC EDGAR         (minutes)
+make facts          # inline-XBRL facts store               (minutes)
+make ingest         # download, parse, chunk and index      (see below)
+```
+
+> ⚠️ **A fresh clone is not one command away from a demo.** `make catalog` and
+> `make facts` are quick, but building the text index means embedding ~38,000
+> chunks, which measured **about 5 hours on an 8 GB laptop** at 2.2–2.4
+> chunks/s. The one-command-from-a-clean-clone goal is **not met**, and
+> pretending otherwise would waste a reader's evening. The facts path — every
+> numeric, computed, comparison and point-in-time answer — works as soon as
+> `make catalog` and `make facts` finish; only narrative questions need the
+> index.
+
+**Running it.**
+
+```bash
+make up             # API + UI at http://localhost:8000
+make demo-check     # pre-flight: health, LLM state, collections, 8 real queries, smoke
+```
+
+`make demo-check` takes about 20 seconds and prints a PASS/FAIL table. Note
+that it and `make up` cannot both hold the store — Qdrant's local mode takes an
+exclusive lock — so run the check first, or point it at the running server:
+`python scripts/demo_check.py --base-url http://localhost:8000`.
+
+One question from the command line, no server:
 
 ```bash
 python query.py "What was Apple's revenue in fiscal 2024?"
 python query.py --as-of 2024-03-01 "What was Apple's latest annual revenue?"
 ```
 
-Reproduce the evaluation:
+---
+
+## 6. Demo
+
+The presenter's guide — 3-, 8- and 15-minute scripts, a pre-flight checklist,
+a troubleshooting table and saved transcripts as a plan B — is
+[`docs/DEMO.md`](docs/DEMO.md).
+
+The eight example questions, in the order to ask them (**the first seven call
+no model at all**):
+
+1. What was Netflix's revenue in fiscal 2024? *(a filer that reports in thousands)*
+2. What was JPMorgan's total net revenue for fiscal 2024? *(a bank's own revenue line)*
+3. What was Apple's operating margin in fiscal 2024? *(deterministic calculator)*
+4. Compare Apple and Microsoft revenue in fiscal 2024 *(different fiscal year ends)*
+5. *(as of 2024-06-30)* What was Apple's revenue in fiscal 2024? *(point in time)*
+6. What was SpaceX's revenue in fiscal 2024? *(abstention: not an SEC filer)*
+7. Should I buy Apple stock? *(abstention: out of scope)*
+8. What risks does Apple disclose about its supply chain? *(retrieval — the only model call)*
+
+Real captured output for all eight: [`docs/demo/TRANSCRIPTS.md`](docs/demo/TRANSCRIPTS.md).
+
+---
+
+## 7. How it is evaluated
+
+**The gold set** is 80 *planned* items — numeric 25, computed 12,
+compare/trend 10, narrative 15, `as_of` 8, abstain 10 — each named with the
+reason it exists, covering four sectors, all twelve metrics and three awkward
+filer properties (Netflix reports in thousands; Wells Fargo moves Items
+1A/7/8 into an EX-13 exhibit; BlackRock tags two revenue concepts 37% apart).
+Expected values are resolved through the product's own resolver and then
+**checked against SEC `companyfacts`**; a value the oracle disagrees with
+**fails the build** rather than being downgraded and shipped.
+
+**The scorers** are deterministic — numeric tolerance, scale and sign checks,
+section-id matching, and flags for uncited numbers and look-ahead citations.
+No model judges anything, because a judge would make the headline depend on
+the judge's taste.
+
+**The variants** are V0 (the v1 prototype, run from the `v1-baseline` tag, not
+described from memory), V1 (facts engine off), V2 (`as_of` and the abstention
+gate off), V3 (shipped) and V1-generous (V1 at a 5× context budget, pinned to
+one model). **The ablations** measure retrieval alone — bm25, dense, hybrid,
+hybrid+rerank, the shipped default, and parent-context-off — spending zero
+generation tokens.
+
+Reproduce it:
 
 ```bash
-python -m eval.gold.build_gold --check   # the gold set rebuilds byte-identically
-python -m eval.runner --variant V3       # resumable
-python -m eval.ablations                 # retrieval arms, no generation tokens
-python -m eval.mini_eval                 # what CI enforces, offline
+python -m eval.gold.build_gold --check     # gold set rebuilds byte-identically
+python -m eval.runner --variant V3         # resumable; --report-only re-scores
+python -m eval.ablations                   # retrieval arms, no generation tokens
+python -m eval.mini_eval                   # the offline subset CI enforces
+python scripts/score_d21_subset.py         # the frozen 69-item paired subset
 ```
 
-Free-tier LLM providers only. No paid services, and no cost-per-query figure
-anywhere in the reports, because there is no price to multiply by.
+No cost-per-query figure appears anywhere: free tiers only, so there is no
+price to multiply by, and inventing one would put a fabricated number in a
+results table.
 
 ---
 
-## Documentation
+## 8. Limitations and future work
 
-| | |
+The short version; the full list, with why each is deferred, is
+[`docs/LIMITATIONS.md`](docs/LIMITATIONS.md).
+
+* **Narrative is automated-scorer-only, n=15, and 5 of 15 are over-refusals.**
+  The human rating gate was not completed, so no narrative figure here is
+  human-verified. Improving narrative generation is the **top** item of future
+  work.
+* **80 gold items**, with intervals up to 30 points wide. 37 owner-verified,
+  43 machine-verified or unverifiable by nature.
+* **12 metrics**; anything else is refused. Two routing defects and one wrong
+  refusal reason are open and itemised.
+* **One item (JPM FY2022) is outside the text index.** Item 7 parses usably in
+  25 of 40 filings, Item 3 in 6 of 40.
+* **A fresh clone needs ~5 hours to build the index.**
+* No follow-up handling, no mixed numeric+narrative answers, no hosting, no
+  response caching, no slimmed container image.
+
+---
+
+## 9. Repository layout
+
+| path | what is in it |
 |---|---|
-| [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md) | the specification, phase by phase |
-| [`docs/EVAL.md`](docs/EVAL.md) | how the system is evaluated, and why that way |
-| [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) | what it does not do; read before trusting a number |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | every non-trivial choice, with what would change it |
-| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | what changed in each phase |
-| `docs/explainers/` | a plain-language one-pager per phase |
+| `routing/` · `catalog/` | question understanding; the filing catalog that decides `as_of` scope |
+| `facts/` | inline-XBRL extraction, the concept registry, resolution, the calculator |
+| `retrieval/` · `ingestion/` | parsing, chunking, indexing, hybrid retrieval and reranking |
+| `answering/` | the typed `Outcome`, its four validators, the abstention gate, both answer renderers |
+| `generation/` · `llm/` | prompts and citation parsing; the one multi-provider free-tier client |
+| `api/` · `ui/` | FastAPI app, admin auth (fail-closed), rate limiting, the browser UI |
+| `query.py` | the dispatcher (`ask()`) and a CLI |
+| `eval/` | gold set, scorers, runner, ablations, the offline subset CI enforces |
+| `scripts/` | one-purpose tools: hygiene, security, demo-check, re-index, audits, sheets |
+| `tests/` | 1,428 offline tests (unit + integration), plus a `live` marker |
+| `docs/` | spec, decisions, evaluation method, limitations, features, demo, this brief |
+| `reports/` | every phase's report and its raw artifacts |
 
-The earlier prototype is preserved at tag `v1-baseline`, and is run as the V0
-baseline rather than described from memory.
+| document | |
+|---|---|
+| [`docs/INTERVIEW_BRIEF.md`](docs/INTERVIEW_BRIEF.md) | the project in one page |
+| [`docs/FEATURES.md`](docs/FEATURES.md) | each feature, with a real example and its limitation |
+| [`docs/DEMO.md`](docs/DEMO.md) | how to present it live |
+| [`docs/EVAL.md`](docs/EVAL.md) | how it is evaluated, and why that way |
+| [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) | read before trusting a number |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | every non-trivial choice, with what would change it |
+| [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md) | the specification, phase by phase |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | what changed in each phase |
 
 ---
 
-## Licence
+## 10. Provenance, licence, data
 
-MIT. See `LICENSE` and `NOTICE`.
+The code began as an earlier MIT-licensed RAG prototype of the author's; this
+is a new personal portfolio repository with fresh history. The prototype is
+preserved at tag `v1-baseline` and is **run** as the V0 baseline rather than
+described from memory. `LICENSE` and `NOTICE` are kept.
+
+**Data source:** public filings from the SEC's EDGAR system, fetched with a
+contact address in the User-Agent as SEC requires, cached locally, and treated
+as read-only. No filing content is redistributed in this repository.
+
+**Licence:** MIT.
+
+> **Not investment advice.** This is a research tool over public filings. It
+> states what a company reported, with the document it reported it in. It does
+> not value securities, forecast, or recommend anything — and when asked to,
+> it refuses by name.

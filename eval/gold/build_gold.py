@@ -37,6 +37,7 @@ unless ``--allow-network`` is given.
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -64,6 +65,11 @@ from facts.resolve import _plain as plain_decimal  # noqa: E402
 GOLD_PATH = REPO_ROOT / "eval" / "gold" / "gold_v1.jsonl"
 SEEDS_DIR = REPO_ROOT / "eval" / "gold" / "seeds"
 ORACLE_NAME = "sec_companyfacts"
+#: The owner-signed verification sheet (P4-02b gate, signed 2026-10-03; D4-06
+#: applies it at P4-15, not before). Read by ``gold_id`` only, and never
+#: written to -- ``verdict``, ``owner_note`` and ``verified_by`` in that file
+#: are the owner's columns (D29 / CLAUDE.md rule 17).
+SIGNED_SHEET = REPO_ROOT / "reports" / "phase4" / "gold_verification_signed.csv"
 
 #: A numeric gold value is exact or it is not gold. The resolver and the oracle
 #: read the same iXBRL facts, so anything other than equality is a disagreement
@@ -495,6 +501,9 @@ def build(allow_network: bool = False) -> Tuple[List[Dict], List[str]]:
     items += read_jsonl(SEEDS_DIR / "abstain.jsonl")
 
     notes: List[str] = []
+    # P4-15: the owner's signed sheet is applied here, so that one command
+    # regenerates the gold set with its verification tiers already set (T4-05).
+    notes += apply_owner_verification(items)
     counts = category_counts(items)
     for category, target in CATEGORY_TARGETS.items():
         if counts[category] != target:
@@ -503,6 +512,68 @@ def build(allow_network: bool = False) -> Tuple[List[Dict], List[str]]:
                 f"targets {target}"
             )
     return items, notes
+
+
+def apply_owner_verification(
+    items: Sequence[Dict], sheet: Path = SIGNED_SHEET,
+) -> List[str]:
+    """Promote ``verified_by`` to ``owner`` for the rows the owner signed ``OK``.
+
+    P4-15 / D4-06. The sheet is read **by ``gold_id`` only**: no value, label or
+    note from it reaches the gold set, so a transcription slip in a column the
+    owner did not sign cannot change an expected answer. Only the strength tier
+    moves, and only upwards -- ``owner`` > ``companyfacts`` > ``auto`` (D4).
+
+    A ``gold_id`` in the sheet that is not in the gold set, or a verdict that is
+    neither ``OK`` nor ``WRONG``, is an error rather than a silent skip: the
+    sheet is the owner's signature and a row of it going missing must be loud.
+
+    Returns the notes worth printing. Missing sheet -> nothing is promoted and a
+    note says so, because the build must still work on a clone that has not
+    received the gate.
+    """
+    notes: List[str] = []
+    if not sheet.exists():
+        notes.append(
+            f"owner verification sheet {sheet.name} is absent: "
+            "no item is marked verified_by=owner"
+        )
+        return notes
+
+    by_id = {str(item["id"]): item for item in items}
+    with sheet.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    promoted = 0
+    for row in rows:
+        gold_id = (row.get("gold_id") or "").strip()
+        verdict = (row.get("verdict") or "").strip().upper()
+        if not gold_id:
+            continue
+        if gold_id not in by_id:
+            raise BuildError(
+                f"{sheet.name} signs {gold_id!r}, which is not in the gold set"
+            )
+        if verdict == "OK":
+            by_id[gold_id]["verified_by"] = "owner"
+            promoted += 1
+        elif verdict == "WRONG":
+            raise BuildError(
+                f"{sheet.name} marks {gold_id} WRONG: fix the extractor, do not "
+                "ship the value as gold"
+            )
+        elif verdict:
+            raise BuildError(
+                f"{sheet.name} row {gold_id} has verdict {verdict!r}; "
+                "expected OK or WRONG"
+            )
+
+    notes.append(
+        f"owner verification applied from {sheet.name}: {promoted} of "
+        f"{len(items)} items are verified_by=owner; the remaining "
+        f"{len(items) - promoted} stay companyfacts or auto"
+    )
+    return notes
 
 
 def _summarise(items: Sequence[Dict]) -> None:

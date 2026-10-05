@@ -5,6 +5,63 @@ Newest first.
 
 ---
 
+## 2026-10-05 — D4-09 The narrative rating gate is recorded as NOT completed; D31's precondition was not met
+
+**Context.** P4-15 is blocked on the owner's ratings of 15 sampled narrative
+answers. A signed file was produced, and the owner then reported that it is
+**unusable**: the entries are one column off, and the refusal rows carry no
+link, so the `none` entries were defaults rather than judgements. They
+instructed that no file matching
+`reports/phase4/narrative_rating_sheet_signed*.csv` be read, that the files stay
+untracked, and that the gate be treated as not completed.
+
+**Options.** (a) Read the file anyway and try to repair the offset. (b) Treat
+the `none` entries as ratings. (c) Record the gate as not completed, report
+narrative from the automated scorer only, and state the consequence everywhere.
+
+**Choice.** (c), in full:
+
+1. **No agreement figure is produced.** Spec P4-15 item 3 asks for n/N
+   agreement between the automated verdicts and the owner's ratings. It cannot
+   be computed from an unusable rating, so it is reported **not run** —
+   not estimated, not approximated.
+2. **D31 is NOT applied, and the reason recorded is "precondition not met",
+   not "fewer than 5 bad".** D31 counts outcomes *as the owner marked them*;
+   with no usable marks, neither branch fires. Recording it as the "otherwise"
+   branch would have been a false statement about a pre-registered rule, and
+   would have carried a scorer change with it.
+3. **The scorer was not tightened.** D31's "otherwise" branch says to tighten
+   it *after listing the disagreements with the owner's ratings*. With no
+   ratings there is nothing to tighten towards, and adjusting a scorer against
+   one's own intuition about which refusals are wrong stops the measurement
+   being independent of the thing it measures.
+4. **P5-13 stays unbuilt and becomes the top item of future work**, justified
+   by the **automated** evidence instead of the gate: **5 of 15 narrative items
+   refuse with `insufficient_evidence` although the section audit confirms the
+   expected section exists and carries the topic**, while retrieval reaches
+   **97.8% section hit@5**. Over-refusal with correct retrieval is a real
+   signal; it just is not the owner's signal.
+5. **Narrative is labelled "not human-verified" at every mention**, with its
+   interval (8/15, Wilson 30.1–75.2%). No "owner-rated" language for narrative
+   appears anywhere.
+6. The signed files stay untracked and are **gitignored**, so they cannot be
+   committed by accident.
+
+**Reason.** A gate that did not happen is a different fact from a gate that
+passed, and the only version of this project worth showing is the one that can
+tell the difference. Repairing a column offset on the owner's behalf would also
+have meant *me* deciding what they meant on exactly the artifact that exists to
+keep that decision out of my hands (D29 / CLAUDE.md rule 17).
+
+**What would change it.** A usable rating sheet. The generator
+(`scripts/make_rating_sheet.py`) and the blind reading view
+(`scripts/make_rating_view.py`) are both committed and deterministic, so a
+re-rate costs only the owner's reading time. When one arrives: compute the
+agreement, apply D31 for real, and revisit P5-13's priority with the owner's
+evidence rather than the scorer's.
+
+---
+
 ## 2026-10-04 — D4-08 D27 applied: the cross-encoder stays on, and n=15 was noise
 
 **The rule, as pre-registered.** D27 fixed the decision before the data

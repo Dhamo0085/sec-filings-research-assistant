@@ -1,21 +1,47 @@
 # Phase 4 — Evaluation, ablations, documentation
 
-Branch `phase-4-evaluation`, against spec v1.6. Every number below was produced
-by a command named beside it; the raw per-item rows are in
-`reports/phase4/runs/*.jsonl` and scoring is reproducible from them without
-spending any budget.
+Branch `phase-4-evaluation`. Every number below was produced by a command named
+beside it; the raw per-item rows are in `reports/phase4/runs*/ *.jsonl` and
+scoring is reproducible from them without spending any budget.
 
-**Headline metrics are provisional.** Spec section 11 publishes them only after
-the owner has verified at least 25 gold items against the filings themselves.
-`reports/phase4/gold_verification.csv` is generated and unsigned.
+> ## How to read this report
+>
+> It was written in two passes and reconciled end to end at **P4-15
+> (2026-10-05, spec v1.11)**.
+>
+> **Sections 1 to 10 are the pre-re-index, pre-context-fix body**, written
+> against spec v1.6. **The addendum (A1 onward) is current and takes
+> precedence.** Every statement in the body that the addendum changed is now
+> either corrected in place or marked `SUPERSEDED` with a pointer to the
+> addendum section that replaces it. **No number appears twice with two values
+> and no note of which one is current** — where both are kept, the pre-fix one
+> is labelled as "before" evidence.
+>
+> **The headline is post-fix: V3 73/80 (91.2%), zero flags** (A1).
+>
+> **Verification status, final.** The gold sheet is signed and applied: **37 of
+> 80 expected answers carry `verified_by=owner`** (every numeric and computed
+> item, hand-checked against the printed line in the filing); **14 are
+> `companyfacts`** and **29 are `auto`**. Nothing is "provisional" any more.
+> **The narrative rating gate was NOT completed** — narrative results are the
+> automated scorer's, labelled "not human-verified" everywhere, and **D31 was
+> not applied because its precondition was never met**. See
+> [A14](#a14-p4-15--closing-the-phase).
 
 ---
 
 ## 1. Summary
 
+> **SUPERSEDED where it conflicts with [A1](#a1-headline--pre-fix-versus-post-fix).**
+> This summary was written before the re-index (P4-12) and the context-budget
+> fix (P4-16). The current headline is **V3 73/80 (91.2%) full set, 62/69
+> (89.9%) on the frozen paired subset, zero flags**. The bullets below are the
+> measurement as it stood then; three of them are explicitly corrected.
+
 * **The shipped system answers 60 of 69 gold items (87.0%, 95% CI 77.0–93.0);
   the v1 prototype answers 19 (27.5%, 18.4–39.0)** on the same items with the
-  same scorers.
+  same scorers. → **Current: V3 62/69 (89.9%, 80.5–95.0); V0 unchanged at
+  19/69** (A1).
 * **Zero look-ahead violations in V3; four in V2**, the variant with
   point-in-time scope switched off. The guard is not decorative, and the
   ablation can produce the failure it prevents.
@@ -25,20 +51,30 @@ the owner has verified at least 25 gold items against the filings themselves.
 * **The facts engine is worth 29 points** on the paired subset (V1 59.4% → V3
   87.0%) and **takes numeric accuracy from 12/18 to 17/18**. The facts path
   makes **no model call at all**: V3 spent 16 generation calls over 80
-  questions, all on narrative items.
+  questions, all on narrative items. → **Current: 42 points on the frozen
+  subset (V1 47.8% → V3 89.9%) and numeric 11/18 → 18/18** (A1) — but see
+  [A12](#a12-p4-17--the-v1-generous-arm-d32): **13 of the 36-item full-set gap
+  is context budget, not the facts engine.** The zero-model-call property is
+  unchanged and is measured at **54,047 generator tokens for all 80 questions**
+  (A3).
 * **P4-00's boundary rewrite was adopted.** Usable (filing, section) pairs went
   from 245 to 298 of 440; Items 1 and 1A from 33 and 20 to **40 of 40**. Item 7
   reached 25 of 40 against a target of 33 and the owner accepted the miss
   (D4-00).
-* **The cross-encoder earns nothing on these metrics and costs 200 seconds.**
-  Dense-only retrieval matches the shipped default's section hit rate (12/15),
-  beats its MRR (0.747 vs 0.717), and runs in 1.6s against 206s.
+* ~~**The cross-encoder earns nothing on these metrics and costs 200
+  seconds.**~~ **REFUTED at n=45** (A7). On 45 items the cross-encoder is
+  **+13.3 pp hit@5 and +0.110 MRR**, and the shipped default reaches **44/45
+  (97.8%), MRR 0.870** against dense-only's 31/45. D27's rule, pre-registered
+  before the data was seen, is what stopped this bullet being acted on.
 * **Parent-section context is what puts figures in front of the model**:
   removing it drops expected-number-in-context from 95% to 82% while leaving
   section hit unchanged.
 * Three defects were found by the evaluation and fixed inside it; two product
-  defects and one capability gap are left open and named in section 6.
-* 1,173 offline tests pass. CI runs lint, hygiene, the suite and an offline
+  defects and one capability gap were left open and named in section 6. →
+  **All five of section 6's open defects are now closed** (P4-11, P4-16); the
+  one genuinely open product defect is the **narrative over-refusal rate**,
+  5 of 15.
+* **1,428** offline tests pass. CI runs lint, hygiene, the suite and an offline
   mini-evaluation with two thresholds, all with no network and no key — **and
   its first run failed 15 tests that pass locally**, all three causes being
   tests or code that silently depended on the developer's machine (defects
@@ -73,8 +109,11 @@ New modules: `eval/gold/` (plan, builder, schema, seeds), `eval/scorers.py`,
 
 ## 3. Tests
 
-`make test` — 1,173 passed, 0 failed, 0 skipped, 32.0s. Artifacts in
-`reports/phase4/tests/`.
+`make test` — **1,428 passed, 0 failed, 0 skipped**, 36.8s, at P4-15. Artifacts
+in `reports/phase4/tests/`. (This section's per-test table below lists the suite
+as it stood at the first pass, 1,173; A11 lists what the addendum added, and the
+1,428 above is the current total, which includes P4-15's own
+`test_gold_owner_verification.py`.)
 
 | id | what it covers | result |
 |---|---|---|
@@ -190,6 +229,19 @@ results table.
 
 ### 4.6 Retrieval ablations
 
+> **SUPERSEDED on the conclusions, kept for the measurement.** This table is
+> the **pre-re-index** run at **n=15 narrative items**. Every *conclusion*
+> drawn from it below was reversed at n=45 on the live index — see
+> **[A7](#a7-p4-13-and-d27--the-cross-encoder-stays-on)**, which is current.
+> The numbers in this table are correct for the artifacts and the n they were
+> measured on; they are not the system's retrieval quality today.
+>
+> | | here (n=15, old index) | **current (A7, n=45, live index)** |
+> |---|---|---|
+> | shipped default | 12/15 (80%), MRR 0.717 | **44/45 (97.8%), MRR 0.870** |
+> | cross-encoder | appeared to *lose* a hit | **+13.3 pp, +0.110 MRR — stays on (D27)** |
+> | dense-only | appeared to be the best arm | 31/45 (68.9%), clearly behind the default |
+
 No generation tokens. Each arm calls `retrieve()` directly and is scored on what
 it put in front of the model. 15 narrative and 22 numeric items.
 
@@ -206,18 +258,25 @@ it put in front of the model. 15 narrative and 22 numeric items.
 python -m eval.ablations
 ```
 
-Three findings, and one of them is uncomfortable:
+Three findings as written at the time. **Findings 1 and 2 are now known to be
+noise and were refuted at n=45 (A7); finding 3 stands.** They are left in place
+because the sequence is the result: a 15-item ablation pointed confidently in
+the wrong direction, and only a pre-registered decision rule (D27, written
+before the n=45 data was seen) prevented acting on it.
 
-1. **The cross-encoder costs a section hit and 200 seconds.** `hybrid` → `+rerank`
-   moves section hit from 12/15 to 11/15 and MRR from 0.578 to 0.556, for 65×
-   the retrieval time. The focus boost recovers the hit but not the time.
-2. **Dense alone is the best arm on these metrics** — 12/15, MRR 0.747, 1.6s. On
-   15 narrative items the 95% interval around 12/15 is roughly 55–93%, so this
-   is a reason to measure properly on a larger set, not a reason to rip the
-   pipeline out today. It is recorded rather than buried.
+1. ~~**The cross-encoder costs a section hit and 200 seconds.**~~ **REFUTED at
+   n=45.** `hybrid` → `+rerank` is **+13.3 pp and +0.110 MRR** on 45 items
+   (A7). The n=15 reading — 12/15 → 11/15 — was one item.
+2. ~~**Dense alone is the best arm on these metrics.**~~ **REFUTED at n=45.**
+   Dense is 31/45 (68.9%, MRR 0.544) against the shipped default's 44/45
+   (97.8%, MRR 0.870). The note in the original text — that the interval around
+   12/15 is roughly 55–93% and this is a reason to measure on a larger set —
+   was the correct reading of it.
 3. **Parent-section context is what gets figures in front of the model**: it
    does not change which section is retrieved, but removing it drops
-   expected-number-in-context from 95% to 82%.
+   expected-number-in-context from 95% to 82%. **Still true**, and A5 gives it
+   its boundary: *unbounded* parent context is what caused defect E, so the
+   shipped path keeps the parent window and bounds it.
 
 `number_in_context` at 95% across every arm is a ceiling result: when the text
 path gets a number wrong, it is almost never because retrieval failed to put the
@@ -232,10 +291,16 @@ figure in the context.
 | `hybrid` | 12/15, MRR 0.578 | 12/15, MRR 0.544 |
 | `hybrid_rerank_focus` | 12/15, MRR 0.717 | 12/15, MRR 0.717 |
 
-The re-index of P4-00 step 4 was deferred by the owner, so both stores hold the
-same pre-rewrite parse and the two columns are expected to agree — which they
-do. This is a check on the backup, not a result about the parser: the comparison
-D25 actually asks for becomes possible only after the re-index.
+> **SUPERSEDED by [A8](#a8-d25--what-the-parser-rewrite-was-worth).** The
+> re-index has since run, and A8 is the comparison D25 actually asked for:
+> on the 24 filings both stores hold, the shipped default moves **30/40
+> (75.0%) → 37/40 (92.5%), +17.5 pp**. The table above is the *control* that
+> preceded it.
+
+The re-index of P4-00 step 4 was deferred by the owner **at the time this
+section was written**, so both stores held the same pre-rewrite parse and the
+two columns were expected to agree — which they do. This is a check on the
+backup, not a result about the parser.
 
 One unexplained difference: `hybrid` MRR is 0.578 against 0.544 on byte-identical
 content. Both runs made zero errors and every other arm agrees exactly, so this
@@ -302,74 +367,96 @@ D4-00. The owner accepted the Item 7 miss and left the audit's thresholds alone.
 | 11 | **Seven tests needed `edgar_email` from the developer's `.env`.** `DocumentFetcher` builds its User-Agent even when the session is faked and no request is made, so T1-05 ("the suite passes with no `.env`") quietly did not hold. | the first CI run |
 | 12 | **`test_cli_runs_offline` was reading the developer's real `.cache/edgar`.** `EdgarFetcher`'s `cache_dir` default was bound at import, so `monkeypatch.setattr("catalog.build._CACHE_DIR", ...)` had no effect. The test passed for three phases for the wrong reason. It now has a negative control: with an empty patched cache the build must find nothing. | the first CI run |
 
-### Open
+### Open at the time this section was written — ALL FIVE ARE NOW CLOSED
 
-| # | what | impact |
+> **SUPERSEDED.** Every row below was closed by P4-11 (defects A–C), P4-16
+> (defects D and E). The closures are in [A5](#a5-p4-16-d30--defect-e-and-the-two-bugs-inside-its-own-fix)
+> and in D4-02 / D4-07. The paragraph that followed this table — "Defects A–D
+> were not fixed … A and B are the right first work for Phase 5" — **is no
+> longer true and is withdrawn.**
+
+| # | what | status now |
 |---|---|---|
-| A | **The router does not route "ratio of X to Y" or "A less B".** `facts/calc.py` implements both; the router answers them as a plain numeric fact for the first operand. `C-AAPL-DEBTEQUITY-2024` returns total liabilities; `C-AMZN-FCF-2024` returns operating cash flow. | 2 of 80 items. A capability gap, not a wrong answer — the figure returned is correct for the wrong question. |
-| B | **"Cash flow from operating activities" resolves to `cash_and_equivalents`.** A metric-alias defect: the router matches "cash" before the longer phrase. Scored `wrong_metric`, which is the verdict added to name exactly this. | 1 of 80 items, and the one failure that produces a confidently wrong traceable number. |
-| C | **`X-PERIOD-NOT-COVERED` refuses with `metric_not_found_in_filing`** instead of `period_not_covered`. The refusal is correct; the reason is not true. | 1 of 80. Abstention is reported per reason, so a wrong reason is its own defect. |
-| D | **Over-refusal on `R-MSFT-SEGMENTS-2025`** — `insufficient_evidence` for a question Item 1 answers. Retrieval searched three MSFT collections and found nothing it would use. | 1 of 80. |
-| E | **13 V1 items and 2 each in V2/V3 remain rate-limited** after a paced re-run. V1's number is a floor, not its capability. | reported as `error`, never as a wrong answer. |
+| A | **The router does not route "ratio of X to Y" or "A less B".** `facts/calc.py` implements both; the router answered them as a plain numeric fact for the first operand. | **CLOSED (P4-11).** The defect was not in the router: `query._compute` paired two metrics only for a *margin*, so a two-metric ratio answered with the numerator alone. **12 of 12 computed gold items now score correct.** |
+| B | **"Cash flow from operating activities" resolves to `cash_and_equivalents`.** | **CLOSED (P4-11).** Longest-match aliasing was already in place; the cash-flow phrase was simply missing from `facts/concepts.yaml`. |
+| C | **`X-PERIOD-NOT-COVERED` refuses with `metric_not_found_in_filing`** instead of `period_not_covered`. | **CLOSED (P4-11).** `period_not_covered` is now decided from `FactsStore.has_facts()`; `facts_built_at` only records that the build *ran*, and four flagged submissions hold no facts. **5 of 5 facts-path abstention items now score correct.** |
+| D | **Over-refusal on `R-MSFT-SEGMENTS-2025`.** | **CLOSED (P4-16).** It was a symptom of defect E, not a retrieval defect: the question's context was unservable. It scores `correct` post-fix, at section rank 2. |
+| E | **13 V1 items and 2 each in V2/V3 remain rate-limited** after a paced re-run. | **CLOSED, and it was misdiagnosed.** It was never a rate limit: the text path sent each chunk's whole parent section, once per chunk, and the last refusal was `LLMBudgetExceeded`, a subclass of `LLMRateLimited`. Post-fix **V1 runs 80/80 with zero errors.** The new `llm_prompt_too_large` code exists so this cannot be mislabelled again. Full account in [A5](#a5-p4-16-d30--defect-e-and-the-two-bugs-inside-its-own-fix). |
 
-Defects A–D were not fixed: P4-07 allows one fix-and-rerun cycle for
-high-impact bugs, and none of these is high-impact at 1–2 items each. A and B
-are the right first work for Phase 5.
+**The one genuinely open product defect is the narrative over-refusal rate** —
+5 of 15 narrative gold items refuse with `insufficient_evidence` although the
+section audit says the expected section exists and carries the topic, with
+retrieval at 97.8% hit@5. That is the top item of future work (P5-13), and the
+evidence for it is automated, not rated.
 
 ---
 
-## 7. Owner actions and questions
+## 7. Owner actions and questions — resolved
 
-1. **Sign `reports/phase4/gold_verification.csv`** — 37 rows, 25 marked `core`,
-   covering all four sectors and NFLX, WFC and BLK. Headline metrics stay
-   provisional until this is done.
-2. **Rate 15 sampled narrative answers** (spec's owner gate). The rating sheet
-   is not yet generated — see Proposals.
-3. **Decide when to run the overnight re-index** (P4-00 step 4). Until then,
-   every narrative number describes the pre-rewrite parse and D25's
-   old-versus-new comparison cannot be made.
-4. **Question:** the ablation says the cross-encoder earns nothing on these
-   metrics and costs 200 seconds. On 15 narrative items that is not conclusive.
-   Worth a larger narrative set in Phase 5, or worth acting on now?
+> **SUPERSEDED.** All four items below have an outcome. Current status is in
+> [A14](#a14-p4-15--closing-the-phase).
+
+| asked | outcome |
+|---|---|
+| 1. **Sign the gold verification sheet** | **DONE.** `gold_verification_signed.csv`, 37 rows OK, 25 of 25 `core`. Applied at P4-15 (D4-06): **37 items now carry `verified_by=owner`; the other 43 stay `companyfacts` (14) or `auto` (29)** and are described that way everywhere. |
+| 2. **Rate 15 sampled narrative answers** | **NOT COMPLETED.** The sheet was built (P4-14, A9) and a blind reading view with it (P4-14b), but the ratings returned were unusable — columns offset by one, and the refusal rows carried no link so the `none` entries were defaults rather than judgements. **The narrative gate is recorded as not completed**, narrative results are automated-scorer-only and labelled "not human-verified", and **D31 was not applied because its precondition was never met** (A14). |
+| 3. **Decide when to run the overnight re-index** | **DONE.** P4-12 ran and was activated: live store **39 collections / 37,882 points**, reversible with one command (A6). D25's comparison followed (A8). |
+| 4. **Question: is the cross-encoder worth 200 seconds?** | **ANSWERED by measurement, and the n=15 reading was wrong.** At n=45 the cross-encoder is **+13.3 pp hit@5 and +0.110 MRR**; D27's pre-registered rule says keep it on, and `config.py` is unchanged (A7). |
 
 ---
 
 ## 8. Gate checklist
 
+Current as of P4-15 (2026-10-05). Rows that were outstanding when this section
+was first written are now resolved; one is resolved as **not done**, and says so.
+
 - [x] Gold set built, schema-validated, byte-identical on rebuild (80 items)
 - [x] Expected values confirmed against an independent oracle (47 of 47 generated items)
 - [x] Owner verification sheet generated (37 rows, 25 core)
-- [ ] **Owner verification sheet signed** — outstanding
+- [x] **Owner verification sheet signed** — 37 OK, 25 of 25 core; **applied at P4-15**: 37 `owner`, 14 `companyfacts`, 29 `auto`
 - [x] Scorers with adversarial cases (T4-01)
 - [x] Runner: resumable, deterministic, every LLM role instrumented (T4-03)
 - [x] V0–V3 run on the gold set; N reported explicitly; paired subset reported
-- [x] Retrieval ablations, no generation tokens
-- [x] Failure analysis: every failure categorised (section 6)
+- [x] V1-generous arm run and reported beside the shipped-budget rows (D32 / P4-17)
+- [x] Retrieval ablations, no generation tokens — **at n=45 on the live index** (A7); the n=15 pre-re-index run is kept in 4.6 and marked superseded
+- [x] Failure analysis: every failure categorised (section 6, reconciled)
+- [x] Re-index run, verified independently, activated, reversible (P4-12, T4-09, A6)
 - [x] CI green locally through the script mirror (T4-04)
-- [x] `docs/EVAL.md`, `docs/LIMITATIONS.md`, README rewritten
+- [x] `docs/EVAL.md`, `docs/LIMITATIONS.md`, README rewritten — **and again at P4-15** for the final numbers
 - [x] Results table with n/N and Wilson intervals
-- [ ] **Owner narrative rating** — outstanding
-- [x] All phase tests pass (1,173, 0 failed, 0 skipped), locally and under CI's isolation (no `.env`, no warm caches)
+- [ ] **Owner narrative rating — NOT COMPLETED.** The sheet and a blind reading
+      view were built (A9, P4-14b); the ratings returned were unusable (columns
+      offset by one; refusal rows carried no link, so `none` entries were
+      defaults, not judgements). **Narrative results are automated-scorer-only
+      and are labelled "not human-verified" everywhere.** No
+      scorer-versus-owner agreement figure exists. **D31 was not applied — its
+      precondition was never met** (A14).
+- [x] All phase tests pass — **1,428 passed, 0 failed, 0 skipped**, locally and under CI's isolation (no `.env`, no warm caches)
 
 Every number in this report is regenerable (T4-05):
 
 ```bash
+python -m eval.gold.build_gold --check        # gold set, incl. verified_by tiers
 for v in V0 V1 V2 V3; do python -m eval.runner --variant $v --report-only; done
-python -m eval.ablations
+python -m eval.runner --variant V1-generous --report-only
+python scripts/score_d21_subset.py            # the frozen 69-item paired subset
+python -m eval.ablations                      # n=45, live index
 python scripts/compare_section_audits.py \
     reports/phase4/section_audit_before.json reports/phase4/section_audit_after.json
+python scripts/compare_before_after.py        # per-item, both directions
 ```
 
 ---
 
 ## 9. Proposals (not built)
 
-1. **A narrative rating sheet generator**, so the owner's second gate is as
-   mechanical as the first. Small; it belongs with P4-02's sheet.
-2. **Route `ratio` and `difference`** (defect A). The calculator already does
-   the work.
-3. **A larger narrative gold set.** Every narrative conclusion in section 4.6
-   rests on 15 items, and the intervals are too wide to act on.
+1. ~~**A narrative rating sheet generator.**~~ **BUILT** as P4-14
+   (`scripts/make_rating_sheet.py`, A9) and P4-14b (the blind reading view).
+2. ~~**Route `ratio` and `difference`** (defect A).~~ **DONE** in P4-11; the
+   defect turned out to be in `query._compute`, not the router.
+3. ~~**A larger narrative gold set.**~~ **BUILT** as
+   `eval/gold/narrative_retrieval_v1.jsonl`, 45 items (P4-13, A7) — and it
+   reversed two of section 4.6's three findings.
 4. **Instrument v1's client in the V0 child**, so the baseline's token cost is
    measured rather than absent.
 5. **Reconsider the audit's narrative cap** once a bank's MD&A length is argued
@@ -382,7 +469,7 @@ python scripts/compare_section_audits.py \
 
 | command | exit |
 |---|---|
-| `make test` | 0 — 1,173 passed |
+| `make test` | 0 — **1,428 passed**, 0 failed, 0 skipped |
 | `make lint` | 0 |
 | `./scripts/ci_local.sh` | 0 |
 | `python -m eval.gold.build_gold --check` | 0 — matches a fresh build |
@@ -391,12 +478,12 @@ python scripts/compare_section_audits.py \
 | `python -m eval.runner --variant V2` | 0 |
 | `python -m eval.runner --variant V1 --retry-rate-limited --sleep 25` | 0 |
 | `python eval/phase4/run_v0.py --worktree <v1-baseline checkout>` | 0 — 69 rows over two invocations (3 in a smoke run, 66 in the full one) |
-| `python -m eval.ablations` | 0 |
+| `python -m eval.ablations` | 0 — n=15 pre-re-index (section 4.6, superseded) and n=45 on the live index (A7, current) |
 | `python -m eval.ablations --index data/qdrant_v1_backup --label "v1 backup index"` | 0 |
 | `python scripts/audit_sections.py --parsed-dir <re-parse>` | 1 — findings, as designed |
 | `python scripts/compare_section_audits.py --self-test` | 0 |
 | `python scripts/make_gold_verification_sheet.py` | 0 |
-| the suite under CI's isolation (empty cwd, `PYTHONPATH`, fresh `HOME`) | 0 — 1,173 passed |
+| the suite under CI's isolation (empty cwd, `PYTHONPATH`, fresh `HOME`) | 0 — same suite, 0 failed |
 
 Raw logs: `logs/phase4/` (gitignored).
 
@@ -415,10 +502,11 @@ no provider would accept — while every other item received unlimited context.
 Post-fix, every item is answerable inside a budget a real provider serves. Only
 the post-fix column describes a system that can actually run.
 
-**Still provisional.** The owner has signed the gold verification sheet (25 of
-25 core rows OK, D4-06) but `verified_by` is applied at P4-15, not here, and
-the narrative ratings are not done. Every narrative figure below is the
-automated scorer's, not the owner's.
+**Verification status (updated at P4-15).** The gold sheet is signed and **now
+applied**: 37 items carry `verified_by=owner`, 14 `companyfacts`, 29 `auto`.
+**The narrative rating was not completed**, so every narrative figure below is
+the automated scorer's, not a person's, and is labelled that way. Nothing here
+is "provisional" — it is final, with its verification tier stated.
 
 ## A1. Headline — pre-fix versus post-fix
 
@@ -716,7 +804,9 @@ budget rather than architecture.
 
 ---
 
-## A13. For P4-15 (not started — the narrative ratings are outstanding)
+## A13. For P4-15 — the plan, as written before it ran
+
+*(Every item below is addressed in A14. Kept so the plan and the outcome can be read against each other.)*
 
 1. Apply the owner's `OK` rows to set `verified_by=owner` on the 37 verified
    numeric and computed items; the other 43 stay `companyfacts` or `auto` and
@@ -741,3 +831,127 @@ budget rather than architecture.
    A12 calls D32's "close to V3 on numeric items" condition **not met**
    (20/25 against 25/25); that call is a judgement on a rule the owner wrote
    without a numeric threshold, and is theirs to overrule.
+
+---
+
+## A14. P4-15 — closing the phase
+
+Written 2026-10-05 against spec v1.11, with one owner override recorded as
+**D4-09** in `docs/DECISIONS.md`.
+
+### 1. The gold sheet is applied — 37 owner, 14 companyfacts, 29 auto
+
+`eval/gold/build_gold.py` now reads `reports/phase4/gold_verification_signed.csv`
+**by `gold_id` only** and promotes `verified_by` to `owner` for the rows the
+owner marked `OK`. Only the strength tier moves, and only upwards: no value,
+label or note from the sheet reaches a gold item, so a transcription slip in a
+column the owner did not sign cannot change an expected answer. An unknown
+`gold_id`, a `WRONG` verdict, or an unrecognised verdict **fails the build**
+rather than being skipped.
+
+| tier | n | which items |
+|---|---:|---|
+| `owner` | **37** | every numeric (25) and computed (12) item — read against the printed line in the filing |
+| `companyfacts` | 14 | compare/trend (10) and the answerable `as_of` (4) items — confirmed by the oracle, not by a person |
+| `auto` | 29 | narrative (15), abstain (10), look-ahead `as_of` (4) — no oracle exists for prose, a refusal or a date |
+
+```bash
+python -m eval.gold.build_gold --check   # matches a fresh build, tiers included
+python -m pytest tests/unit/test_gold_owner_verification.py   # 8 tests
+```
+
+The tests include the negative controls: an unknown `gold_id` raises, a `WRONG`
+verdict raises, and a sheet row carrying a different `expected_value` leaves the
+gold item byte-identical.
+
+### 2. The narrative gate was NOT completed, and D31 was NOT applied
+
+The returned narrative ratings were **not usable**: the entries were one column
+off, and the refusal rows carried no link, so the `none` entries were defaults
+rather than judgements. The owner directed that the file not be read and the
+gate be treated as not completed (D4-09).
+
+The consequences, applied everywhere:
+
+- **No scorer-versus-owner agreement figure exists.** Spec P4-15 item 3 asks
+  for n/N agreement with every disagreement listed. It cannot be produced from
+  an unusable rating, and inventing one would be the exact failure CLAUDE.md
+  rule 11 exists to prevent. **Not run**, not estimated.
+- **D31 is not applied. Its precondition was not met.** D31's branch condition
+  counts "bad" outcomes *as the owner marked them*; with no usable marks there
+  is no count, so neither branch fires. This is recorded as a precondition
+  failure, not as the "fewer than 5 bad" branch — those are different
+  statements and only one of them is true.
+- **P5-13 (narrative generation improvement) stays unbuilt and is the top
+  item of future work.** The case for it now rests on **automated** evidence,
+  which is strong enough on its own: **5 of 15 narrative items refuse with
+  `insufficient_evidence` although the section audit confirms the expected
+  section exists and carries the topic**, with retrieval at **97.8% hit@5**.
+  Over-refusal with correct retrieval points at context assembly or scorer
+  strictness; which of the two cannot be told apart from here.
+- **No "owner-rated" language for narrative appears anywhere** in the README,
+  `docs/EVAL.md`, `docs/LIMITATIONS.md`, `docs/FEATURES.md` or this report.
+  Narrative is labelled **"not human-verified"** at every mention.
+- The signed narrative file stays **untracked and unread**, and is gitignored
+  so it cannot be committed by accident.
+
+The automated narrative verdicts, for the record (post-fix V3, full 15):
+
+| verdict | n | items |
+|---|---:|---|
+| `correct` | 8 | AAPL-SUPPLY-2024, AAPL-CYBER-2024, AMZN-COMPETE-2024, MSFT-SEGMENTS-2025, GOOGL-REGULATION-2024, GS-SEGMENTS-2024, MSFT-AI-2026, NFLX-COMPETE-2025 |
+| `abstained_wrongly` | 5 | JPM-CREDITRISK-2024, NFLX-CONTENT-2024, BLK-BUSINESS-2023, AAPL-RISK-GENERIC, GS-MARKETRISK-2024 |
+| `wrong_value` | 2 | AMZN-AWS-2024, JPM-CAPITAL-2025 (no top-5 citation from the expected sections) |
+
+8/15 = 53.3%, Wilson 95% CI **30.1–75.2%**. That interval is 45 points wide,
+which is the other reason not to draw a fine conclusion from it.
+
+### 3. README, EVAL and this report quote post-fix numbers only
+
+"Provisional" is gone from the README, `docs/EVAL.md` and this report. The
+README's results table is the **post-fix** full-80 figures with Wilson
+intervals, plus the frozen-69 comparison against V0; the pre-fix numbers stay
+in A1 as measured "before" evidence and are never quoted as the system's
+performance.
+
+**A12's conclusion is carried into the README** (D32): the facts engine's value
+is stated as **robustness under free-tier limits, zero generator tokens and
+exact traceability — as well as accuracy, not instead of it** — and the README
+says plainly that **13 of the 36-item V3-versus-V1 gap is context budget**, so
+the headline does not rest on 36 alone.
+
+### 4. The report is reconciled end to end
+
+| section | was | now |
+|---|---|---|
+| header | "headline metrics are provisional" | final, with the verification tiers stated |
+| 1. Summary | pre-re-index figures; "the cross-encoder earns nothing" | marked superseded by A1; the cross-encoder bullet marked **refuted at n=45**; the facts-engine bullet carries A12's qualification |
+| 3. Tests | 1,173 | **1,428**, with the first-pass count explained rather than silently replaced |
+| 4.6 Ablations | n=15, conclusions favouring dense-only | marked superseded by A7; findings 1 and 2 struck as refuted, finding 3 kept with A5's boundary |
+| 4.7 D25 arm | "the re-index was deferred" | marked superseded by A8; relabelled as the control it was |
+| 6. Open defects | A–E open | **all five closed** (P4-11, P4-16), each with what the fix turned out to be; the withdrawn "not fixed" paragraph is named as withdrawn |
+| 7. Owner actions | four outstanding | all four resolved, including **one resolved as not done** |
+| 8. Gate checklist | two unchecked | one checked, one left **unchecked with the reason** |
+| 9. Proposals | three proposed | three struck as built or done |
+| 10. Appendix | 1,173 | current counts and the full regeneration command list |
+
+### 5. Phase tests and checks at closure
+
+| command | result |
+|---|---|
+| `make test` | **1,428 passed, 0 failed, 0 skipped** |
+| `make lint` | clean |
+| `python -m eval.gold.build_gold --check` | matches a fresh build |
+| `python -m eval.mini_eval` | 9/9, 0 look-ahead |
+| `make demo-check` | **12/12 PASS** in ~17 s (health, LLM state, 39 collections, 8 real queries, `scripts/smoke.py` 10/10) |
+| `make security` | PASS — hygiene clean, no tracked secrets, admin fail-closed with a negative control, 1 accepted advisory |
+
+### 6. What is deliberately not done
+
+- The scorer was **not** tightened. D31's "otherwise" branch says to tighten it
+  after listing the disagreements with the owner's ratings; with no usable
+  ratings there are no disagreements to tighten *towards*, and changing a
+  scorer against one's own intuition about which refusals are wrong is how a
+  measurement stops being independent of the thing it measures.
+- No new evaluation was run at P4-15. Every figure here comes from artifacts
+  already committed, re-read rather than re-measured.
